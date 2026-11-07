@@ -10,6 +10,26 @@ const CFG = {
   GAME_END: 900,          // 15:00 结束
   PROD_PER_POP: 0.03,
   NUKE_MUL: 1.8,          // 核武预算倍率
+  // 军工热度：持续投入核武，工厂越来越“热”，生产效率越高；突然转产的工厂是“冷”的
+  HEAT_FULL_AT: 0.4,      // 核武分配达到 40% 时热度目标为满
+  HEAT_UP: 100,           // 从冷到满热约 100 秒
+  HEAT_DOWN: 40,          // 停止投入后约 40 秒冷却
+  HEAT_MIN: 0.4,          // 冷工厂效率 ×0.4
+  HEAT_MAX: 1.4,          // 满热效率 ×1.4
+  HEAT_START: 0.3,        // 开局热度
+  // 情报：察觉“憋大招”的国家，各国联手先打
+  INTEL_TECH_LEAD: 3,     // 科技领先其他国家 3 项以上
+  INTEL_EARLY_LV5: 480,   // 8 分钟前就研发出东风
+  INTEL_STOCK: 25,        // 库存包裹达到 25 个（自动生产上限是 30）
+  INTEL_FOCUS: 40,        // 被察觉后 40 秒内成为各国首要目标
+  INTEL_CD: 90,           // 同一国家 90 秒内不重复触发
+  BYSTANDER_AFTER: 60,    // 超过 60 秒不出手，就开始招人恨（隔岸观火）
+  ANGER_MAX: 200,         // 怒气上限
+  ANGER_COOL_AFTER: 30,   // 两国超过 30 秒没有互相攻击，怒气开始回落
+  ANGER_HALF_LIFE: 60,    // 回落速度：约每 60 秒减半
+  AI_IDLE_FORCE: 60,      // AI 超过 60 秒没出手，必须打一轮
+  SCORE_DAMAGE: 0.4,      // 终局排名：综合得分 = 人口 + 造成伤亡 × 0.4
+
   PROD_BASE: 1.0,        // 保底产出：人口再少也有事可做
   UNDERDOG_MAX: 2.5,      // 弱势加成上限（人口低于平均时产出翻倍）
   REVENGE_BANK: 2.0,      // 每损失 1M 人口，获得的复仇预算
@@ -23,8 +43,13 @@ const CFG = {
   POP_CAP_MUL: 1.6,
   ENERGY_CAP: 150,
   BANK_CAP: 400,
+  MIRV_SPLIT: 0.42,       // 分弹头在 42% 航程处与母弹分离
   LOCK_RANGE: 3,          // 来袭目标进入本国领土，或距落点 3 格以内才会被锁定
   LOCK_TO_HIT: 1.0,       // 锁定后约 1 秒迎击
+  SMOKE_LIFE: 3.5,        // 蘑菇云基础持续时间（秒）
+  SMOKE_LIFE_PER: 1.4,    // 每级威力额外持续（3 级约 6 秒，东风约 9 秒）
+  SMOKE_CROWD: 0.07,      // 每多一朵同屏蘑菇云，烟的浓度降低 7%
+  SMOKE_MIN_ALPHA: 0.4,   // 烟最淡降到原来的 40%
   SHAKE_CLUSTER: 3,      // 2.5 秒内至少 3 枚核包裹爆炸才震屏
   SHAKE_COOLDOWN: 6,      // 两次震屏至少间隔 6 秒
   PADS_PER_NATION: 5,     // 陆基投送站数量（多点发射，天女散花）
@@ -45,7 +70,7 @@ const TECHS = [
   { id: 'net',   name: '拦截网升级',       cost: 90,  desc: '拦截弹 3 → 6 枚，命中率 60% → 75%。更多来袭包裹会变成烟花。' },
   { id: 'lv4',   name: '星际顺丰·闪送',   cost: 120, desc: '4 级包裹，蘑菇云自带彩虹边。' },
   { id: 'multi', name: '分装包裹',         cost: 120, desc: '每枚火箭一次装 3 个包裹。' },
-  { id: 'lv5',   name: '终极核平·到付',   cost: 160, desc: '5 级包裹。全屏白光，请对方签收。' },
+  { id: 'lv5',   name: '终极核平·东风',   cost: 160, desc: '5 级包裹“东风”。全屏白光，使命必达。' },
 ];
 
 // 包裹等级（纯游戏数值）
@@ -54,12 +79,13 @@ const PARCELS = {
   2: { name: '次日达', r: 1, dmg: 0.52, cost: 14, fizzle: 0.06, fx: 1.3, color: '#ffb35a' },
   3: { name: '当日达', r: 1, dmg: 0.65, cost: 16, fizzle: 0.04, fx: 1.9, color: '#ff8a4a' },
   4: { name: '闪送',   r: 2, dmg: 0.80, cost: 20, fizzle: 0.03, fx: 2.7, color: '#ff6ad5', rainbow: true },
-  5: { name: '到付',   r: 3, dmg: 0.95, cost: 60, fizzle: 0.03, fx: 4.0, color: '#ffffff', ultimate: true },
+  5: { name: '东风',   r: 3, dmg: 0.95, cost: 60, fizzle: 0.03, fx: 4.0, color: '#ffffff', ultimate: true },
 };
 
 // 常规导弹：不需要科技，便宜、飞得快、冷却短，但威力小、没有蘑菇云
 const CONV = {
-  cost: 6,            // 每枚预算（核包裹 12~60 + 运载工具）
+  cost: 8,            // 每枚预算（核包裹 12~60 + 运载工具）
+  buildTime: 2.5,     // 每枚生产耗时（秒），不再瞬间补满
   dmg: 0.07,          // 命中城市损失 7% 人口
   facChance: 0.35,    // 命中设施时 35% 打宕机
   cd: 3,              // 齐射冷却（秒）
@@ -82,46 +108,46 @@ const SKILLS = {
 
 const RACES = [
   {
-    id: 'human', name: '奥瑞恩联邦', emoji: '⭐', color: '#4da3ff',
-    trait: '均衡发展：科技 +10%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.1 }, special: '星辰投送',
-    cities: ['新晨港', '白岸', '铁桥市', '长风', '阿尔卡', '松岭'],
-    lines: { launch: '我们发明了投送，也发明了拒收。', hit: '这一定是个误会……我们马上回敬一个误会。', dead: '至少……我们曾经很文明。' },
+    id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
+    trait: '全民内卷：科技 +5%', weak: '没有明显弱点，也没有明显优点',
+    mods: { tech: 1.05 }, special: '加班投送',
+    cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
+    lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
   {
-    id: 'mole', name: '深岩邦联', emoji: '⛰', color: '#d0965a',
-    trait: '地下堡垒：护盾对核包裹减伤 97%（常规 85%）', weak: '科技 -15%',
-    mods: { tech: 0.85, shield: 0.97 }, special: '坑道直送',
-    cities: ['黑岩堡', '深井城', '石门', '坑道市', '铁砧', '地脉'],
-    lines: { launch: '我们的城市在地下三百米。请随意。', hit: '地面上的事，与我们无关。', dead: '我们……挖得还不够深。' },
+    id: 'mole', name: '刀盾', emoji: '🛡', color: '#d0965a',
+    trait: '盾坚如铁：护盾减伤 97%（常规 85%），冷却 -30%', weak: '科技 -4%',
+    mods: { tech: 0.96, shield: 0.97, shieldCd: 0.7 }, special: '盾后突刺',
+    cities: ['铁壁堡', '刀锋港', '盾城', '守望镇', '磐石市', '锋口'],
+    lines: { launch: '左手刀，右手盾，先砍你再说。', hit: '打不着，打不着，略略略。', dead: '盾……碎了……' },
   },
   {
-    id: 'octopus', name: '瀚海联合王国', emoji: '⚓', color: '#b67bff',
-    trait: '海洋霸主：潜航器造价 -40%，送达更快', weak: '投送站火箭造价 +30%',
-    mods: { sea: 0.6, rocket: 1.3, seaSpeed: 0.75 }, special: '深海速递',
-    cities: ['潮汐港', '珊瑚城', '深渊湾', '灯塔市', '浪岬', '海门'],
-    lines: { launch: '大海会记住每一次挑衅。', hit: '潮水会把这笔账带回去。', dead: '回归……大海……' },
+    id: 'octopus', name: '鱼叉', emoji: '🔱', color: '#b67bff',
+    trait: '深海猎手：潜航器造价 -40%，送达更快', weak: '投送站火箭造价 +10%',
+    mods: { sea: 0.6, rocket: 1.1, seaSpeed: 0.75 }, special: '一叉入魂',
+    cities: ['鱼叉湾', '捕鲸港', '渔场城', '浪尖镇', '礁石市', '深海口'],
+    lines: { launch: '鱼叉已上膛，目标锁定。', hit: '浪再大，也掀不翻我们的船。', dead: '回归……大海……' },
   },
   {
-    id: 'mushroom', name: '灰烬共和国', emoji: '🔥', color: '#ff5e8a',
-    trait: '灰烬中重生：辐射灰地块人口反而增长', weak: '初始人口 -20%',
-    mods: { pop: 0.8, dustLove: true }, special: '余烬包邮',
-    cities: ['余烬城', '灰原', '焦土镇', '硫磺港', '炉心', '赤岭'],
-    lines: { launch: '每一朵蘑菇云，都是回家的路。', hit: '灰烬里长出来的，才最坚硬。', dead: '我们终将……从灰里长回来……' },
+    id: 'mushroom', name: '吃土', emoji: '🥄', color: '#ff5e8a',
+    trait: '吃土长大：辐射灰地块人口反而增长', weak: '初始人口 -25%',
+    mods: { pop: 0.75, dustLove: true }, special: '吃土包邮',
+    cities: ['土坡村', '泥饼城', '月光镇', '尘埃港', '土豆岭', '灰原'],
+    lines: { launch: '反正已经在吃土了，不怕多吃一点。', hit: '谢谢投喂，再来点。', dead: '这次……真的只剩土了……' },
   },
   {
-    id: 'ai', name: '苍穹理事会', emoji: '🛰', color: '#3ef0d0',
-    trait: '机械躯体：科技 +20%，不怕辐射灰', weak: '人口增长 -30%',
-    mods: { tech: 1.2, growth: 0.7, dustImmune: true }, special: '光速云配送',
-    cities: ['枢纽-1', '主控城', '缓存港', '节点-7', '云端堡', '矩阵市'],
-    lines: { launch: '根据计算，你们的签收率为 100%。', hit: '检测到异常包裹。正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
+    id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
+    trait: '义体改造：科技 +8%，不怕辐射灰', weak: '人口增长 -30%',
+    mods: { tech: 1.08, growth: 0.7, dustImmune: true }, special: '光速云配送',
+    cities: ['霓虹市', '义体街', '电子港', '节点-7', '矩阵城', '云端堡'],
+    lines: { launch: '检测到你的城市即将离线。', hit: '义体受损……正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
   },
   {
-    id: 'roach', name: '长夜帝国', emoji: '🌑', color: '#e8d04a',
-    trait: '坚忍不拔：人口恢复 ×2', weak: '科技 -25%，包裹拒收率 +10%',
-    mods: { tech: 0.75, growth: 2.0, fizzle: 0.10 }, special: '长夜直达',
-    cities: ['夜城', '永冬堡', '暗河', '残月港', '寒鸦岭', '不眠城'],
-    lines: { launch: '你们打你们的，我们最后来收拾。', hit: '就这点力气？', dead: '长夜……终有尽头……' },
+    id: 'roach', name: '青铜', emoji: '🥉', color: '#e8d04a',
+    trait: '越级挑战：倒下也能爬起来，人口恢复 ×2', weak: '科技 -10%',
+    mods: { tech: 0.9, growth: 2.0 }, special: '小宇宙直达',
+    cities: ['青铜城', '小宇宙港', '燃烧镇', '越级堡', '不屈岭', '星光市'],
+    lines: { launch: '燃烧吧，小宇宙！', hit: '倒下了？我们还能再站起来！', dead: '小宇宙……燃尽了……' },
   },
 ];
 
@@ -150,8 +176,8 @@ const NEWS_FILLER = [
   '最新民调：98% 的受访者表示“刚才那是什么声音”',
   '房地产专家：地下室房价暴涨 3000%',
   '末日时钟维修工：“这钟走得也太快了”',
-  '长夜帝国发言人拒绝接受采访，只是笑了笑',
+  '青铜发言人拒绝接受采访，只是默默燃烧起了小宇宙',
   '某投送员获“年度最快送达奖”，领奖台已不存在',
-  '消协提醒：到付包裹请谨慎签收',
+  '气象台：今日有东风，各国请注意防范',
   '烟花厂老板：拦截网让我们失业了',
 ];

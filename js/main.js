@@ -152,6 +152,7 @@ function frame(ts) {
 Bus.on('news', (t) => { if (running) UI.addFeed(t); });
 Bus.on('leader', ({ n, text }) => UI.leader(n, text));
 Bus.on('banner', (t) => UI.banner(t));
+Bus.on('intel', (x) => { if (x.isPlayer) UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻'); });
 Bus.on('eliminated', (n) => {
   Render.buildBase();
   if (G.selTarget === n.id) G.selTarget = -1;

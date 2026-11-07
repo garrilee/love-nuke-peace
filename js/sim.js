@@ -27,6 +27,7 @@ function newGame(playerRaceId, aiCount) {
       parcels: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       ufoReady: 2, ufoReturn: [],
       conv: 3, convCd: 0,
+      heat: CFG.HEAT_START, lastAttack: -999, intelUntil: -1, intelCd: -1, hostileAt: {},
       subs: [],
       anger: nations.map(() => rnd(5, 20)),
       shieldT: 0, shieldCd: 0, netT: 0, netCd: 0, netCharges: 0,
@@ -75,6 +76,8 @@ function underdog(n) {
   const ratio = avg > 0 ? totalPop(n) / avg : 1;
   return clamp(1 + (1 - ratio) * 2, 1, CFG.UNDERDOG_MAX);
 }
+// 军工效率：冷工厂 ×0.4，满热 ×1.4
+const heatEff = (n) => CFG.HEAT_MIN + (CFG.HEAT_MAX - CFG.HEAT_MIN) * n.heat;
 function production(n) {
   let p = 0;
   for (const c of n.cities) p += c.pop * (c.ruined ? CFG.RUIN_PROD : 1);
@@ -106,12 +109,16 @@ function stepNation(n, dt) {
       n.techPts -= tech.cost; n.techIdx++;
       Bus.emit('tech', { n, tech });
       if (n.isPlayer) news(`你解锁了【${tech.name}】：${tech.desc}`);
-      else if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·到付】，全世界的投送员都瑟瑟发抖`);
+      else if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·东风】，全世界的投送员都瑟瑟发抖`);
     }
   } else {
     n.energy += prod * n.alloc.tech * 0.5 * dt;
   }
-  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * (G.midnight ? 3 : 1) * dt);
+  // 军工热度：向“当前核武分配对应的目标热度”缓慢靠拢；升温慢、降温快
+  const heatTarget = clamp(n.alloc.nuke / CFG.HEAT_FULL_AT, 0, 1);
+  const heatRate = (heatTarget > n.heat ? 1 / CFG.HEAT_UP : 1 / CFG.HEAT_DOWN) * dt;
+  n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
+  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * (G.midnight ? 3 : 1) * dt);
   n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE) * dt);
   autoBuild(n);
 
@@ -129,7 +136,7 @@ function stepNation(n, dt) {
     if (c.ruined || c.pop <= 0) continue;
     const deficit = G.midnight ? 0 : Math.max(0, 1 - c.pop / c.basePop);
     let g = CFG.GROWTH * (1 + deficit * CFG.RECOVER_GROWTH) * (n.mods.growth || 1);
-    if (n.mods.dustLove) g *= 1 + d * 1.5;
+    if (n.mods.dustLove) g *= 1 + d * 0.4;
     else if (!n.mods.dustImmune) { g *= Math.max(0, 1 - d); c.pop -= c.pop * d * 0.0015 * dt; }
     c.pop = Math.min(c.basePop * CFG.POP_CAP_MUL, c.pop + c.pop * g * dt);
   }
@@ -164,6 +171,7 @@ function stepNation(n, dt) {
   n.shieldT = Math.max(0, n.shieldT - dt); n.shieldCd = Math.max(0, n.shieldCd - dt);
   n.netT = Math.max(0, n.netT - dt); n.netCd = Math.max(0, n.netCd - dt);
   n.convCd = Math.max(0, n.convCd - dt);
+  n.convBuildT = Math.max(0, (n.convBuildT || 0) - dt);
 }
 
 function pickSeaTile(from) {
@@ -174,10 +182,11 @@ function pickSeaTile(from) {
 
 function autoBuild(n) {
   // 常规导弹：先保底几枚（核武未解锁时也能用）
-  while (n.conv < CONV.keepMin && n.bank >= CONV.cost) { n.bank -= CONV.cost; n.conv++; }
+  const buildConv = () => { if (n.convBuildT > 0 || n.bank < CONV.cost) return false; n.bank -= CONV.cost; n.conv++; n.convBuildT = CONV.buildTime; return true; };
+  if (n.conv < CONV.keepMin) buildConv();
   const lv = bestLevel(n);
   if (!lv) {
-    while (n.conv < CONV.stockCap && n.bank >= CONV.cost) { n.bank -= CONV.cost; n.conv++; }
+    if (n.conv < CONV.stockCap) buildConv();
     return;
   }
   for (let guard = 0; guard < 6; guard++) {
@@ -196,11 +205,11 @@ function autoBuild(n) {
     else if (has(n, 'sea') && seaBase && n.subs.length < CFG.MAX_SEA) { item = 'sea'; cost = COSTS.sea * (n.mods.sea || 1); }
     else if (ufoBase && ufoTotal < CFG.MAX_UFO) { item = 'ufo'; cost = COSTS.ufo; }
     else if (!n.isPlayer && dead) { item = 'fac'; cost = COSTS.facility; }
-    else if (n.conv < CONV.stockCap) { item = 'conv'; cost = CONV.cost; }
+    else if (n.conv < CONV.stockCap && n.convBuildT <= 0) { item = 'conv'; cost = CONV.cost; }
     else if (st < 30) { item = 'parcel'; cost = pc; }
     if (!item || n.bank < cost) return;
     n.bank -= cost;
-    if (item === 'conv') n.conv++;
+    if (item === 'conv') { n.conv++; n.convBuildT = CONV.buildTime; }
     else if (item === 'parcel') n.parcels[buyLv]++;
     else if (item === 'rocket') pad.missiles++;
     else if (item === 'sea') n.subs.push({ state: 'dock', timer: 3, rockets: 0, tile: seaBase.tile });
@@ -220,7 +229,7 @@ function collectSlots(n, legs) {
   }
   if (legs.ufo && facOf(n, 'ufo').some((f) => f.alive)) {
     const base = facOf(n, 'ufo').find((f) => f.alive);
-    for (let i = 0; i < n.ufoReady; i++) slots.push({ kind: 'ufo', src: base, cap: 1, tile: base.tile, flight: rnd(16, 24) });
+    for (let i = 0; i < n.ufoReady; i++) slots.push({ kind: 'ufo', src: base, cap: 1, tile: base.tile, flight: rnd(10, 14) });
   }
   return slots;
 }
@@ -270,7 +279,7 @@ function launch(att, tgt, scale, legs, count) {
   // 火箭（投送站 + 潜航器）优先，飞机补充；同一档里轮流从不同发射点出发——天女散花
   const slots = spreadOrder(collectSlots(att, legs));
   // 先给每枚火箭装 1 个包裹，让尽量多的发射点同时升空；发射点不够时才往同一枚火箭里加装（分装包裹）
-  const carried = new Map();
+  const carried = new Map(), leaders = new Map();
   let sent = 0, order = 0;
   const maxCap = slots.reduce((m, s) => Math.max(m, s.cap), 1);
   for (let j = 0; j < maxCap && N > 0; j++) {
@@ -279,15 +288,32 @@ function launch(att, tgt, scale, legs, count) {
       if (j >= s.cap) continue;
       const lv = takeParcel(att);
       if (!lv) { N = 0; break; }
-      const to = pickTargetTile(tgt);
-      const from = jitter(s.tile);
-      G.projectiles.push({
-        id: G.pid++, kind: s.kind, lv, att: att.id, tgt: tgt.id,
-        fx: from.x, fy: from.y, tile: to, tx: to.x, ty: to.y,
-        arcH: rnd(0.3, 0.62),                               // 弧线高低不一，尾迹像扇面一样散开
-        delay: order * 0.07 + rnd(0, 0.5) + j * 0.15, flight: s.flight * rnd(0.92, 1.08),
-        t: 0, launched: false, done: false,
-      });
+      const lead = leaders.get(s);
+      let to = pickTargetTile(tgt);
+      // 分弹头尽量打不同的地方，分离时才看得出“散开”
+      for (let tries = 0; lead && to === lead.tile && tries < 4; tries++) to = pickTargetTile(tgt);
+      if (lead) {
+        // 分装包裹：和同一枚火箭里的第一个包裹一起升空，飞到中途再分离，各自飞向自己的目标
+        lead.mirvLead = true;
+        G.projectiles.push({
+          id: G.pid++, kind: s.kind, lv, att: att.id, tgt: tgt.id,
+          fx: lead.fx, fy: lead.fy, tile: to, tx: to.x, ty: to.y,
+          arcH: lead.arcH, delay: lead.delay, flight: lead.flight,
+          mirvOf: lead.id, bx: lead.tx, by: lead.ty,
+          t: 0, launched: false, done: false,
+        });
+      } else {
+        const from = jitter(s.tile);
+        const proj = {
+          id: G.pid++, kind: s.kind, lv, att: att.id, tgt: tgt.id,
+          fx: from.x, fy: from.y, tile: to, tx: to.x, ty: to.y,
+          arcH: rnd(0.3, 0.62),                               // 弧线高低不一，尾迹像扇面一样散开
+          delay: order * 0.07 + rnd(0, 0.5), flight: s.flight * rnd(0.92, 1.08),
+          t: 0, launched: false, done: false,
+        };
+        G.projectiles.push(proj);
+        leaders.set(s, proj);
+      }
       carried.set(s, (carried.get(s) || 0) + 1);
       N--; sent++; order++;
     }
@@ -299,8 +325,9 @@ function launch(att, tgt, scale, legs, count) {
   }
   if (sent) {
     att.stats.sent += sent;
-    att.lastStrike = G.t;
+    att.lastStrike = G.t; att.lastAttack = G.t;
     tgt.anger[att.id] += 12;
+    markHostile(att, tgt);
     Bus.emit('launchOrder', { att, tgt, sent });
     news(`${att.race.emoji}${att.name} 向 ${tgt.race.emoji}${tgt.name} 投送了 ${sent} 个包裹`);
   }
@@ -330,9 +357,10 @@ function launchConv(att, tgt, scale, count) {
       delay: i * 0.09 + rnd(0, 0.25), flight: rnd(...CONV.flight), t: 0, launched: false, done: false,
     });
   }
-  att.conv -= N; att.convCd = CONV.cd;
+  att.conv -= N; att.convCd = CONV.cd; att.lastAttack = G.t;
   att.stats.convSent = (att.stats.convSent || 0) + N;
   tgt.anger[att.id] += 3;
+  markHostile(att, tgt);
   Bus.emit('launchOrder', { att, tgt, sent: N, conv: true });
   return N;
 }
@@ -468,6 +496,9 @@ function explode(tile, lv, att) {
   for (const n of G.nations) if (n.alive && totalPop(n) < CFG.DEATH_POP) eliminate(n);
 }
 
+// 记录“谁最近一次打了谁”：b.hostileAt[a] = a 最近一次攻击 b 的时间。
+// b 对 a 的怒气，只在 a 停手一段时间后才回落（b 自己还在打 a 不影响它冷静下来）
+function markHostile(a, b) { b.hostileAt[a.id] = G.t; }
 function knockFacility(f, owner) {
   f.alive = false; f.missiles = 0; f.rebuild = 0;
   if (f.type === 'ufo') owner.ufoReady = 0;
@@ -501,7 +532,7 @@ function eliminate(n) {
 // ---------- 技能 ----------
 function useShield(n) {
   if (!n.alive || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
-  n.energy -= COSTS.shield; n.shieldT = SKILLS.shield.dur; n.shieldCd = SKILLS.shield.cd;
+  n.energy -= COSTS.shield; n.shieldT = SKILLS.shield.dur; n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
@@ -580,9 +611,30 @@ function stepEvents() {
     news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.5，人口不再加速恢复，所有仓库清仓甩卖！');
     Bus.emit('banner', '🕛 午夜狂欢');
   }
+  if (G.t >= (G.nextIntel || 0)) { G.nextIntel = G.t + 5; checkIntel(); }
   if (G.t >= G.nextEvent) {
     G.nextEvent = G.t + rnd(50, 90);
     randomEvent();
+  }
+}
+
+// 情报：谁在“憋大招”？科技遥遥领先、过早研发出东风、或者库存暴涨，都会被各国察觉并联手针对
+function checkIntel() {
+  const alive = G.nations.filter((n) => n.alive);
+  if (alive.length < 3) return;
+  for (const x of alive) {
+    if (G.t < x.intelCd) continue;
+    const others = alive.filter((o) => o !== x);
+    const techLead = x.techIdx - Math.max(...others.map((o) => o.techIdx));
+    let why = null;
+    if (has(x, 'lv5') && G.t < CFG.INTEL_EARLY_LV5 && others.every((o) => !has(o, 'lv5'))) why = '已经秘密研发出了【东风】';
+    else if (techLead >= CFG.INTEL_TECH_LEAD) why = '的科技突飞猛进，正在憋大招';
+    else if (stock(x) >= CFG.INTEL_STOCK) why = `正在囤积核包裹（已超过 ${CFG.INTEL_STOCK} 个）`;
+    if (!why) continue;
+    x.intelUntil = G.t + CFG.INTEL_FOCUS; x.intelCd = G.t + CFG.INTEL_CD;
+    for (const o of others) o.anger[x.id] += 30;
+    news(`🕵 情报显示：${x.race.emoji}${x.name} ${why}！各国决定先下手为强`);
+    Bus.emit('intel', x);
   }
 }
 
@@ -625,10 +677,12 @@ function checkEnd() {
   if (!G.player.alive) return endGame(alive.length === 1 ? 'lose' : 'lose');
   if (alive.length === 1) return endGame('win');
   if (G.t >= CFG.GAME_END) {
-    const best = alive.slice().sort((a, b) => totalPop(b) - totalPop(a))[0];
+    const best = alive.slice().sort((a, b) => finalScore(b) - finalScore(a))[0];
     return endGame(best.isPlayer ? 'survive' : 'loseRank');
   }
 }
+// 终局综合得分：活着的人口 + 造成的伤亡（只苟着不打，得分不会高）
+function finalScore(n) { return totalPop(n) + n.stats.caused * CFG.SCORE_DAMAGE; }
 function endGame(kind) {
   if (G.over) return;
   G.over = kind;

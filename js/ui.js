@@ -86,7 +86,7 @@ const UI = {
     const p = G.player, a = p.alloc, prod = production(p);
     const done = p.techIdx >= TECHS.length;
     const tech = prod * a.tech * (p.mods.tech || 1);
-    const nuke = prod * a.nuke * CFG.NUKE_MUL * (G.midnight ? 3 : 1);
+    const nuke = prod * a.nuke * CFG.NUKE_MUL * heatEff(p) * (G.midnight ? 3 : 1);
     const def = prod * a.def + CFG.ENERGY_BASE + (done ? prod * a.tech * 0.5 : 0);
     const set = (k, html) => {
       const el = $('r-' + k);
@@ -105,6 +105,11 @@ const UI = {
     hints.push(`约每 ${nuke > 0 ? (per / nuke).toFixed(0) : '∞'} 秒造出一个包裹`);
     hints.push(`护盾能量 ${def > 0 ? Math.max(0, Math.ceil((COSTS.shield - p.energy) / def)) : '∞'} 秒后够用`);
     $('allocHint').innerHTML = hints.join('<br>');
+    // 军工热度条
+    const target = clamp(a.nuke / CFG.HEAT_FULL_AT, 0, 1);
+    const trend = target > p.heat + 0.02 ? '▲ 升温中' : target < p.heat - 0.02 ? '▼ 降温中' : '稳定';
+    $('heatBar').style.width = p.heat * 100 + '%';
+    $('heatTxt').textContent = `效率 ×${heatEff(p).toFixed(2)} · ${trend}`;
   },
 
   buildNationList() {
@@ -133,7 +138,7 @@ const UI = {
     for (const n of G.nations) {
       const d = $('nat-' + n.id);
       const pop = totalPop(n);
-      const anger = n.isPlayer ? '' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / 150, 0, 1) * 100}%"></i></div>`;
+      const anger = n.isPlayer ? '' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100}%"></i></div>`;
       d.classList.toggle('dead', !n.alive);
       d.classList.toggle('sel', G.target === n.id);
       d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n.isPlayer ? '<span class="tag">你</span>' : ''}</div>
@@ -213,7 +218,8 @@ const UI = {
     // 常规导弹
     $('ct-conv').textContent = p.conv;
     $('all-conv').textContent = '×' + p.conv;
-    $('sub-conv').textContent = p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s` : `每枚 💰${CONV.cost}`;
+    $('sub-conv').textContent = p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s`
+      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 ${p.convBuildT.toFixed(1)}s` : `每枚 💰${CONV.cost}`;
 
     const ok = hasT && p.alive;
     $('fire-nuke').disabled = !ok || D <= 0;
@@ -261,7 +267,7 @@ const UI = {
     }
     list.querySelectorAll('.tcard').forEach((d) => {
       const t = G.nations[+d.dataset.id];
-      const anger = clamp(t.anger[p.id] / 150, 0, 1);
+      const anger = clamp(t.anger[p.id] / CFG.ANGER_MAX, 0, 1);
       d.querySelector('.tbody').innerHTML = `<div class="tn">${t.name}</div>
         <div class="dim">👥 ${fmtPop(totalPop(t))} · 📦 ${stock(t)} · 🔬 ${t.techIdx}/${TECHS.length}</div>
         <div class="anger" title="对你的怒气"><i style="width:${anger * 100}%"></i></div>
@@ -348,10 +354,10 @@ const UI = {
     const survivor = alive[0];
     let title, sub;
     if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
-    else if (kind === 'survive') { title = '🏳 苟活胜利'; sub = '时间到，你是人口最多的那个。你赢了，大概吧。'; }
+    else if (kind === 'survive') { title = '🏳 积分胜利'; sub = '时间到，你的综合得分（人口 + 战绩）最高。'; }
     else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
-    else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🌑 长夜降临'; sub = '他们早就告诉过你：最后来收拾的，是他们。'; }
-    else if (kind === 'loseRank') { title = '📉 苟活失败'; sub = '时间到，别人比你活得更多一点。'; }
+    else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
+    else if (kind === 'loseRank') { title = '📉 积分落后'; sub = '时间到，别人的综合得分（人口 + 战绩）比你高。光苟着可不够。'; }
     else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${survivor.race.emoji}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
     const s = p.stats;
     const box = document.querySelector('#end .end-inner');
@@ -365,7 +371,7 @@ const UI = {
         <div>打成烟花 <b>${s.intercepted}</b></div>
         <div>护盾挡下 <b>${s.blocked || 0}</b></div>
         <div>重建城市 <b>${s.rebuilt}</b></div>
-        <div>最高人口 <b>${fmtPop(s.peakPop)}</b></div>
+        <div>综合得分 <b>${Math.round(finalScore(p))}</b></div>
       </div>
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       <button id="againBtn">再核平一次</button>`;

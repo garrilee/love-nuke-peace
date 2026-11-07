@@ -349,14 +349,24 @@ const Render = {
     ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
   },
 
-  arcPoint(p, u) {
-    const mx = (p.fx + p.tx) / 2, my = (p.fy + p.ty) / 2;
-    const d = Math.hypot(p.tx - p.fx, p.ty - p.fy);
+  arcTo(p, u, tx, ty) {
+    const mx = (p.fx + tx) / 2, my = (p.fy + ty) / 2;
+    const d = Math.hypot(tx - p.fx, ty - p.fy);
     const conv = p.kind === 'conv'; // 常规导弹：弹道低平；每发弧线高度略有不同
     const h = p.arcH || (conv ? 0.16 : 0.45);
     const cx = mx, cy = my - (d * h + (conv ? 8 : 30));
     const a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
-    return { x: a * p.fx + b * cx + c * p.tx, y: a * p.fy + b * cy + c * p.ty };
+    return { x: a * p.fx + b * cx + c * tx, y: a * p.fy + b * cy + c * ty };
+  },
+  // 分弹头：分离前和母弹走同一条轨迹，分离后平滑地拐向自己的目标
+  arcPoint(p, u) {
+    if (p.mirvOf === undefined) return this.arcTo(p, u, p.tx, p.ty);
+    const lead = this.arcTo(p, u, p.bx, p.by);
+    const S = CFG.MIRV_SPLIT;
+    if (u <= S) return lead;
+    const own = this.arcTo(p, u, p.tx, p.ty);
+    let k = clamp((u - S) / 0.3, 0, 1); k = k * k * (3 - 2 * k);
+    return { x: lerp(lead.x, own.x, k), y: lerp(lead.y, own.y, k) };
   },
 
   // 投射物当前位置（与绘制使用同一条轨迹）
@@ -410,20 +420,10 @@ const Render = {
         ctx.globalAlpha = 0.9; ctx.drawImage(S.warm, h.x - 4, h.y - 4, 8, 8);
         ctx.globalAlpha = 1;
       } else if (p.kind === 'rocket') {
-        const steps = 16, u0 = Math.max(0, u - 0.28);
-        ctx.lineWidth = 1.8 / Math.max(0.6, z);
-        let prev = this.arcPoint(p, u0);
-        for (let i = 1; i <= steps; i++) {
-          const uu = u0 + (u - u0) * (i / steps);
-          const pt = this.arcPoint(p, uu);
-          ctx.strokeStyle = rgba(col, (i / steps) * 0.9);
-          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
-          prev = pt;
-        }
-        const h = this.arcPoint(p, u);
-        ctx.globalAlpha = 0.9; ctx.drawImage(S.white, h.x - 5, h.y - 5, 10, 10);
-        ctx.globalAlpha = 0.6; ctx.drawImage(S.orange, h.x - 9, h.y - 9, 18, 18);
-        ctx.globalAlpha = 1;
+        // 分弹头在分离前不单独画（和母弹重合），母弹到达分离点时爆出一团光
+        if (p.mirvOf !== undefined && u < CFG.MIRV_SPLIT) continue;
+        if (p.mirvLead && !p.splitFx && u >= CFG.MIRV_SPLIT) { p.splitFx = true; const q = this.arcPoint(p, u); FX.mirvSplit(q.x, q.y, p.lv); }
+        this.drawRocketTrail(ctx, p, u, col, z, T);
         // 目标点预示圈（最后 3 秒）
         const left = p.delay + p.flight - p.t - (G.interp || 0);
         if (left < 3) {
@@ -435,6 +435,66 @@ const Render = {
       }
     }
     ctx.globalCompositeOperation = 'source-over';
+  },
+
+  // 火箭尾迹：包裹等级越高越华丽
+  //   1~2 级：国家颜色细尾迹；3 级：加外层光晕和火花；4 级：流动彩虹；5 级东风：金白双层长尾 + 脉动光环
+  drawRocketTrail(ctx, p, u, col, z, T) {
+    const S = FX.S, lv = p.lv || 1;
+    const len = lv >= 5 ? 0.45 : 0.18 + lv * 0.05;
+    const steps = 18, u0 = Math.max(p.mirvOf !== undefined ? CFG.MIRV_SPLIT - 0.05 : 0, u - len);
+    const w = (1.1 + lv * 0.22) / Math.max(0.6, z);   // 等级越高略粗，但不过分
+    const [cr, cg, cb] = hexToRgb(col);
+    const pts = [];
+    for (let i = 0; i <= steps; i++) pts.push(this.arcPoint(p, u0 + (u - u0) * (i / steps)));
+    const segColor = (i, a) => {
+      if (lv >= 5) return `rgba(255,${200 + Math.round(55 * i / steps)},${120 + Math.round(135 * i / steps)},${a})`;
+      if (lv === 4) return `hsla(${(T * 160 + i * 22 + p.id * 40) % 360},100%,65%,${a})`;
+      return `rgba(${cr},${cg},${cb},${a})`;
+    };
+    // 外层光晕（3 级以上）
+    if (lv >= 3) {
+      ctx.lineCap = 'round';
+      for (let i = 1; i <= steps; i++) {
+        const f = i / steps;
+        ctx.lineWidth = w * (lv >= 5 ? 2.8 : 2.1) * (0.4 + 0.6 * f);
+        ctx.strokeStyle = segColor(i, f * (lv >= 5 ? 0.22 : 0.16));
+        ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+      }
+    }
+    // 主尾迹
+    for (let i = 1; i <= steps; i++) {
+      const f = i / steps;
+      ctx.lineWidth = w * (0.35 + 0.65 * f);
+      ctx.strokeStyle = segColor(i, f * 0.95);
+      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    }
+    // 白色内芯（3 级以上）
+    if (lv >= 3) {
+      ctx.lineWidth = Math.max(0.6, w * 0.35);
+      for (let i = Math.floor(steps * 0.5); i <= steps; i++) {
+        ctx.strokeStyle = `rgba(255,255,255,${((i / steps) - 0.5) * 1.6})`;
+        ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+      }
+    }
+    ctx.lineCap = 'butt';
+    // 弹头
+    const h = pts[steps], hs = 7 + lv * 1.6;
+    ctx.globalAlpha = 0.95; ctx.drawImage(S.white, h.x - hs * 0.55, h.y - hs * 0.55, hs * 1.1, hs * 1.1);
+    ctx.globalAlpha = 0.65;
+    ctx.drawImage(lv === 4 ? FX.hue[Math.floor(T * 8 + p.id) % 12] : lv >= 5 ? S.warm : S.orange, h.x - hs, h.y - hs, hs * 2, hs * 2);
+    ctx.globalAlpha = 1;
+    if (lv >= 5) { // 东风：脉动光环
+      const r = (5 + 2.5 * Math.sin(T * 9 + p.id)) / Math.max(0.7, z);
+      ctx.strokeStyle = `rgba(255,230,160,${0.55 + 0.3 * Math.sin(T * 9 + p.id)})`; ctx.lineWidth = 1.2 / z;
+      ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    // 火花：3 级以上沿途洒落
+    if (lv >= 3 && Math.random() < 0.18 * (lv - 2)) {
+      const spr = lv === 4 ? FX.hue[Math.floor(Math.random() * 12)] : lv >= 5 ? S.warm : S.orange;
+      const vr = (lo, hi) => lo + Math.random() * (hi - lo); // 纯视觉随机，不影响游戏逻辑的随机序列
+      FX.part({ x: h.x, y: h.y, vx: vr(-14, 14), vy: vr(-6, 18), life: vr(0.4, 0.8), size: vr(1.2, 2.4), sprite: spr, grav: 25, drag: 1.5 });
+    }
   },
 
   // 飞机：略带弧度的航线、双道尾迹、机翼航行灯

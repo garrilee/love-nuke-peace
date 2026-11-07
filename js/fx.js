@@ -77,7 +77,19 @@ const FX = {
       this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6 - rnd(15, 45), life: rnd(0.5, 1.1), size: rnd(1.5, 3), sprite: this.S.orange, grav: 60, drag: 1.2 });
     }
     for (let i = 0; i < 6; i++) {
-      this.part({ x: x + rnd(-4, 4), y: y + rnd(-3, 3), vx: rnd(-6, 6), vy: rnd(-22, -10), life: rnd(1.8, 2.8), size: R * 0.25, grow: R * 0.3, sprite: this.S.smoke, add: false, alpha: 0.55, drag: 0.8, delay: 0.1, fire: 1 });
+      this.part({ x: x + rnd(-4, 4), y: y + rnd(-3, 3), vx: rnd(-6, 6), vy: rnd(-22, -10), life: rnd(1.2, 1.8), size: R * 0.25, grow: R * 0.3, sprite: this.S.smoke, add: false, alpha: 0.55, drag: 0.8, delay: 0.1, fire: 1 });
+    }
+  },
+
+  // 分弹头分离：空中一团闪光 + 小冲击环 + 向四周散开的火花
+  mirvSplit(x, y, lv) {
+    const vr = (lo, hi) => lo + Math.random() * (hi - lo);
+    this.part({ x, y, life: 0.35, size: 14 + lv * 3, grow: 30, sprite: this.S.white });
+    this.rings.push({ x, y, R: HEX_W * (1 + lv * 0.25), age: 0, life: 0.45, w: 1.4, fast: true });
+    for (let i = 0; i < 10 + lv * 3; i++) {
+      const a = Math.random() * Math.PI * 2, v = vr(25, 60);
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, life: vr(0.3, 0.7), size: vr(1.2, 2.2),
+        sprite: lv === 4 ? this.hue[i % 12] : lv >= 5 ? this.S.warm : this.S.cyan, drag: 2 });
     }
   },
 
@@ -112,7 +124,7 @@ const FX = {
     this.flash = Math.max(this.flash, Math.min(0.95, 0.25 + s * 0.16) * (near ? 1 : 0.6));
     this.tint = Math.max(this.tint, Math.min(0.45, 0.1 + s * 0.08) * (near ? 1 : 0.5));
     if (lv >= 3) setTimeout(() => { this.flash = Math.max(this.flash, 0.5); }, 220); // 二段闪
-    // 震屏只在“短时间内多枚核包裹接连爆炸”时触发（或者 5 级到付），并且有冷却，避免晃眼
+    // 震屏只在“短时间内多枚核包裹接连爆炸”时触发（或者 5 级东风），并且有冷却，避免晃眼
     const now = performance.now() / 1000;
     this.recentNukes = (this.recentNukes || []).filter((t) => now - t < 2.5);
     this.recentNukes.push(now);
@@ -156,15 +168,15 @@ const FX = {
     // 地面尘环
     for (let i = 0; i < 18; i++) {
       const a = (i / 18) * Math.PI * 2;
-      this.part({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.2, vx: Math.cos(a) * R * 0.9, vy: Math.sin(a) * R * 0.5, life: 2.5 + s * 0.4, size: R * 0.25, grow: R * 0.25, sprite: this.S.smoke, add: false, alpha: 0.45, drag: 1.4, delay: 0.15 });
+      this.part({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.2, vx: Math.cos(a) * R * 0.9, vy: Math.sin(a) * R * 0.5, life: 1.6 + s * 0.25, size: R * 0.25, grow: R * 0.25, sprite: this.S.smoke, add: false, alpha: 0.45, drag: 1.4, delay: 0.15 });
     }
     this.mushroom(x, y, R, s, lv, P);
-    if (P.ultimate) this.text(x, y - R * 2.8 - 20, '请签收', '#ffffff', 1.8);
+    if (P.ultimate) this.text(x, y - R * 2.8 - 20, '东风到', '#ffffff', 1.8);
   },
 
   // 增强版蘑菇云：火柱 → 翻滚的云帽（内部火光）→ 冷凝裙边 → 逐渐冷却成烟
   mushroom(x, y, R, s, lv, P) {
-    const H = R * (2.2 + s * 0.12), capW = R * (1.25 + s * 0.06), life = 7 + s * 2.2;
+    const H = R * (2.2 + s * 0.12), capW = R * (1.25 + s * 0.06), life = CFG.SMOKE_LIFE + s * CFG.SMOKE_LIFE_PER;
     const capY = y - H;
     // 火柱光（加色）
     this.columns.push({ x, y, top: capY, w: R * 0.45, age: -0.15, life: 2.6 + s * 0.4 });
@@ -210,7 +222,7 @@ const FX = {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
         this.part({ orbit: true, cx: x, cy: y - H * 0.62, ang: a, rad: capW * 0.75, av: 0.15, rise: H * 0.02, expand: capW * 0.35,
-          life: 3.2, size: capW * 0.2, grow: capW * 0.18, sprite: this.S.smokeLight, add: false, alpha: 0.4, delay: 0.9, drag: 0 });
+          life: 2.2, size: capW * 0.2, grow: capW * 0.18, sprite: this.S.smokeLight, add: false, alpha: 0.4, delay: 0.9, drag: 0 });
       }
     }
   },
@@ -357,11 +369,17 @@ const FX = {
     }
     ctx.globalAlpha = 1;
     // 粒子
+    // 同屏蘑菇云越多，烟越稀：避免大规模轰炸后整片地图被烟挡住
+    const crowd = clamp(1.1 - this.capGlows.length * CFG.SMOKE_CROWD, CFG.SMOKE_MIN_ALPHA, 1);
     for (const p of this.parts) {
       if (p.delay > 0) continue;
       const k = p.age / p.life;
       const fadeIn = Math.min(1, p.age / 0.25);
-      const a = p.alpha * fadeIn * (1 - k * k);
+      // 火光/火星照旧；烟雾从一开始就慢慢变淡，后半程淡得更快
+      // 烟雾：前 35% 的寿命保持浓烈（爆炸时的震撼感不变），之后才变淡、变稀
+      const late = clamp((k - 0.35) / 0.65, 0, 1);
+      const a = p.add ? p.alpha * fadeIn * (1 - k * k)
+        : p.alpha * fadeIn * Math.pow(1 - late, 1.4) * lerp(1, crowd, late);
       if (a <= 0.01) continue;
       const s = p.size;
       ctx.globalCompositeOperation = p.add ? 'lighter' : 'source-over';
