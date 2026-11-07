@@ -130,10 +130,10 @@ function generateWorld(seed, raceIds, playerRaceId) {
       t.fac = f; used.add(t); facilities.push(f); nation.facilities.push(f);
       return f;
     };
-    place('pad', (t) => t.terrain === 'desert' || t.terrain === 'plain' || t.terrain === 'mountain');
-    place('pad', (t) => t.terrain === 'desert' || t.terrain === 'plain' || t.terrain === 'mountain');
-    place('ufo', (t) => t.terrain === 'plain' || t.terrain === 'desert' || t.terrain === 'forest');
+    // 先放海底仓（占住海岸）和机场，再把投送站撒满国土
     if (own.some((t) => t.coastal)) place('sea', (t) => t.coastal);
+    place('ufo', (t) => t.terrain === 'plain' || t.terrain === 'desert' || t.terrain === 'forest');
+    for (let k = 0; k < CFG.PADS_PER_NATION; k++) place('pad', (t) => t.terrain !== 'ice');
     nations.push(nation);
   }
 

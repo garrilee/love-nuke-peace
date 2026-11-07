@@ -352,8 +352,9 @@ const Render = {
   arcPoint(p, u) {
     const mx = (p.fx + p.tx) / 2, my = (p.fy + p.ty) / 2;
     const d = Math.hypot(p.tx - p.fx, p.ty - p.fy);
-    const conv = p.kind === 'conv'; // 常规导弹：弹道低平
-    const cx = mx, cy = my - (conv ? d * 0.16 + 8 : d * 0.45 + 30);
+    const conv = p.kind === 'conv'; // 常规导弹：弹道低平；每发弧线高度略有不同
+    const h = p.arcH || (conv ? 0.16 : 0.45);
+    const cx = mx, cy = my - (d * h + (conv ? 8 : 30));
     const a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
     return { x: a * p.fx + b * cx + c * p.tx, y: a * p.fy + b * cy + c * p.ty };
   },

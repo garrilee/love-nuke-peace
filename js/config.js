@@ -27,9 +27,10 @@ const CFG = {
   LOCK_TO_HIT: 1.0,       // 锁定后约 1 秒迎击
   SHAKE_CLUSTER: 3,      // 2.5 秒内至少 3 枚核包裹爆炸才震屏
   SHAKE_COOLDOWN: 6,      // 两次震屏至少间隔 6 秒
-  PAD_CAP: 4,
-  SEA_CAP: 4,
-  MAX_SEA: 2,
+  PADS_PER_NATION: 5,     // 陆基投送站数量（多点发射，天女散花）
+  PAD_CAP: 3,             // 每个投送站的火箭数
+  SEA_CAP: 3,             // 每艘潜航器的火箭数
+  MAX_SEA: 4,             // 每国最多潜航器数
   MAX_UFO: 6,
   RUIN_PROD: 0.5,
 };

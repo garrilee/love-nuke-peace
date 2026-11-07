@@ -224,6 +224,25 @@ function collectSlots(n, legs) {
   }
   return slots;
 }
+// 把发射槽按“发射点”轮流排列：每个发射点先出一发，再轮第二发……
+function spreadOrder(slots) {
+  const tiers = [slots.filter((s) => s.kind !== 'ufo'), slots.filter((s) => s.kind === 'ufo')];
+  const out = [];
+  for (const tier of tiers) {
+    const groups = new Map();
+    for (const s of shuffle(tier.slice())) {
+      if (!groups.has(s.src)) groups.set(s.src, []);
+      groups.get(s.src).push(s);
+    }
+    const lists = [...groups.values()];
+    for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) out.push(l[i]);
+  }
+  return out;
+}
+// 发射位置在发射点附近随机偏一点，避免多发从同一个像素升起
+function jitter(tile) {
+  return { x: tile.x + rnd(-0.35, 0.35) * HEX_W, y: tile.y + rnd(-0.3, 0.3) * HEX_W };
+}
 function slotCapacity(n, legs) { return collectSlots(n, legs).reduce((s, x) => s + x.cap, 0); }
 function deliverable(n, legs) { return bestLevel(n) ? Math.min(stock(n), slotCapacity(n, legs)) : 0; }
 
@@ -248,30 +267,35 @@ function launch(att, tgt, scale, legs, count) {
   const D = deliverable(att, legs);
   if (D <= 0) return 0;
   let N = count ? Math.min(count, D) : sendCount(D, scale);
-  const slots = collectSlots(att, legs);
-  // 快递站优先，其次海底仓，最后无人机
-  slots.sort((a, b) => (a.kind === 'ufo') - (b.kind === 'ufo') || (!!a.sub) - (!!b.sub));
-  let sent = 0;
-  for (const s of slots) {
-    if (N <= 0) break;
-    let carried = 0;
-    for (let j = 0; j < s.cap && N > 0; j++) {
+  // 火箭（投送站 + 潜航器）优先，飞机补充；同一档里轮流从不同发射点出发——天女散花
+  const slots = spreadOrder(collectSlots(att, legs));
+  // 先给每枚火箭装 1 个包裹，让尽量多的发射点同时升空；发射点不够时才往同一枚火箭里加装（分装包裹）
+  const carried = new Map();
+  let sent = 0, order = 0;
+  const maxCap = slots.reduce((m, s) => Math.max(m, s.cap), 1);
+  for (let j = 0; j < maxCap && N > 0; j++) {
+    for (const s of slots) {
+      if (N <= 0) break;
+      if (j >= s.cap) continue;
       const lv = takeParcel(att);
-      if (!lv) break;
+      if (!lv) { N = 0; break; }
       const to = pickTargetTile(tgt);
-      const from = s.tile;
+      const from = jitter(s.tile);
       G.projectiles.push({
         id: G.pid++, kind: s.kind, lv, att: att.id, tgt: tgt.id,
         fx: from.x, fy: from.y, tile: to, tx: to.x, ty: to.y,
-        delay: rnd(0, 1.2) + j * 0.15, flight: s.flight, t: 0, launched: false, done: false,
+        arcH: rnd(0.3, 0.62),                               // 弧线高低不一，尾迹像扇面一样散开
+        delay: order * 0.07 + rnd(0, 0.5) + j * 0.15, flight: s.flight * rnd(0.92, 1.08),
+        t: 0, launched: false, done: false,
       });
-      N--; sent++; carried++;
+      carried.set(s, (carried.get(s) || 0) + 1);
+      N--; sent++; order++;
     }
-    if (carried > 0) {
-      if (s.kind === 'ufo') { att.ufoReady--; att.ufoReturn.push(G.t + s.flight * 2); }
-      else if (s.sub) s.src.rockets--;
-      else s.src.missiles--;
-    }
+  }
+  for (const s of carried.keys()) {
+    if (s.kind === 'ufo') { att.ufoReady--; att.ufoReturn.push(G.t + s.flight * 2); }
+    else if (s.sub) s.src.rockets--;
+    else s.src.missiles--;
   }
   if (sent) {
     att.stats.sent += sent;
@@ -290,14 +314,20 @@ function launchConv(att, tgt, scale, count) {
   const N = count ? Math.min(count, att.conv) : convSalvo(att, scale);
   if (N <= 0) return 0;
   // 从投送站或城市发射
-  const origins = [...facOf(att, 'pad').filter((f) => f.alive).map((f) => f.tile), ...att.cities.filter((c) => !c.ruined && c.pop > 0).map((c) => c.tile)];
+  // 投送站、城市、出海的潜航器都能发射常规导弹，轮流使用不同发射点
+  const origins = shuffle([
+    ...facOf(att, 'pad').filter((f) => f.alive).map((f) => f.tile),
+    ...att.cities.filter((c) => !c.ruined && c.pop > 0).map((c) => c.tile),
+    ...att.subs.filter((s) => s.state === 'out').map((s) => s.tile),
+  ]);
   if (!origins.length) return 0;
   for (let i = 0; i < N; i++) {
-    const from = pick(origins), to = pickTargetTile(tgt);
+    const from = jitter(origins[i % origins.length]), to = pickTargetTile(tgt);
     G.projectiles.push({
       id: G.pid++, kind: 'conv', lv: 0, att: att.id, tgt: tgt.id,
       fx: from.x, fy: from.y, tile: to, tx: to.x, ty: to.y,
-      delay: i * 0.18 + rnd(0, 0.15), flight: rnd(...CONV.flight), t: 0, launched: false, done: false,
+      arcH: rnd(0.1, 0.24),
+      delay: i * 0.09 + rnd(0, 0.25), flight: rnd(...CONV.flight), t: 0, launched: false, done: false,
     });
   }
   att.conv -= N; att.convCd = CONV.cd;
