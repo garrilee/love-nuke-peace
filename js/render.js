@@ -1,0 +1,536 @@
+// ===================== 渲染：夜景地球风格的六边形世界 =====================
+'use strict';
+
+const EDGE_CORNERS = [[0, 1], [5, 0], [4, 5], [3, 4], [2, 3], [1, 2]]; // E NE NW W SW SE
+const TERRAIN_COLOR = {
+  deep: [4, 10, 22], ocean: [8, 26, 48], plain: [26, 38, 26], forest: [16, 32, 24],
+  desert: [44, 38, 24], mountain: [42, 42, 50], ice: [70, 84, 98],
+};
+
+const Render = {
+  canvas: null, ctx: null, dpr: 1, w: 0, h: 0,
+  cam: { x: WORLD_W / 2, y: WORLD_H / 2, zoom: 1 },
+  base: null, scorch: null, BS: 2,
+  nationPaths: [], nationCenters: [],
+  hoverTile: null, time: 0,
+
+  init(canvas) {
+    this.canvas = canvas; this.ctx = canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  },
+  resize() {
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.w = window.innerWidth; this.h = window.innerHeight;
+    this.canvas.width = this.w * this.dpr; this.canvas.height = this.h * this.dpr;
+    this.canvas.style.width = this.w + 'px'; this.canvas.style.height = this.h + 'px';
+    if (typeof G !== 'undefined' && G && this.base) this.fit(); // 窗口变化时地图重新居中
+  },
+  fit() {
+    // 可视区：避开左侧国家栏、右侧新闻栏、顶栏和底栏
+    const side = this.w > 900 ? 296 : 8;
+    const L = side, Rt = side, Tp = 58, Bt = 40;
+    const aw = Math.max(200, this.w - L - Rt), ah = Math.max(200, this.h - Tp - Bt);
+    this.cam.zoom = Math.min(aw / WORLD_W, ah / WORLD_H);
+    const cx = L + aw / 2, cy = Tp + ah / 2;
+    this.cam.x = WORLD_W / 2 - (cx - this.w / 2) / this.cam.zoom;
+    this.cam.y = WORLD_H / 2 - (cy - this.h / 2) / this.cam.zoom;
+  },
+  screenToWorld(sx, sy) {
+    return { x: (sx - this.w / 2) / this.cam.zoom + this.cam.x, y: (sy - this.h / 2) / this.cam.zoom + this.cam.y };
+  },
+  tileAt(sx, sy) {
+    const p = this.screenToWorld(sx, sy);
+    const h = pixelToHex(p.x, p.y);
+    if (h.c < 0 || h.r < 0 || h.c >= CFG.MAP_COLS || h.r >= CFG.MAP_ROWS) return null;
+    return G.world.T(h.c, h.r);
+  },
+
+  // ---------- 静态底图 ----------
+  buildBase() {
+    const W = G.world, BS = this.BS;
+    const c = document.createElement('canvas');
+    c.width = WORLD_W * BS; c.height = WORLD_H * BS;
+    const x = c.getContext('2d');
+    x.scale(BS, BS);
+    x.fillStyle = '#030812'; x.fillRect(0, 0, WORLD_W, WORLD_H);
+    const fbm = makeNoise(12345);
+    for (const t of W.tiles) {
+      const [r, g, b] = TERRAIN_COLOR[t.terrain];
+      const n = (fbm(t.c * 0.4, t.r * 0.4, 2) - 0.5) * 18;
+      x.fillStyle = `rgb(${clamp(r + n, 0, 255) | 0},${clamp(g + n, 0, 255) | 0},${clamp(b + n * 1.2, 0, 255) | 0})`;
+      this.hexPath(x, t.x, t.y, CFG.HEX + 0.6); x.fill();
+    }
+    // 网格
+    x.strokeStyle = 'rgba(255,255,255,0.035)'; x.lineWidth = 0.6;
+    for (const t of W.tiles) { this.hexPath(x, t.x, t.y, CFG.HEX); x.stroke(); }
+    // 山地高光
+    for (const t of W.tiles) if (t.terrain === 'mountain') {
+      x.fillStyle = 'rgba(255,255,255,0.06)';
+      x.beginPath(); x.moveTo(t.x - 6, t.y + 4); x.lineTo(t.x, t.y - 6); x.lineTo(t.x + 6, t.y + 4); x.closePath(); x.fill();
+    }
+    // 海岸线发光
+    x.save();
+    x.shadowColor = 'rgba(90,190,255,0.9)'; x.shadowBlur = 6;
+    x.strokeStyle = 'rgba(110,200,255,0.35)'; x.lineWidth = 1.1;
+    this.strokeEdges(x, (a, b) => W.isLand(a) && !W.isLand(b));
+    x.restore();
+    // 国家领土
+    this.nationPaths = []; this.nationCenters = []; this.borderPaths = [];
+    for (const n of G.nations) {
+      const path = new Path2D();
+      let sx = 0, sy = 0, k = 0;
+      for (const t of W.tiles) if (t.owner === n.id) {
+        const pts = hexCorners(t.x, t.y, CFG.HEX + 0.5);
+        path.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < 6; i++) path.lineTo(pts[i][0], pts[i][1]);
+        path.closePath(); sx += t.x; sy += t.y; k++;
+      }
+      this.nationPaths[n.id] = path;
+      this.borderPaths[n.id] = this.edgePath((a, b) => a.owner === n.id && b.owner !== n.id);
+      this.nationCenters[n.id] = { x: sx / Math.max(1, k), y: sy / Math.max(1, k) };
+      x.fillStyle = n.alive ? rgba(n.color, 0.09) : 'rgba(60,60,60,0.25)';
+      x.fill(path);
+    }
+    x.save();
+    for (const n of G.nations) {
+      const col = n.alive ? n.color : '#555555';
+      x.shadowColor = col; x.shadowBlur = n.alive ? 8 : 0;
+      x.strokeStyle = rgba(col, n.alive ? 0.85 : 0.5); x.lineWidth = 1.5;
+      this.strokeEdges(x, (a, b) => a.owner === n.id && b.owner !== n.id);
+    }
+    x.restore();
+    this.base = c;
+    if (!this.scorch) {
+      this.scorch = document.createElement('canvas');
+      this.scorch.width = c.width; this.scorch.height = c.height;
+    }
+  },
+  resetScorch() { this.scorch = null; },
+  hexPath(x, cx, cy, size) {
+    const pts = hexCorners(cx, cy, size);
+    x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < 6; i++) x.lineTo(pts[i][0], pts[i][1]);
+    x.closePath();
+  },
+  // 只包含国境线（不含国内六边形的边）的路径
+  edgePath(test) {
+    const W = G.world, path = new Path2D();
+    for (const t of W.tiles) {
+      const dirs = (t.r & 1) ? NB_ODD : NB_EVEN;
+      const pts = hexCorners(t.x, t.y, CFG.HEX);
+      dirs.forEach(([dc, dr], i) => {
+        const nc = t.c + dc, nr = t.r + dr;
+        const nb = (nc < 0 || nr < 0 || nc >= CFG.MAP_COLS || nr >= CFG.MAP_ROWS) ? { owner: -2 } : W.T(nc, nr);
+        if (!test(t, nb)) return;
+        const [a, b] = EDGE_CORNERS[i];
+        path.moveTo(pts[a][0], pts[a][1]); path.lineTo(pts[b][0], pts[b][1]);
+      });
+    }
+    return path;
+  },
+  strokeEdges(x, test) {
+    const W = G.world;
+    x.beginPath();
+    for (const t of W.tiles) {
+      const dirs = (t.r & 1) ? NB_ODD : NB_EVEN;
+      const pts = hexCorners(t.x, t.y, CFG.HEX);
+      dirs.forEach(([dc, dr], i) => {
+        const nc = t.c + dc, nr = t.r + dr;
+        if (nc < 0 || nr < 0 || nc >= CFG.MAP_COLS || nr >= CFG.MAP_ROWS) return;
+        const nb = W.T(nc, nr);
+        if (!test(t, nb)) return;
+        const [a, b] = EDGE_CORNERS[i];
+        x.moveTo(pts[a][0], pts[a][1]); x.lineTo(pts[b][0], pts[b][1]);
+      });
+    }
+    x.stroke();
+  },
+  addScorch(wx, wy, R, lv) {
+    if (!this.scorch) return;
+    const x = this.scorch.getContext('2d');
+    x.save(); x.scale(this.BS, this.BS);
+    const g = x.createRadialGradient(wx, wy, 0, wx, wy, R);
+    g.addColorStop(0, 'rgba(8,5,4,0.75)');
+    g.addColorStop(0.5, 'rgba(30,16,10,0.45)');
+    g.addColorStop(1, 'rgba(30,16,10,0)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(wx, wy, R, R * 0.8, 0, 0, Math.PI * 2); x.fill();
+    for (let i = 0; i < 6 + lv * 3; i++) {
+      const a = Math.random() * 6.28, d = Math.random() * R * 0.7;
+      x.fillStyle = 'rgba(0,0,0,0.35)';
+      x.beginPath(); x.arc(wx + Math.cos(a) * d, wy + Math.sin(a) * d * 0.8, Math.random() * 3 + 1, 0, 6.28); x.fill();
+    }
+    x.restore();
+  },
+
+  // ---------- 每帧 ----------
+  draw(dt) {
+    this.time += dt;
+    const ctx = this.ctx, cam = this.cam, z = cam.zoom, T = this.time;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.fillStyle = '#01040a'; ctx.fillRect(0, 0, this.w, this.h);
+    if (!G || !this.base) return;
+    const sh = FX.shake;
+    const sx = sh ? (Math.random() - 0.5) * sh : 0, sy = sh ? (Math.random() - 0.5) * sh : 0;
+    ctx.save();
+    ctx.translate(this.w / 2 + sx, this.h / 2 + sy);
+    const pz = z * (1 + FX.punch); // 爆炸时镜头猛地一推
+    ctx.scale(pz, pz);
+    ctx.translate(-cam.x, -cam.y);
+
+    ctx.drawImage(this.base, 0, 0, WORLD_W, WORLD_H);
+    ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
+    const S = FX.S;
+
+    // 我方国土：更亮的底色 + 呼吸发光的金色国境线
+    const me = G.player;
+    if (me.alive && this.nationPaths[me.id]) {
+      const pulse = 0.5 + 0.5 * Math.sin(T * 2.2);
+      ctx.save();
+      ctx.fillStyle = rgba(me.color, 0.13 + 0.05 * pulse); ctx.fill(this.nationPaths[me.id]);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = '#ffd27a'; ctx.shadowBlur = 16 + 8 * pulse;
+      ctx.strokeStyle = `rgba(255,215,120,${0.65 + 0.3 * pulse})`; ctx.lineWidth = 3.2 / z;
+      ctx.stroke(this.borderPaths[me.id]);
+      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1 / z;
+      ctx.stroke(this.borderPaths[me.id]);
+      ctx.restore();
+    }
+    // 当前打击目标：红色呼吸国境 + 淡红底色
+    const tg = G.nations[G.target];
+    if (tg && tg.alive && this.borderPaths[tg.id]) {
+      const pulse = 0.5 + 0.5 * Math.sin(T * 4);
+      ctx.save();
+      ctx.fillStyle = `rgba(255,50,40,${0.07 + 0.05 * pulse})`; ctx.fill(this.nationPaths[tg.id]);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 14 + 8 * pulse;
+      ctx.strokeStyle = `rgba(255,70,50,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 3.2 / z;
+      ctx.stroke(this.borderPaths[tg.id]);
+      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,220,210,0.85)'; ctx.lineWidth = 1 / z;
+      ctx.stroke(this.borderPaths[tg.id]);
+      ctx.restore();
+    }
+    // 选目标窗口里悬停预览 / 护盾
+    for (const n of G.nations) {
+      const path = this.nationPaths[n.id];
+      if (!path || !n.alive) continue;
+      if (G.selTarget === n.id) {
+        ctx.fillStyle = rgba('#ff3b3b', 0.08 + 0.05 * Math.sin(T * 5));
+        ctx.fill(path);
+      }
+      if (n.shieldT > 0) { // 护盾：覆盖全国的能量罩，快结束时闪烁
+        const fade = n.shieldT < 2 ? (Math.sin(T * 20) > 0 ? 1 : 0.4) : 1;
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(90,200,255,${(0.16 + 0.06 * Math.sin(T * 6)) * fade})`; ctx.fill(path);
+        ctx.shadowColor = '#6cf'; ctx.shadowBlur = 14;
+        ctx.strokeStyle = `rgba(150,235,255,${0.9 * fade})`; ctx.lineWidth = 3.5 / z; ctx.stroke(this.borderPaths[n.id]);
+        ctx.restore();
+      }
+    }
+
+    // 灰尘（辐射）
+    ctx.globalCompositeOperation = 'lighter';
+    for (const t of G.world.tiles) {
+      if (t.rad < 0.03) continue;
+      const a = Math.min(0.55, t.rad * 0.35) * (0.8 + 0.2 * Math.sin(T * 2 + t.phase));
+      ctx.globalAlpha = a;
+      const s = CFG.HEX * 2.4;
+      ctx.drawImage(S.green, t.x - s / 2, t.y - s / 2, s, s);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    FX.drawGround(ctx);
+
+    this.drawCities(ctx, z, T);
+    this.drawFacilities(ctx, z, T);
+    this.drawProjectiles(ctx, z, T);
+    FX.drawAir(ctx);
+    this.drawLabels(ctx, z);
+    FX.drawTexts(ctx, z);
+
+    if (this.hoverTile) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2 / z;
+      this.hexPath(ctx, this.hoverTile.x, this.hoverTile.y, CFG.HEX); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ---- 屏幕层 ----
+    const w = this.w, h = this.h;
+    const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
+    if (G.player.alive && incomingFor(G.player).length) {
+      const a = 0.18 + 0.12 * Math.sin(T * 7);
+      const rg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.7);
+      rg.addColorStop(0, 'rgba(255,0,0,0)'); rg.addColorStop(1, `rgba(255,20,20,${a})`);
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
+    }
+    FX.drawScreen(ctx, w, h);
+  },
+
+  drawCities(ctx, z, T) {
+    const S = FX.S;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const c of G.world.cities) {
+      const b = c.basePop > 0 ? clamp(c.pop / c.basePop, 0, 1.4) : 0;
+      const x = c.tile.x, y = c.tile.y;
+      if (c.ruined) {
+        for (let i = 0; i < c.lights.length; i += 3) {
+          const L = c.lights[i];
+          const f = 0.5 + 0.5 * Math.sin(T * 5 + L.ph * 3);
+          ctx.globalAlpha = 0.5 * f;
+          ctx.drawImage(S.red, x + L.x - 2.5, y + L.y - 2.5, 5, 5);
+        }
+        continue;
+      }
+      const core = CFG.HEX * (1.6 + Math.sqrt(b) * 1.2) * (c.isCapital ? 1.25 : 1);
+      ctx.globalAlpha = 0.22 + 0.1 * b;
+      ctx.drawImage(S.warm, x - core / 2, y - core / 2, core, core);
+      for (const L of c.lights) {
+        if (L.rank > b) continue;
+        const f = 0.75 + 0.25 * Math.sin(T * 3 + L.ph);
+        const s = 3.2 * L.s;
+        ctx.globalAlpha = 0.75 * f;
+        ctx.drawImage(S.warm, x + L.x - s / 2, y + L.y - s / 2, s, s);
+      }
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    for (const c of G.world.cities) {
+      const n = G.nations[c.nation];
+      const x = c.tile.x, y = c.tile.y;
+      if (c.isCapital && n.alive) {
+        ctx.fillStyle = n.color;
+        ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3, y); ctx.closePath(); ctx.fill();
+      }
+      if (c.rebuild > 0) this.progressRing(ctx, x, y, 9, 1 - c.rebuild / 20, '#7dffb0', z);
+    }
+  },
+
+  drawFacilities(ctx, z, T) {
+    for (const f of G.world.facilities) {
+      const n = G.nations[f.nation];
+      const x = f.tile.x, y = f.tile.y;
+      if (!f.alive) {
+        ctx.strokeStyle = 'rgba(255,80,60,0.6)'; ctx.lineWidth = 1.5 / z;
+        ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
+        if (f.rebuild > 0) this.progressRing(ctx, x, y, 8, 1 - f.rebuild / 20, '#7dffb0', z);
+        continue;
+      }
+      ctx.save();
+      ctx.shadowColor = n.color; ctx.shadowBlur = 8;
+      ctx.strokeStyle = n.color; ctx.fillStyle = rgba(n.color, 0.25); ctx.lineWidth = 1.4 / z;
+      ctx.beginPath();
+      if (f.type === 'pad') { ctx.moveTo(x, y - 6); ctx.lineTo(x + 5, y + 4); ctx.lineTo(x - 5, y + 4); ctx.closePath(); }
+      else if (f.type === 'ufo') { ctx.ellipse(x, y + 1, 7, 2.8, 0, 0, Math.PI * 2); ctx.moveTo(x + 3.5, y); ctx.arc(x, y, 3.5, 0, Math.PI, true); }
+      else if (f.type === 'sea') { ctx.moveTo(x - 6, y + 2); ctx.quadraticCurveTo(x - 3, y - 3, x, y + 2); ctx.quadraticCurveTo(x + 3, y - 3, x + 6, y + 2); }
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+      if (f.type === 'pad' && f.missiles > 0) {
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < f.missiles; i++) ctx.fillRect(x - 4 + i * 3, y + 6, 2, 2);
+      }
+    }
+    // 玩家潜航器（敌方不可见）
+    const p = G.player;
+    if (p.alive) for (const s of p.subs) {
+      if (s.state !== 'out') continue;
+      const x = s.tile.x, y = s.tile.y + Math.sin(T * 1.5 + s.tile.phase) * 1.5;
+      ctx.save(); ctx.shadowColor = '#6cf'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#9be8ff';
+      ctx.beginPath(); ctx.ellipse(x, y, 6, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 1, y - 4, 2, 3);
+      ctx.restore();
+    }
+  },
+
+  progressRing(ctx, x, y, r, k, color, z) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 2 / z;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
+  },
+
+  arcPoint(p, u) {
+    const mx = (p.fx + p.tx) / 2, my = (p.fy + p.ty) / 2;
+    const d = Math.hypot(p.tx - p.fx, p.ty - p.fy);
+    const conv = p.kind === 'conv'; // 常规导弹：弹道低平
+    const cx = mx, cy = my - (conv ? d * 0.16 + 8 : d * 0.45 + 30);
+    const a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, c = u * u;
+    return { x: a * p.fx + b * cx + c * p.tx, y: a * p.fy + b * cy + c * p.ty };
+  },
+
+  // 投射物当前位置（与绘制使用同一条轨迹）
+  // 渲染用的进度：逻辑每 0.1 秒才走一步，这里补上两步之间已经过去的时间，飞行才平滑
+  renderU(p) {
+    return clamp((p.t + (G.interp || 0) - p.delay) / p.flight, 0, 1);
+  },
+  projPos(p) {
+    const u = this.renderU(p);
+    return p.kind === 'ufo' ? this.planePos(p, u) : this.arcPoint(p, u);
+  },
+  // 被拦截弹锁定：目标周围一圈圈向外扩散的波纹 + 柔和呼吸的光点
+  drawLock(ctx, p, z, T) {
+    const pos = this.projPos(p);
+    const age = T - (p.lockT || T);                 // 刚锁定时波纹从小到大出现
+    const intro = Math.min(1, age / 0.3);
+    const ph = (T * 1.6 + p.id * 0.37) % 1;
+    for (let k = 0; k < 2; k++) {
+      const f = (ph + k * 0.5) % 1;
+      ctx.strokeStyle = `rgba(130,235,255,${(1 - f) * 0.85 * intro})`;
+      ctx.lineWidth = 1.4 / Math.max(0.6, z);
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 4 + f * 12 * intro, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = (0.45 + 0.35 * Math.sin(T * 7 + p.id)) * intro;
+    ctx.drawImage(FX.S.cyan, pos.x - 7, pos.y - 7, 14, 14);
+    ctx.globalAlpha = 1;
+  },
+
+  drawProjectiles(ctx, z, T) {
+    const S = FX.S;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of G.projectiles) {
+      if (!p.launched) continue;
+      if (p.locked && !p.engaged) {
+        if (p.lockT === undefined) p.lockT = T;
+        this.drawLock(ctx, p, z, T);
+      } else p.lockT = undefined;
+      const u = this.renderU(p);
+      const col = G.nations[p.att].color;
+      if (p.kind === 'conv') {
+        const u0 = Math.max(0, u - 0.2), steps = 8;
+        ctx.lineWidth = 1.1 / Math.max(0.6, z);
+        let prev = this.arcPoint(p, u0);
+        for (let i = 1; i <= steps; i++) {
+          const pt = this.arcPoint(p, u0 + (u - u0) * (i / steps));
+          ctx.strokeStyle = `rgba(255,230,170,${(i / steps) * 0.7})`;
+          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+          prev = pt;
+        }
+        const h = this.arcPoint(p, u);
+        ctx.globalAlpha = 0.9; ctx.drawImage(S.warm, h.x - 4, h.y - 4, 8, 8);
+        ctx.globalAlpha = 1;
+      } else if (p.kind === 'rocket') {
+        const steps = 16, u0 = Math.max(0, u - 0.28);
+        ctx.lineWidth = 1.8 / Math.max(0.6, z);
+        let prev = this.arcPoint(p, u0);
+        for (let i = 1; i <= steps; i++) {
+          const uu = u0 + (u - u0) * (i / steps);
+          const pt = this.arcPoint(p, uu);
+          ctx.strokeStyle = rgba(col, (i / steps) * 0.9);
+          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+          prev = pt;
+        }
+        const h = this.arcPoint(p, u);
+        ctx.globalAlpha = 0.9; ctx.drawImage(S.white, h.x - 5, h.y - 5, 10, 10);
+        ctx.globalAlpha = 0.6; ctx.drawImage(S.orange, h.x - 9, h.y - 9, 18, 18);
+        ctx.globalAlpha = 1;
+        // 目标点预示圈（最后 3 秒）
+        const left = p.delay + p.flight - p.t - (G.interp || 0);
+        if (left < 3) {
+          ctx.strokeStyle = `rgba(255,80,60,${0.5 + 0.4 * Math.sin(T * 14)})`; ctx.lineWidth = 1 / z;
+          ctx.beginPath(); ctx.arc(p.tx, p.ty, 5 + left * 3, 0, Math.PI * 2); ctx.stroke();
+        }
+      } else {
+        this.drawPlane(ctx, p, u, col, z);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  },
+
+  // 飞机：略带弧度的航线、双道尾迹、机翼航行灯
+  planePos(p, u) {
+    const dx = p.tx - p.fx, dy = p.ty - p.fy, d = Math.hypot(dx, dy) || 1;
+    const bend = Math.sin(u * Math.PI) * d * 0.12;
+    return { x: p.fx + dx * u - (dy / d) * bend, y: p.fy + dy * u + (dx / d) * bend };
+  },
+  drawPlane(ctx, p, u, col, z) {
+    const pos = this.planePos(p, u), ahead = this.planePos(p, Math.min(1, u + 0.01));
+    const ang = Math.atan2(ahead.y - pos.y, ahead.x - pos.x);
+    // 尾迹
+    const u0 = Math.max(0, u - 0.22), steps = 14;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const off of [-2.2, 2.2]) {
+      let prev = null;
+      for (let i = 0; i <= steps; i++) {
+        const uu = u0 + (u - u0) * (i / steps);
+        const q = this.planePos(p, uu), a2 = ang + Math.PI / 2;
+        const pt = { x: q.x + Math.cos(a2) * off, y: q.y + Math.sin(a2) * off };
+        if (prev) {
+          ctx.strokeStyle = `rgba(220,235,255,${(i / steps) * 0.45})`;
+          ctx.lineWidth = (0.6 + (1 - i / steps) * 1.6) / Math.max(0.6, z);
+          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+        }
+        prev = pt;
+      }
+    }
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(FX.sprite('p' + col, ...hexToRgb(col)), pos.x - 12, pos.y - 12, 24, 24);
+    ctx.globalAlpha = 1;
+    // 机身
+    ctx.save();
+    ctx.translate(pos.x, pos.y); ctx.rotate(ang);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = col; ctx.shadowBlur = 8;
+    ctx.fillStyle = '#e9f2ff';
+    ctx.beginPath();
+    ctx.moveTo(7, 0);            // 机头
+    ctx.lineTo(2, -1.1);
+    ctx.lineTo(0, -6.5);         // 左翼
+    ctx.lineTo(-2.2, -6.5);
+    ctx.lineTo(-1.5, -1.2);
+    ctx.lineTo(-5, -1);
+    ctx.lineTo(-6.5, -3.2);      // 左尾翼
+    ctx.lineTo(-7.5, -3.2);
+    ctx.lineTo(-6.8, 0);
+    ctx.lineTo(-7.5, 3.2);       // 右尾翼
+    ctx.lineTo(-6.5, 3.2);
+    ctx.lineTo(-5, 1);
+    ctx.lineTo(-1.5, 1.2);
+    ctx.lineTo(-2.2, 6.5);       // 右翼
+    ctx.lineTo(0, 6.5);
+    ctx.lineTo(2, 1.1);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = col; ctx.fillRect(-3, -0.7, 6, 1.4);
+    // 航行灯：左红右绿，闪烁
+    if (Math.sin(this.time * 8 + p.id) > 0) {
+      ctx.fillStyle = '#ff4040'; ctx.fillRect(-1.6, -6.8, 1.4, 1.4);
+      ctx.fillStyle = '#40ff70'; ctx.fillRect(-1.6, 5.4, 1.4, 1.4);
+    }
+    ctx.restore();
+    ctx.globalCompositeOperation = 'lighter';
+  },
+
+  drawLabels(ctx, z) {
+    ctx.textAlign = 'center';
+    for (const n of G.nations) {
+      const c = this.nationCenters[n.id];
+      if (!c) continue;
+      ctx.font = `bold ${Math.round(16 / Math.max(0.8, z))}px "Microsoft YaHei", sans-serif`;
+      if (n.isPlayer && n.alive) { // 我方标签：醒目的金色
+        ctx.save();
+        ctx.shadowColor = '#ffb030'; ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffe2a0';
+        ctx.fillText('★ ' + n.race.emoji + ' ' + n.name + '（我方）', c.x, c.y - 26);
+        ctx.restore();
+        continue;
+      }
+      if (n.id === G.target && n.alive) { // 目标标签：红色
+        ctx.save();
+        ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 10;
+        ctx.fillStyle = '#ffb0a0';
+        ctx.fillText('🎯 ' + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
+        ctx.restore();
+        continue;
+      }
+      ctx.fillStyle = rgba(n.alive ? n.color : '#888888', n.alive ? 0.35 : 0.3);
+      ctx.fillText(n.race.emoji + ' ' + n.name + (n.alive ? '' : '（已核平）'), c.x, c.y - 26);
+    }
+    if (z > 0.95) {
+      ctx.font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
+      for (const c of G.world.cities) {
+        ctx.fillStyle = c.ruined ? 'rgba(255,120,100,0.7)' : 'rgba(255,240,210,0.75)';
+        ctx.fillText(c.name, c.tile.x, c.tile.y + 18);
+      }
+    }
+  },
+};

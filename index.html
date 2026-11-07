@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>热爱核平</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="topbar" class="panel">
+    <div class="logo">☢ 热爱核平</div>
+    <div id="date" class="mono">1945年1月</div>
+    <div id="speed">
+      <button data-speed="0" title="暂停 (空格)">⏸</button>
+      <button data-speed="1" class="on">1×</button>
+      <button data-speed="2">2×</button>
+      <button data-speed="3">3×</button>
+    </div>
+    <div id="timer" class="mono">00:00 / 15:00</div>
+    <div id="doom" title="末日时钟：距离午夜还有多少分钟">🕐 距午夜 <b>17</b> 分</div>
+    <button id="mute" title="静音">🔊</button>
+  </div>
+
+  <!-- 左侧：本国信息 · 国力分配 · 世界各国 -->
+  <div id="leftcol" class="sidecol">
+    <div id="stats" class="panel"></div>
+    <div id="alloc" class="panel">
+      <div class="sect-title">国力分配</div>
+      <label>🔬 科技 <input type="range" min="0" max="100" id="sl-tech"><span id="v-tech" class="mono pct"></span></label>
+      <div class="raterow"><span id="r-tech" class="mono rate"></span></div>
+      <label>☢ 核武 <input type="range" min="0" max="100" id="sl-nuke"><span id="v-nuke" class="mono pct"></span></label>
+      <div class="raterow"><span id="r-nuke" class="mono rate"></span></div>
+      <label>🛡 三防 <input type="range" min="0" max="100" id="sl-def"><span id="v-def" class="mono pct"></span></label>
+      <div class="raterow"><span id="r-def" class="mono rate"></span></div>
+      <div id="allocHint" class="hint"></div>
+    </div>
+    <div id="nations" class="panel"></div>
+  </div>
+
+  <!-- 当前打击目标：地图上方居中 -->
+  <div id="targetBadge" class="hidden"></div>
+
+  <!-- 来袭警报：目标条下方 -->
+  <div id="incoming" class="panel alert hidden"></div>
+
+  <div id="chooser" class="hidden">
+    <div class="chooser-inner panel">
+      <div class="sect-title">选择打击目标</div>
+      <div id="chooserInfo" class="dim"></div>
+      <div id="chooserList"></div>
+      <div class="hint">点击国家设为目标 · 数字键 1~5 快速选择 · Esc 取消 · 也可以直接点击地图上的敌国</div>
+    </div>
+  </div>
+
+  <!-- 右侧：投送 · 防御重建 -->
+  <div id="rightcol" class="sidecol">
+    <div id="strike" class="panel">
+      <div class="phead"><span class="sect-title">打 击</span></div>
+
+      <!-- 选择目标：只负责选，不发射 -->
+      <button id="pickTarget" class="targetbtn" title="选择打击目标（Tab）。也可以直接点击地图上的敌国">
+        <span class="tlabel">打击目标</span>
+        <span class="tname" id="targetName">未选择 · 点击选择</span><kbd>Tab</kbd></button>
+
+      <!-- 核包裹 -->
+      <div class="firerow" id="row-nuke">
+        <div class="ammoinfo"><span class="ic">☢</span><span class="lb">核包裹</span><span class="stock mono" id="ct-nuke">0</span><span class="sub" id="sub-nuke"></span></div>
+        <button class="fire" id="fire-nuke" title="单击发射 1 个；按住蓄力，松开发射（F）">
+          <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+          <span class="num" id="num-nuke">1</span><span class="cap">按住蓄力</span><kbd>F</kbd></button>
+        <button class="allin" id="allin-nuke" title="按住 0.4 秒：一次发射全部可用核包裹（Shift+F）">
+          <i class="fill"></i><span>梭哈</span><span class="sub" id="all-nuke">×0</span><kbd>⇧F</kbd></button>
+      </div>
+
+      <!-- 常规导弹 -->
+      <div class="firerow conv" id="row-conv">
+        <div class="ammoinfo"><span class="ic">💥</span><span class="lb">常规导弹</span><span class="stock mono" id="ct-conv">0</span><span class="sub" id="sub-conv"></span></div>
+        <button class="fire" id="fire-conv" title="单击发射 1 枚；按住蓄力，松开发射（C）">
+          <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+          <span class="num" id="num-conv">1</span><span class="cap">按住蓄力</span><kbd>C</kbd></button>
+        <button class="allin" id="allin-conv" title="按住 0.4 秒：一次发射全部常规导弹（Shift+C）">
+          <i class="fill"></i><span>梭哈</span><span class="sub" id="all-conv">×0</span><kbd>⇧C</kbd></button>
+      </div>
+
+      <div id="strikeTarget" class="status"></div>
+    </div>
+
+    <div id="skills" class="panel">
+      <div class="phead"><span class="sect-title">防 御</span><span class="mono small" id="energyTxt"></span></div>
+      <div class="skillgrid">
+        <button id="sk-shield" class="skill" title="护盾 (B)：全国领土防御 8 秒。常规导弹全部挡下，核包裹伤害 -85%，城市不会变废墟、设施不会宕机。⚡40，冷却 30 秒。适合应对大量来袭。">
+          <kbd>B</kbd><span class="ic">🛡</span><span class="nm">护盾</span><span class="st" id="st-shield"></span><i class="cdbar" id="cd-shield"></i></button>
+        <button id="sk-net" class="skill" title="拦截 (N)：12 秒内发射 3 枚拦截弹（升级后 6 枚），每枚自动迎击一个来袭目标，60%（升级后 75%）击毁。⚡18，冷却 28 秒。适合应对少量来袭。">
+          <kbd>N</kbd><span class="ic">🎆</span><span class="nm">拦截</span><span class="st" id="st-net"></span><i class="cdbar" id="cd-net"></i></button>
+      </div>
+      <div class="toggles">
+        <label class="switch" title="只要有来袭、拦截不在冷却中，就自动开启拦截"><input type="checkbox" id="sk-autonet" checked><span class="knob"></span>自动拦截</label>
+        <label class="switch" title="自动重建废墟城市（⚡10/座）和宕机设施（💰15/个），始终给护盾留够能量"><input type="checkbox" id="sk-autorebuild" checked><span class="knob"></span>自动重建</label>
+      </div>
+      <div id="rebuildStatus" class="small dim"></div>
+    </div>
+  </div>
+
+  <div id="ticker"><div id="tickerInner"></div></div>
+</div>
+
+<div id="tooltip" class="hidden"></div>
+<div id="leader" class="hidden"></div>
+<div id="banner" class="hidden"></div>
+
+<!-- ============ START ============ -->
+<div id="start">
+  <div class="start-inner">
+    <h1>热爱核平</h1>
+    <div class="slogan">“我们热爱和平，所以要让世界变得——平。”</div>
+    <div class="pick-title">选择你的国家</div>
+    <div id="races"></div>
+    <div class="start-opts">
+      <label>AI 对手数量
+        <select id="aiCount"><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+      </label>
+    </div>
+    <button id="startBtn" disabled>按下按钮，开始核平</button>
+    <div class="howto">
+      空格 暂停 · 滚轮缩放 · 拖拽平移 · Tab 或点击敌国选目标 · 按住 F 蓄力发射核包裹 · 按住 C 蓄力发射常规导弹 · Shift+F / Shift+C 梭哈<br>
+      包裹来袭时：少量用 N 拦截，大量用 B 护盾 · R 重建。单局约 15 分钟，最后活下来的就是“和平”。
+    </div>
+  </div>
+</div>
+
+<!-- ============ END ============ -->
+<div id="end" class="hidden"><div class="end-inner"></div></div>
+
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/map.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
