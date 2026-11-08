@@ -30,7 +30,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
       alloc: { tech: 0.5, nuke: 0.3, def: 0.2 },
       techPts: 0, techIdx: 0,
       bank: 0, energy: 40,
-      parcels: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      parcels: { 1: CFG.START_PARCELS, 2: 0, 3: 0, 4: 0, 5: 0 },
       ufoReady: 2, ufoReturn: [],
       conv: 3, convCd: 0,
       heat: CFG.HEAT_START, lastAttack: -999, intelUntil: -1, intelCd: -1, hostileAt: {},

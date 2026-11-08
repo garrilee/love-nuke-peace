@@ -274,9 +274,10 @@ const UI = {
       : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 ${p.convBuildT.toFixed(1)}s` : `每枚 💰${CONV.cost}`;
 
     const ok = hasT && p.alive;
-    $('fire-nuke').disabled = !ok || D <= 0;
+    const holding = (ammo) => !!(Fire.charging && Fire.charging.ammo === ammo); // 按住期间不禁用，保证松手能收到
+    $('fire-nuke').disabled = (!ok || D <= 0) && !holding('nuke');
     $('allin-nuke').disabled = !ok || D <= 0;
-    $('fire-conv').disabled = !ok || p.conv <= 0;
+    $('fire-conv').disabled = (!ok || p.conv <= 0) && !holding('conv');
     $('allin-conv').disabled = !ok || p.conv <= 0;
     Fire.syncIdle();
 

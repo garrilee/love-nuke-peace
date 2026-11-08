@@ -58,6 +58,7 @@ const CFG = {
   MAX_SEA: 4,             // 每国最多潜航器数
   MAX_UFO: 6,
   RUIN_PROD: 0.5,
+  START_PARCELS: 5,       // 每个国家开局自带 5 个 1 级核包裹（研发出「普通件」后即可投送）
 };
 
 // 科技（按顺序解锁）

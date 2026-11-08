@@ -134,6 +134,7 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 .fire .cap { font-size: 9px; color: rgba(255,255,255,0.8); margin-top: 2px; }
 .fire kbd { top: auto; bottom: -2px; right: 50%; transform: translateX(50%); }
 .fire:disabled { filter: grayscale(0.8); box-shadow: none; }
+.fire, .allin, .skill { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } /* 手机长按不弹系统菜单 */
 
 .allin { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; border-radius: 8px;
   font-weight: 900; letter-spacing: 1px; color: #fff; background: rgba(120, 20, 60, 0.6); border-color: #ff5aa0; touch-action: none; }

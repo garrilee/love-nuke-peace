@@ -78,17 +78,19 @@ const Fire = {
     const s = t - 0.2;
     return 1 + Math.floor(s * 3 + s * s * 2.5);
   },
-  progressAt(t) {   // 当前这一格的进度（圆环）
-    if (t < 0.2) return t / 0.2 * 0.3;
+  // 当前这一格的进度（圆环）：第一圈从按下开始一路匀速转满，正好在数量变成 2 时转完，不会中途跳回去
+  FIRST_LAP: 0.2 + (Math.sqrt(19) - 3) / 5,   // 数量第一次 +1 的时刻（约 0.47 秒）
+  progressAt(t) {
+    if (t < this.FIRST_LAP) return t / this.FIRST_LAP;
     const s = t - 0.2, v = s * 3 + s * s * 2.5;
     return v - Math.floor(v);
   },
-  begin(ammo) {
+  begin(ammo, pid = -1) {
     if (this.charging || fireMax(ammo) <= 0 || !G.nations[G.target] || !G.nations[G.target].alive) {
       if (!G.nations[G.target] || !G.nations[G.target].alive) UI.banner('🎯 先选择打击目标（Tab 或点击地图上的敌国）');
       return;
     }
-    this.charging = { ammo, start: performance.now(), count: 1 };
+    this.charging = { ammo, start: performance.now(), count: 1, pid };
     $('fire-' + ammo).classList.add('charging');
   },
   release(fire = true) {
@@ -135,16 +137,24 @@ const Fire = {
       this.ring(ammo, 0, fireMax(ammo) > 0 ? 1 : 0);
     }
   },
+  // 松开一定发射：手机长按会触发系统菜单（contextmenu）、系统手势会取消触摸（pointercancel），
+  // 这些都不能当成"取消"；想取消请按 Esc
   bindFire(btn, ammo) {
-    btn.onpointerdown = (e) => { if (e.button !== 0 || btn.disabled) return; try { btn.setPointerCapture(e.pointerId); } catch (_) {} this.begin(ammo); };
+    btn.onpointerdown = (e) => { if (e.button !== 0 || btn.disabled) return; try { btn.setPointerCapture(e.pointerId); } catch (_) {} this.begin(ammo, e.pointerId); };
     btn.onpointerup = () => this.release(true);
-    btn.onpointercancel = () => this.release(false);
-    btn.oncontextmenu = (e) => { e.preventDefault(); this.release(false); };
+    btn.onpointercancel = () => this.release(true);
+    btn.oncontextmenu = (e) => e.preventDefault();
+  },
+  // 兜底：按钮在按住期间被禁用、或者松手时指针不在按钮上，都由窗口收到的 pointerup 来发射
+  onWindowUp(e) {
+    if (this.charging && this.charging.pid === e.pointerId) this.release(true);
+    if (this.allin) this.endAllIn();
   },
   bindAllIn(btn, ammo) {
     btn.onpointerdown = (e) => { if (e.button !== 0 || btn.disabled) return; try { btn.setPointerCapture(e.pointerId); } catch (_) {} this.beginAllIn(ammo); };
     btn.onpointerup = () => this.endAllIn();
     btn.onpointercancel = () => this.endAllIn();
+    btn.oncontextmenu = (e) => e.preventDefault();
   },
 };
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
@@ -345,6 +355,8 @@ function setupInput() {
     if ((k === 'f' && Fire.charging.ammo === 'nuke') || (k === 'c' && Fire.charging.ammo === 'conv')) Fire.release(true);
   });
   window.addEventListener('blur', () => { Fire.release(false); Fire.endAllIn(); });
+  window.addEventListener('pointerup', (e) => Fire.onWindowUp(e));
+  window.addEventListener('pointercancel', (e) => Fire.onWindowUp(e));
 }
 
 // 返回 true 表示弹出了国家浮窗
