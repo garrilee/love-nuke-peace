@@ -279,6 +279,7 @@ const FX = {
     const T = Render.time;
     ctx.globalCompositeOperation = 'lighter';
     for (const f of this.fires) {
+      if (!Render.visibleRect(f.x - 7 * f.s, f.y - 5 * f.s, 14 * f.s, 10 * f.s)) continue;
       const k = f.age / f.life, it = Math.min(1, f.age / 1.2) * Math.pow(1 - k, 0.6);
       const fl = 0.65 + 0.35 * Math.sin(T * 11 + f.ph) * Math.sin(T * 6.7 + f.ph * 1.7);
       const s = f.s;
@@ -433,6 +434,7 @@ const FX = {
   drawGround(ctx) {
     ctx.globalCompositeOperation = 'lighter';
     for (const g of this.glows) {
+      if (!Render.visibleRect(g.x - g.R, g.y - g.R * 0.7, g.R * 2, g.R * 1.4)) continue;
       const k = 1 - g.age / g.life;
       const fl = 0.85 + Math.sin(g.age * 9 + g.x) * 0.15;
       ctx.globalAlpha = k * 0.7 * fl;
@@ -440,6 +442,7 @@ const FX = {
     }
     // 爆心照亮大地
     for (const g of this.groundFlash) {
+      if (!Render.visibleRect(g.x - g.R, g.y - g.R * 0.75, g.R * 2, g.R * 1.5)) continue;
       const k = g.age / g.life;
       ctx.globalAlpha = Math.pow(1 - k, 2) * 0.9;
       ctx.drawImage(this.S.warm, g.x - g.R, g.y - g.R * 0.75, g.R * 2, g.R * 1.5);
@@ -453,6 +456,8 @@ const FX = {
     for (const r of this.rings) {
       if (r.age < 0) continue;
       const k = r.age / r.life, rad = r.R * (1 - Math.pow(1 - k, r.fast ? 3 : 2.2));
+      const pad = Math.max(r.w * (1 - k) + 0.5, r.fast ? 0 : r.w * 4 * (1 - k)) / 2;
+      if (!Render.visibleRect(r.x - rad - pad, r.y - rad * 0.62 - pad, 2 * (rad + pad), 2 * (rad * 0.62 + pad))) continue;
       ctx.lineWidth = r.w * (1 - k) + 0.5;
       if (r.rainbow) ctx.strokeStyle = `hsla(${(r.age * 400) % 360},100%,70%,${(1 - k) * 0.8})`;
       else if (r.shield) ctx.strokeStyle = `rgba(120,230,255,${(1 - k) * 0.95})`;
@@ -469,6 +474,8 @@ const FX = {
     for (const r of this.rays) {
       const k = r.age / r.life, a = Math.pow(1 - k, 1.6);
       const len = r.R * (0.4 + 0.6 * Math.min(1, r.age / 0.15));
+      const bound = len * Math.hypot(1, 0.07);
+      if (!Render.visibleRect(r.x - bound, r.y - bound * 0.62, bound * 2, bound * 1.24)) continue;
       ctx.save();
       ctx.translate(r.x, r.y); ctx.scale(1, 0.62);
       ctx.globalAlpha = a;
@@ -485,30 +492,33 @@ const FX = {
     for (const b of this.balls) {
       const k = b.age / b.life, grow = Math.min(1, b.age / 0.5);
       const R = b.R * (0.3 + 0.7 * grow);
+      if (!Render.visibleRect(b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2)) continue;
       ctx.globalAlpha = Math.pow(1 - k, 1.5);
       ctx.drawImage(this.S.orange, b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2);
       ctx.globalAlpha = Math.pow(1 - k, 3);
       ctx.drawImage(this.S.warm, b.x - R, b.y - R, R * 2, R * 2);
-      ctx.globalAlpha = Math.max(0, 1 - k * 4);
-      ctx.drawImage(this.S.white, b.x - R * 0.7, b.y - R * 0.7, R * 1.4, R * 1.4);
+      if (k < 0.25) {
+        ctx.globalAlpha = 1 - k * 4;
+        ctx.drawImage(this.S.white, b.x - R * 0.7, b.y - R * 0.7, R * 1.4, R * 1.4);
+      }
     }
     // 火柱
     for (const c of this.columns) {
       if (c.age < 0) continue;
       const k = c.age / c.life, grow = Math.min(1, c.age / 0.6);
-      const top = lerp(c.y, c.top, grow);
+      const top = lerp(c.y, c.top, grow), w = c.w * (1 - k * 0.4);
+      if (!Render.visibleRect(c.x - w, Math.min(top, c.y), w * 2, Math.abs(c.y - top))) continue;
       const g = ctx.createLinearGradient(0, c.y, 0, top);
       const a = Math.pow(1 - k, 1.4);
       g.addColorStop(0, `rgba(255,220,150,${0.75 * a})`);
       g.addColorStop(0.5, `rgba(255,140,50,${0.55 * a})`);
       g.addColorStop(1, `rgba(255,90,30,${0.15 * a})`);
       ctx.globalAlpha = 1; ctx.fillStyle = g;
-      const w = c.w * (1 - k * 0.4);
       ctx.beginPath(); ctx.moveTo(c.x - w, c.y); ctx.lineTo(c.x - w * 0.45, top); ctx.lineTo(c.x + w * 0.45, top); ctx.lineTo(c.x + w, c.y); ctx.closePath(); ctx.fill();
     }
     // 云帽内部的火光（画在烟后面，透出来）
     for (const g of this.capGlows) {
-      if (g.age < 0) continue;
+      if (g.age < 0 || !Render.visibleRect(g.x - g.R, g.y - g.R * 0.6, g.R * 2, g.R * 1.2)) continue;
       const k = g.age / g.life, a = Math.min(1, g.age / 0.3) * Math.pow(1 - k, 1.2);
       ctx.globalAlpha = a * 0.9;
       ctx.drawImage(this.S.orange, g.x - g.R, g.y - g.R * 0.6, g.R * 2, g.R * 1.2);
@@ -523,7 +533,7 @@ const FX = {
     // 烟雾：前 35% 的寿命保持浓烈（爆炸时的震撼感不变），之后才变淡、变稀
     ctx.globalCompositeOperation = 'source-over';
     for (const p of this.parts) {
-      if (p.delay > 0 || p.add) continue;
+      if (p.delay > 0 || p.add || !Render.visibleRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2)) continue;
       const k = p.age / p.life, late = clamp((k - 0.35) / 0.65, 0, 1);
       const a = p.alpha * Math.min(1, p.age / 0.25) * Math.pow(1 - late, 1.4) * lerp(1, crowd, late);
       if (a <= 0.01) continue;
@@ -533,7 +543,7 @@ const FX = {
     }
     ctx.globalCompositeOperation = 'lighter';
     for (const p of this.parts) {
-      if (p.delay > 0) continue;
+      if (p.delay > 0 || !Render.visibleRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2)) continue;
       const k = p.age / p.life, s = p.size;
       if (p.add) {
         const a = p.alpha * Math.min(1, p.age / 0.25) * (1 - k * k);

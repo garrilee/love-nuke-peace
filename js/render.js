@@ -15,6 +15,7 @@ const Render = {
   hoverTile: null, time: 0,
   cityLightsEnabled: true,
   labelCache: new Map(),
+  view: { left: 0, top: 0, right: 0, bottom: 0 },
 
   init(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
@@ -247,6 +248,11 @@ const Render = {
   },
 
   // ---------- 每帧 ----------
+  visibleRect(x, y, w, h) {
+    const v = this.view;
+    return x <= v.right && x + w >= v.left && y <= v.bottom && y + h >= v.top;
+  },
+
   draw(dt) {
     this.time += dt;
     const ctx = this.ctx, cam = this.cam, z = cam.zoom, T = this.time;
@@ -262,6 +268,12 @@ const Render = {
     this.labelScale = this.dpr * z;
     ctx.scale(pz, pz);
     ctx.translate(-cam.x, -cam.y);
+    // Include shake, camera punch and a device-pixel margin for antialiasing.
+    const pad = 1 / (this.dpr * pz), v = this.view;
+    v.left = cam.x + (-this.w / 2 - sx) / pz - pad;
+    v.right = cam.x + (this.w / 2 - sx) / pz + pad;
+    v.top = cam.y + (-this.h / 2 - sy) / pz - pad;
+    v.bottom = cam.y + (this.h / 2 - sy) / pz + pad;
 
     ctx.drawImage(this.base, 0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
@@ -310,9 +322,10 @@ const Render = {
     ctx.globalCompositeOperation = 'lighter';
     for (const t of G.world.tiles) {
       if (t.rad < 0.03) continue;
+      const s = CFG.HEX * 2.4;
+      if (!this.visibleRect(t.x - s / 2, t.y - s / 2, s, s)) continue;
       const a = Math.min(0.55, t.rad * 0.35) * (0.8 + 0.2 * Math.sin(T * 2 + t.phase));
       ctx.globalAlpha = a;
-      const s = CFG.HEX * 2.4;
       ctx.drawImage(S.green, t.x - s / 2, t.y - s / 2, s, s);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -356,7 +369,7 @@ const Render = {
     const key = kind + ':' + id;
     let g = this.glowCache.get(key);
     if (!g) { g = this.buildGlow(id, kind); this.glowCache.set(key, g); }
-    if (!g) return;
+    if (!g || !this.visibleRect(g.x, g.y, g.w, g.h)) return;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = alpha;
@@ -406,7 +419,7 @@ const Render = {
     // 公路灯带：两端城市都亮着才亮（每条灯带预先画成一张图）
     if (this.cityLightsEnabled) for (const L of this.links || []) {
       const a = Math.min(this.cityLit(L.a), this.cityLit(L.b), 1) * 0.42;
-      if (a < 0.03 || !L.img) continue;
+      if (a < 0.03 || !L.img || !this.visibleRect(L.img.x, L.img.y, L.img.w, L.img.h)) continue;
       ctx.globalAlpha = a * (0.85 + 0.15 * Math.sin(T * 1.7 + L.a.id));
       ctx.drawImage(L.img.c, L.img.x, L.img.y, L.img.w, L.img.h);
     }
@@ -426,8 +439,10 @@ const Render = {
         }
         if (lit) { // 亮着的灯：整座城一张缓存图，整体轻微闪烁
           const img = this.cityLights(c, b, lit);
-          ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
-          ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
+          if (this.visibleRect(x - img.r, y - img.r, img.r * 2, img.r * 2)) {
+            ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
+            ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
+          }
         }
       }
       if (c.ruined) { // 废墟：中心一团摇曳的火光 + 零星余火
@@ -446,6 +461,7 @@ const Render = {
       }
       if (!this.cityLightsEnabled) continue;
       const core = CFG.HEX * (1.6 + Math.sqrt(b) * 1.2) * (c.isCapital ? 1.25 : 1);
+      if (!this.visibleRect(x - core / 2, y - core / 2, core, core)) continue;
       ctx.globalAlpha = 0.22 + 0.1 * b;
       ctx.drawImage(S.warm, x - core / 2, y - core / 2, core, core);
     }
