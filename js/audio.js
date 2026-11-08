@@ -153,6 +153,38 @@ const SFX = {
     }
   },
   siren() {}, // 兼容旧调用
+  // 午夜倒计时：清脆的钟表滴答
+  tick() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._tone('square', t, 1760, 1700, 0.05, 0.05);
+    this._tone('sine', t, 440, 430, 0.25, 0.08, 0.002, this.sfxBus, 0.4);
+  },
+  // 午夜钟声：三声低沉的钟
+  bell() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t0 = t + i * 1.1;
+      for (const [f, a] of [[98, 0.32], [196, 0.16], [293.7, 0.08], [466, 0.05]]) this._tone('sine', t0, f, f * 0.995, 3.2, a, 0.004, this.sfxBus, 0.7);
+    }
+    // 音乐转入午夜：低音下沉半音，更压抑
+    if (this.drone) this.drone.oscs.forEach((o, i) => o.frequency.setTargetAtTime([51.9, 52.3, 77.8][i], t, 2));
+  },
+  // 东风落地前：越来越尖的呼啸
+  riser() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._noise(this.white, t, 1.4, 'bandpass', 400, 5000, 0.22, 0.9, this.sfxBus, 0.5);
+    this._tone('sawtooth', t, 120, 900, 1.3, 0.05, 1.0, this.sfxBus, 0.4);
+  },
+  // 国家大招：上行的三音
+  ult() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [523.3, 659.3, 784, 1046.5].forEach((f, i) => this._tone('triangle', t + i * 0.07, f, f, 0.5, 0.07, 0.005, this.sfxBus, 0.5));
+    this._noise(this.white, t, 0.6, 'highpass', 2000, 6000, 0.06, 0.05);
+  },
 
   // ---- 背景音乐：低沉的末日氛围 + 末日时钟滴答 + 来袭时心跳 ----
   music(on) {

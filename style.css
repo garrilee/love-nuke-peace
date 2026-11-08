@@ -225,3 +225,130 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 .heatrow .bar.heat { flex: 1; width: auto; }
 .heatrow .bar.heat i { background: linear-gradient(90deg, #4a7bd0, #ffb35a, #ff4a2a); box-shadow: 0 0 8px rgba(255,120,60,0.6); transition: width .3s; }
 .heatrow .small { color: var(--gold); white-space: nowrap; }
+
+/* ===== 国家大招 ===== */
+#sk-ult { grid-column: 1 / -1; order: 3; height: 50px; flex-direction: row; justify-content: flex-start; gap: 10px; padding-left: 14px; }
+#sk-ult .ulttxt { display: flex; flex-direction: column; align-items: flex-start; }
+#sk-ult.ready { border-color: #ffd27a; background: rgba(255, 190, 80, 0.16); animation: ultGlow 1.6s ease-in-out infinite alternate; }
+#sk-ult.ready .st { color: var(--gold); }
+#sk-ult.active { background: rgba(255, 190, 80, 0.32); border-color: #ffe2a0; box-shadow: 0 0 18px rgba(255, 200, 100, 0.6); }
+#sk-ult.active .cdbar { background: var(--gold); }
+@keyframes ultGlow { from { box-shadow: 0 0 6px rgba(255, 200, 100, 0.3); } to { box-shadow: 0 0 20px rgba(255, 200, 100, 0.75); } }
+
+/* ===== 提示卡 ===== */
+#tip { position: fixed; z-index: 5; left: 304px; top: 100px; max-width: 300px; display: flex; gap: 8px; align-items: flex-start;
+  background: rgba(10, 18, 32, 0.92); border: 1px solid rgba(255, 210, 122, 0.55); border-left: 3px solid var(--gold); border-radius: 8px;
+  padding: 9px 10px 9px 12px; box-shadow: 0 0 18px rgba(255, 200, 100, 0.25); font-size: 13px; line-height: 1.55; animation: tipIn .3s ease-out; }
+#tip b { color: var(--gold); }
+body.inc-on:not(.compact) #tip { top: auto; bottom: 40px; max-width: 290px; }
+/* 桌面端：领袖台词放在地图右下，和左下的提示卡互不遮挡 */
+body:not(.compact) #leader { left: auto; right: 304px; transform: none; max-width: 370px; animation: dropR .35s ease-out; }
+@keyframes dropR { from { transform: translateY(-16px); opacity: 0; } }
+#tipX { padding: 0 6px; line-height: 18px; background: none; border: none; color: var(--dim); font-size: 16px; }
+@keyframes tipIn { from { transform: translateX(-16px); opacity: 0; } }
+
+/* ===== 午夜倒计时 / 午夜狂欢 ===== */
+#countdown { position: fixed; z-index: 14; top: 18%; left: 0; right: 0; text-align: center; pointer-events: none; font: 900 120px/1 Consolas, monospace;
+  color: #fff; text-shadow: 0 0 20px #ff3020, 0 0 60px #ff1000; animation: cdIn 1s ease-out forwards; }
+@keyframes cdIn { 0% { transform: scale(1.6); opacity: 0; } 15% { transform: scale(1); opacity: 1; } 100% { opacity: 0.15; } }
+body.midnight .panel { border-color: rgba(255, 70, 60, 0.45); box-shadow: 0 0 20px rgba(255, 40, 30, 0.18), inset 0 0 20px rgba(255, 40, 30, 0.06); }
+body.midnight #topbar { box-shadow: 0 0 26px rgba(255, 40, 30, 0.45); }
+body.midnight .sect-title { color: #ff8a7a; }
+body.midnight #tickerInner { animation-duration: 40s; }
+#timer.urgent { color: #ff6b5b; animation: urgent .6s ease-in-out infinite alternate; }
+@keyframes urgent { to { color: #fff; text-shadow: 0 0 10px #ff3020; } }
+
+/* 开始界面选项 */
+.start-opts { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+.start-opts .chk { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.start-opts .chk input { accent-color: var(--accent); }
+.howto.touch, .mobonly { display: none; }
+
+/* ===== 小屏 / 手机（宽 ≤ 900 或高 ≤ 520）===== */
+#game { touch-action: none; }
+body.compact { font-size: 12px; -webkit-tap-highlight-color: transparent; }
+body.compact button { touch-action: manipulation; }
+body.compact .mobonly { display: inline-block; }
+body.compact #topbar { top: 4px; left: 4px; right: 4px; height: 38px; gap: 8px; padding: 0 6px; }
+body.compact .logo { font-size: 15px; letter-spacing: 1px; }
+body.compact .logotext, body.compact #date { display: none; }
+body.compact #doom { font-size: 11px; white-space: nowrap; }
+body.compact #doom b { font-size: 12px; }
+body.compact #timer { font-size: 11px; white-space: nowrap; }
+body.portrait .logo { display: none; }
+body.portrait #topbar { gap: 6px; }
+body.portrait #mute { padding: 2px 6px; }
+body.compact #speed button { padding: 2px 6px; }
+body.compact #btnInfo { padding: 2px 8px; }
+/* 左侧国情：抽屉 */
+body.compact #leftcol { top: 46px; bottom: 26px; left: 0; width: min(300px, 86vw); padding: 0 4px; z-index: 12; transform: translateX(-105%); transition: transform .22s ease-out; }
+body.compact #leftcol.open { transform: none; }
+body.compact #leftcol .panel { background: rgba(6, 14, 26, 0.96); }
+body.compact #nations { min-height: 160px; }
+/* 右侧操作：横屏窄栏 */
+body.compact #rightcol { top: 46px; bottom: 26px; right: 4px; width: 210px; gap: 5px; }
+body.compact #rightcol .panel { padding: 6px; }
+body.compact #strike .phead, body.compact #strikeTarget, body.compact .ammoinfo .lb, body.compact .ammoinfo .sub,
+body.compact .fire .cap, body.compact #rightcol kbd, body.compact #rebuildStatus, body.compact .targetbtn .tlabel { display: none; }
+body.compact .targetbtn { margin-top: 0; padding: 5px 8px; }
+body.compact .targetbtn .tname { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+body.compact .firerow { grid-template-columns: 1fr 54px 44px; gap: 5px; margin-top: 5px; }
+body.compact .ammoinfo { grid-template-columns: 20px 1fr; column-gap: 3px; }
+body.compact .ammoinfo .ic { font-size: 15px; width: 20px; }
+body.compact .ammoinfo .stock { font-size: 19px; }
+body.compact .fire { height: 54px; }
+body.compact .fire .num { font-size: 20px; }
+body.compact .allin { font-size: 11px; letter-spacing: 0; }
+body.compact .allin .sub { font-size: 9px; }
+body.compact #skills .phead { margin-bottom: 0; }
+body.compact .sect-title { font-size: 10px; letter-spacing: 1px; }
+body.compact .skillgrid { gap: 5px; margin-top: 4px; }
+body.compact .skill { height: 48px; padding: 2px; }
+body.compact .skill .ic { font-size: 16px; }
+body.compact .skill .nm { font-size: 11px; }
+body.compact .skill .st { font-size: 9px; }
+body.compact #sk-ult { height: 40px; gap: 6px; padding-left: 8px; }
+body.compact .toggles { gap: 8px; margin: 5px 0 0; flex-wrap: wrap; }
+body.compact .switch { font-size: 10px; gap: 4px; }
+body.compact .switch .knob { width: 24px; height: 13px; }
+body.compact .switch .knob::after { width: 9px; height: 9px; }
+body.compact .switch input:checked + .knob::after { left: 13px; }
+body.compact:not(.portrait) .fire { height: 48px; }
+body.compact:not(.portrait) .skill { height: 44px; }
+/* 竖屏：操作区变成底部操作栏 */
+body.portrait #rightcol { top: auto; bottom: 24px; left: 4px; right: 4px; width: auto; flex-direction: row; align-items: stretch; overflow: visible; }
+body.portrait #strike { flex: 1.25; min-width: 0; }
+body.portrait #skills { flex: 1; min-width: 0; }
+/* 浮层 */
+body.compact #ticker { height: 22px; line-height: 22px; font-size: 11px; }
+body.compact #ticker::before { padding: 0 6px; letter-spacing: 0; }
+body.compact #targetBadge { top: 46px; font-size: 12px; padding: 3px 12px; }
+body.compact #incoming { top: 76px; width: min(300px, 92vw); padding: 6px 8px; }
+body.compact #incoming .inc:nth-of-type(n+4) { display: none; }
+body.compact #leader { bottom: auto; top: 76px; max-width: 92vw; padding: 6px 12px; gap: 8px; }
+body.compact .lemo { font-size: 26px; }
+body.compact .ltext { font-size: 13px; }
+body.compact #banner { font-size: 20px; letter-spacing: 2px; top: 30%; }
+body.compact #countdown { font-size: 72px; }
+body.compact #tip { left: 8px; right: 8px; top: auto; bottom: calc(var(--dockH, 0px) + 32px); max-width: none; font-size: 12px; }
+body.compact:not(.portrait) #tip { right: 222px; bottom: 30px; }
+body.compact .chooser-inner { padding: 12px; max-height: 80vh; overflow-y: auto; }
+body.compact #chooserList { grid-template-columns: 1fr; gap: 6px; }
+body.compact .tcard { padding: 8px 10px; }
+body.compact .temo { font-size: 24px; }
+body.compact #chooser .hint { display: none; }
+/* 开始 / 结束界面 */
+body.compact #start, body.compact #end { align-items: flex-start; }
+body.compact .start-inner, body.compact .end-inner { padding: 14px 10px 24px; }
+body.compact #start h1, body.compact #end h1 { font-size: 38px; letter-spacing: 6px; }
+body.compact .slogan { font-size: 13px; margin: 6px 0 14px; }
+body.compact #races { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+body.compact .race { padding: 8px; }
+body.compact .race .emo { font-size: 24px; }
+body.compact .race .rn { font-size: 15px; margin-bottom: 3px; }
+body.compact .rt, body.compact .rw, body.compact .rs { font-size: 11px; }
+body.compact .rq, body.compact .howto { display: none; }
+body.compact .howto.touch { display: block; }
+body.compact #startBtn, body.compact #againBtn { font-size: 17px; padding: 9px 26px; letter-spacing: 2px; }
+body.compact .endstats { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+body.compact .endstats b { font-size: 18px; }

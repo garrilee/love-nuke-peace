@@ -22,19 +22,31 @@ const Render = {
   resize() {
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.w = window.innerWidth; this.h = window.innerHeight;
+    // 小屏布局：宽度 ≤ 900 或高度 ≤ 520（手机横竖屏）
+    const compact = this.w <= 900 || this.h <= 520;
+    document.body.classList.toggle('compact', compact);
+    document.body.classList.toggle('portrait', compact && this.h > this.w);
     this.canvas.width = this.w * this.dpr; this.canvas.height = this.h * this.dpr;
     this.canvas.style.width = this.w + 'px'; this.canvas.style.height = this.h + 'px';
     if (typeof G !== 'undefined' && G && this.base) this.fit(); // 窗口变化时地图重新居中
   },
   fit() {
-    // 可视区：避开左侧国家栏、右侧新闻栏、顶栏和底栏
-    const side = this.w > 900 ? 296 : 8;
-    const L = side, Rt = side, Tp = 58, Bt = 40;
-    const aw = Math.max(200, this.w - L - Rt), ah = Math.max(200, this.h - Tp - Bt);
-    this.cam.zoom = Math.min(aw / WORLD_W, ah / WORLD_H);
+    // 可视区：避开左右两侧栏、顶栏和底栏；小屏时避开底部操作栏（竖屏）或右侧操作栏（横屏）
+    const body = document.body.classList, rc = document.getElementById('rightcol');
+    let L = 296, Rt = 296, Tp = 58, Bt = 40;
+    if (body.contains('portrait')) { L = Rt = 4; Tp = 50; Bt = (rc && rc.offsetHeight || 170) + 34; }
+    else if (body.contains('compact')) { L = 4; Rt = (rc && rc.offsetWidth || 200) + 10; Tp = 46; Bt = 28; }
+    document.documentElement.style.setProperty('--dockH', (body.contains('portrait') && rc ? rc.offsetHeight : 0) + 'px');
+    const aw = Math.max(120, this.w - L - Rt), ah = Math.max(120, this.h - Tp - Bt);
+    const portrait = body.contains('portrait');
+    // 竖屏：地图按高度放大一些，横向可以拖动查看，开局对准自己的国家
+    this.cam.zoom = portrait ? Math.min(ah / WORLD_H, (aw / WORLD_W) * 2.4) : Math.min(aw / WORLD_W, ah / WORLD_H);
     const cx = L + aw / 2, cy = Tp + ah / 2;
-    this.cam.x = WORLD_W / 2 - (cx - this.w / 2) / this.cam.zoom;
-    this.cam.y = WORLD_H / 2 - (cy - this.h / 2) / this.cam.zoom;
+    const focus = portrait && G && G.player && this.nationCenters[G.player.id]
+      ? { x: clamp(this.nationCenters[G.player.id].x, aw / 2 / this.cam.zoom, WORLD_W - aw / 2 / this.cam.zoom), y: WORLD_H / 2 }
+      : { x: WORLD_W / 2, y: WORLD_H / 2 };
+    this.cam.x = focus.x - (cx - this.w / 2) / this.cam.zoom;
+    this.cam.y = focus.y - (cy - this.h / 2) / this.cam.zoom;
   },
   screenToWorld(sx, sy) {
     return { x: (sx - this.w / 2) / this.cam.zoom + this.cam.x, y: (sy - this.h / 2) / this.cam.zoom + this.cam.y };
@@ -100,6 +112,7 @@ const Render = {
       this.strokeEdges(x, (a, b) => a.owner === n.id && b.owner !== n.id);
     }
     x.restore();
+    this.buildLinks();
     this.base = c;
     if (!this.scorch) {
       this.scorch = document.createElement('canvas');
@@ -107,6 +120,32 @@ const Render = {
     }
   },
   resetScorch() { this.scorch = null; },
+  // 同一国家相邻城市之间的“公路灯带”：夜景地球上连成一片的灯光
+  buildLinks() {
+    const W = G.world, seen = new Set();
+    const hash = (k) => { const v = Math.sin(k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+    this.links = [];
+    for (const n of G.nations) {
+      const cs = W.cities.filter((c) => c.nation === n.id);
+      for (const a of cs) {
+        const near = cs.filter((b) => b !== a).sort((p, q) => hexDist(a.tile, p.tile) - hexDist(a.tile, q.tile)).slice(0, 2);
+        for (const b of near) {
+          const key = Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const dx = b.tile.x - a.tile.x, dy = b.tile.y - a.tile.y, d = Math.hypot(dx, dy);
+          if (d > HEX_W * 9) continue;
+          const bend = (hash(a.id * 31 + b.id) - 0.5) * 0.3 * d, nx = -dy / d, ny = dx / d;
+          const cnt = Math.floor(d / 6), dots = [];
+          for (let k = 2; k < cnt - 1; k++) {
+            const u = k / cnt, off = bend * Math.sin(Math.PI * u) + (hash(k * 7 + a.id) - 0.5) * 3;
+            dots.push({ x: a.tile.x + dx * u + nx * off, y: a.tile.y + dy * u + ny * off, ph: hash(k + b.id * 3) * 6.28, s: 0.7 + hash(k * 3 + a.id) * 0.8 });
+          }
+          this.links.push({ a, b, dots });
+        }
+      }
+    }
+  },
   hexPath(x, cx, cy, size) {
     const pts = hexCorners(cx, cy, size);
     x.beginPath(); x.moveTo(pts[0][0], pts[0][1]);
@@ -218,6 +257,14 @@ const Render = {
         ctx.fillStyle = rgba('#ff3b3b', 0.08 + 0.05 * Math.sin(T * 5));
         ctx.fill(path);
       }
+      if (n.hackT > 0) { // 断网：青色虚线国境乱闪
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.setLineDash([6 / z, 5 / z]); ctx.lineDashOffset = -T * 40;
+        ctx.strokeStyle = `rgba(62,240,208,${0.5 + 0.4 * (Math.sin(T * 23) > 0 ? 1 : 0)})`; ctx.lineWidth = 2.5 / z;
+        ctx.translate((Math.random() - 0.5) * 1.5, 0);
+        ctx.stroke(this.borderPaths[n.id]);
+        ctx.restore();
+      }
       if (n.shieldT > 0) { // 护盾：覆盖全国的能量罩，快结束时闪烁
         const fade = n.shieldT < 2 ? (Math.sin(T * 20) > 0 ? 1 : 0.4) : 1;
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -239,11 +286,14 @@ const Render = {
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     FX.drawGround(ctx);
+    FX.drawFires(ctx);
 
     this.drawCities(ctx, z, T);
     this.drawFacilities(ctx, z, T);
+    FX.drawCineDark(ctx);   // 东风镜头：先压暗地面，飞弹和光柱在上面
     this.drawProjectiles(ctx, z, T);
     FX.drawAir(ctx);
+    FX.drawCinePillar(ctx, z);
     this.drawLabels(ctx, z);
     FX.drawTexts(ctx, z);
 
@@ -267,13 +317,46 @@ const Render = {
     FX.drawScreen(ctx, w, h);
   },
 
+  // 城市亮度：人口越少灯越少；废墟为 0
+  cityLit(c) { return c.ruined || c.basePop <= 0 ? 0 : clamp(c.pop / c.basePop, 0, 1.4); },
   drawCities(ctx, z, T) {
     const S = FX.S;
     ctx.globalCompositeOperation = 'lighter';
+    // 公路灯带：两端城市都亮着才亮
+    for (const L of this.links || []) {
+      const a = Math.min(this.cityLit(L.a), this.cityLit(L.b), 1) * 0.42;
+      if (a < 0.03) continue;
+      for (const d of L.dots) {
+        ctx.globalAlpha = a * (0.65 + 0.35 * Math.sin(T * 1.7 + d.ph));
+        const s = 3 * d.s;
+        ctx.drawImage(S.warm, d.x - s / 2, d.y - s / 2, s, s);
+      }
+    }
     for (const c of G.world.cities) {
-      const b = c.basePop > 0 ? clamp(c.pop / c.basePop, 0, 1.4) : 0;
+      const b = this.cityLit(c);
       const x = c.tile.x, y = c.tile.y;
-      if (c.ruined) {
+      // 每盏灯记住开/关状态：熄灭的一瞬间闪一下白光再消失，重新亮起时慢慢变亮——轰炸后能清楚看到“一片片灭掉”
+      for (const L of c.lights) {
+        const on = L.rank <= b;
+        if (L.on === undefined) { L.on = on; L.chg = -99; }
+        if (L.on !== on) { L.on = on; L.chg = T; }
+        const since = T - L.chg;
+        if (!on) {
+          if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
+          continue;
+        }
+        const f = (0.75 + 0.25 * Math.sin(T * 3 + L.ph)) * Math.min(1, since / 1.2);
+        const s = 3.2 * L.s;
+        ctx.globalAlpha = 0.75 * f;
+        ctx.drawImage(S.warm, x + L.x - s / 2, y + L.y - s / 2, s, s);
+      }
+      if (c.ruined) { // 废墟：中心一团摇曳的火光 + 零星余火
+        const alive = G.nations[c.nation].alive;
+        const fl = 0.6 + 0.4 * Math.sin(T * 9 + c.id) * Math.sin(T * 5.3 + c.id * 2);
+        ctx.globalAlpha = (alive ? 0.32 : 0.14) * fl;
+        ctx.drawImage(S.red, x - 18, y - 13, 36, 26);
+        ctx.globalAlpha = (alive ? 0.45 : 0.2) * fl;
+        ctx.drawImage(S.orange, x - 7, y - 8, 14, 14);
         for (let i = 0; i < c.lights.length; i += 3) {
           const L = c.lights[i];
           const f = 0.5 + 0.5 * Math.sin(T * 5 + L.ph * 3);
@@ -285,13 +368,6 @@ const Render = {
       const core = CFG.HEX * (1.6 + Math.sqrt(b) * 1.2) * (c.isCapital ? 1.25 : 1);
       ctx.globalAlpha = 0.22 + 0.1 * b;
       ctx.drawImage(S.warm, x - core / 2, y - core / 2, core, core);
-      for (const L of c.lights) {
-        if (L.rank > b) continue;
-        const f = 0.75 + 0.25 * Math.sin(T * 3 + L.ph);
-        const s = 3.2 * L.s;
-        ctx.globalAlpha = 0.75 * f;
-        ctx.drawImage(S.warm, x + L.x - s / 2, y + L.y - s / 2, s, s);
-      }
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
     for (const c of G.world.cities) {
@@ -426,6 +502,12 @@ const Render = {
         this.drawRocketTrail(ctx, p, u, col, z, T);
         // 目标点预示圈（最后 3 秒）
         const left = p.delay + p.flight - p.t - (G.interp || 0);
+        if (p.lv >= 5 && !p.cine && left < 0.55) { p.cine = true; FX.startCine(p); }
+        if (p.unstop) { // 一叉入魂：紫色光环，无法拦截
+          const q = this.arcPoint(p, u), r = (6 + 2 * Math.sin(T * 10 + p.id)) / Math.max(0.7, z);
+          ctx.strokeStyle = 'rgba(200,130,255,0.85)'; ctx.lineWidth = 1.2 / z;
+          ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.stroke();
+        }
         if (left < 3) {
           ctx.strokeStyle = `rgba(255,80,60,${0.5 + 0.4 * Math.sin(T * 14)})`; ctx.lineWidth = 1 / z;
           ctx.beginPath(); ctx.arc(p.tx, p.ty, 5 + left * 3, 0, Math.PI * 2); ctx.stroke();

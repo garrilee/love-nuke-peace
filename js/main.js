@@ -29,6 +29,13 @@ function playerFire(ammo, count) {
   UI.refreshStrike();
   return sent;
 }
+// 国家大招（Q）：需要目标的大招对当前目标释放
+function playerUlt() {
+  const p = G.player, tgt = G.nations[G.target];
+  if (!p.alive || p.ultCd > 0) return false;
+  if (ultNeedsTarget(p) && !(tgt && tgt.alive)) { UI.banner('🎯 先选择大招目标（Tab 或点击地图上的敌国）'); return false; }
+  return useUlt(p, tgt && tgt.alive ? tgt : null);
+}
 const fireMax = (ammo) => (ammo === 'conv' ? G.player.conv : deliverable(G.player, G.legs));
 
 // ---------- 长按蓄力 / 梭哈 ----------
@@ -112,14 +119,16 @@ const Fire = {
 };
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
 
-function startGame(raceId, aiCount) {
+function startGame(raceId, aiCount, diff = 'normal', tutorial = true) {
   SFX.init();
+  SFX.setMuted(Store.get('muted', false));
   FX.reset();
   Render.resetScorch();
-  newGame(raceId, aiCount);
+  newGame(raceId, aiCount, diff);
+  G.tutorial = tutorial;
   Render.buildBase();
-  Render.fit();
   UI.initHUD();
+  Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
   for (const t of G.newsQueue) UI.addFeed(t);
   G.target = -1;
   Fire.charging = null; Fire.allin = null; Fire.pendingConv = 0;
@@ -128,7 +137,7 @@ function startGame(raceId, aiCount) {
 }
 
 function frame(ts) {
-  const real = Math.min(0.1, (ts - lastFrame) / 1000 || 0);
+  const real = clamp((ts - lastFrame) / 1000 || 0, 0, 0.1);
   lastFrame = ts;
   if (running && G) {
     let spd = G.speed;
@@ -152,7 +161,20 @@ function frame(ts) {
 Bus.on('news', (t) => { if (running) UI.addFeed(t); });
 Bus.on('leader', ({ n, text }) => UI.leader(n, text));
 Bus.on('banner', (t) => UI.banner(t));
-Bus.on('intel', (x) => { if (x.isPlayer) UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻'); });
+Bus.on('midnight', () => SFX.bell());
+Bus.on('intel', (x) => {
+  if (!x.isPlayer) return;
+  UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻');
+  UI.tip('intel', `🕵 你被情报<b>点名</b>：你${x.intelWhy}。接下来 ${CFG.INTEL_FOCUS} 秒你是各国的首要目标，准备好护盾。`, { cd: 30 });
+});
+// 被 AI 盯上：告诉玩家原因（每个国家 40 秒内只提示一次）
+Bus.on('targeted', ({ n, why }) => UI.tip('tg' + n.id, `🎯 <b style="color:${n.color}">${n.race.emoji}${n.name}</b> 盯上了你：${why}`, { cd: 40, life: 5 }));
+Bus.on('ult', ({ n, tgt }) => {
+  const U = n.race.ult;
+  if (n.isPlayer) UI.banner(`${U.icon} ${U.name}！`);
+  else if (tgt && tgt.isPlayer) { UI.banner(`${U.icon} ${n.name} 对你发动【${U.name}】`); UI.leader(n, n.race.lines.launch); }
+  else if (n.race.id === 'mushroom') UI.tip('ultdust' + n.id, `🌪 ${n.race.emoji}${n.name} 发动【扬沙】：你的人口暂时停止增长`, { cd: 60, life: 5 });
+});
 Bus.on('eliminated', (n) => {
   Render.buildBase();
   if (G.selTarget === n.id) G.selTarget = -1;
@@ -175,34 +197,76 @@ Bus.on('tech', ({ n, tech }) => {
 // ---------- 输入 ----------
 function setupInput() {
   const cv = Render.canvas;
-  let down = null, dragging = false;
-  cv.addEventListener('mousedown', (e) => { if (e.button === 0 || e.button === 1) { down = { x: e.clientX, y: e.clientY, cx: Render.cam.x, cy: Render.cam.y }; dragging = false; } });
-  window.addEventListener('mousemove', (e) => {
+  // 指针输入：鼠标拖拽平移、滚轮缩放；触屏单指平移、双指捏合缩放、轻点选目标
+  const pts = new Map();
+  let down = null, dragging = false, pinch = null, tipTimer = 0;
+  const zoomAt = (sx, sy, z) => {
+    const before = Render.screenToWorld(sx, sy);
+    Render.cam.zoom = clamp(z, 0.3, 3.5);
+    const after = Render.screenToWorld(sx, sy);
+    Render.cam.x = clamp(Render.cam.x + before.x - after.x, 0, WORLD_W);
+    Render.cam.y = clamp(Render.cam.y + before.y - after.y, 0, WORLD_H);
+  };
+  const pinchInfo = () => {
+    const [a, b] = [...pts.values()];
+    return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  };
+  cv.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, cx: Render.cam.x, cy: Render.cam.y }; dragging = false; }
+    else if (pts.size === 2) { const pi = pinchInfo(); pinch = { d: pi.d, zoom: Render.cam.zoom }; dragging = true; down = null; }
+    $('leftcol').classList.remove('open');
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size >= 2) {
+      const pi = pinchInfo();
+      zoomAt(pi.x, pi.y, pinch.zoom * pi.d / pinch.d);
+      if (pinch.px !== undefined) { // 双指同时平移
+        Render.cam.x = clamp(Render.cam.x - (pi.x - pinch.px) / Render.cam.zoom, 0, WORLD_W);
+        Render.cam.y = clamp(Render.cam.y - (pi.y - pinch.py) / Render.cam.zoom, 0, WORLD_H);
+      }
+      pinch.px = pi.x; pinch.py = pi.y;
+      return;
+    }
     if (down) {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
-      if (Math.abs(dx) + Math.abs(dy) > 5) dragging = true;
+      if (Math.abs(dx) + Math.abs(dy) > (e.pointerType === 'mouse' ? 5 : 10)) dragging = true;
       if (dragging) {
         Render.cam.x = clamp(down.cx - dx / Render.cam.zoom, 0, WORLD_W);
         Render.cam.y = clamp(down.cy - dy / Render.cam.zoom, 0, WORLD_H);
       }
     }
-    if (G && e.target === cv) {
+    if (G && e.pointerType === 'mouse') {
       const t = Render.tileAt(e.clientX, e.clientY);
       Render.hoverTile = t;
       UI.tooltip(t, e.clientX, e.clientY);
-    } else UI.tooltip(null);
+    }
   });
-  window.addEventListener('mouseup', (e) => {
-    if (down && !dragging && e.target === cv && G) onMapClick(Render.tileAt(e.clientX, e.clientY));
-    down = null;
-  });
+  const up = (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (pts.size === 0) {
+      if (down && !dragging && G && e.type === 'pointerup') {
+        const t = Render.tileAt(e.clientX, e.clientY);
+        onMapClick(t);
+        if (e.pointerType !== 'mouse') { // 触屏：轻点后显示 2.5 秒地块信息
+          Render.hoverTile = t; UI.tooltip(t, e.clientX, e.clientY);
+          clearTimeout(tipTimer); tipTimer = setTimeout(() => { UI.tooltip(null); Render.hoverTile = null; }, 2500);
+        }
+      }
+      down = null;
+    }
+  };
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { UI.tooltip(null); Render.hoverTile = null; } });
   cv.addEventListener('wheel', (e) => {
     e.preventDefault();
-    const before = Render.screenToWorld(e.clientX, e.clientY);
-    const z = clamp(Render.cam.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), 0.4, 3.5);
-    Render.cam.zoom = z;
-    const after = Render.screenToWorld(e.clientX, e.clientY);
-    Render.cam.x += before.x - after.x; Render.cam.y += before.y - after.y;
+    zoomAt(e.clientX, e.clientY, Render.cam.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -224,6 +288,7 @@ function setupInput() {
       if (t) { setTarget(t.id); UI.closeChooser(); }
     }
     else if (k === 'b') useShield(G.player);
+    else if (k === 'q') playerUlt();
     else if (k === 'n') useNet(G.player);
     else if (k === 'r') rebuildAll(G.player);
     else if (k === '=' || k === '+') G.speed = Math.min(3, G.speed + 1);

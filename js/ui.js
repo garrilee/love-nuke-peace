@@ -2,6 +2,11 @@
 'use strict';
 
 const $ = (id) => document.getElementById(id);
+// 本地设置：读写失败（隐私模式等）时静默忽略
+const Store = {
+  get(k, d) { try { const v = localStorage.getItem('lnp.' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem('lnp.' + k, JSON.stringify(v)); } catch (_) {} },
+};
 
 const UI = {
   pickedRace: null, uiTimer: 0, leaderTimer: 0, bannerTimer: 0, tickerItems: [],
@@ -15,8 +20,9 @@ const UI = {
       d.style.setProperty('--c', r.color);
       d.innerHTML = `<div class="emo">${r.emoji}</div><div class="rn">${r.name}</div>
         <div class="rt">✔ ${r.trait}</div><div class="rw">✘ ${r.weak}</div>
-        <div class="rs">专属投送：${r.special}</div>
+        <div class="rs">大招：${r.ult.icon} ${r.ult.name} — ${r.ult.desc}</div>
         <div class="rq">“${r.lines.launch}”</div>`;
+      if (Store.get('race') === r.id) { this.pickedRace = r.id; d.classList.add('sel'); $('startBtn').disabled = false; }
       d.onclick = () => {
         this.pickedRace = r.id;
         box.querySelectorAll('.race').forEach((x) => x.classList.remove('sel'));
@@ -25,7 +31,14 @@ const UI = {
       };
       box.appendChild(d);
     }
-    $('startBtn').onclick = () => onStart(this.pickedRace, +$('aiCount').value);
+    $('aiCount').value = String(Store.get('aiCount', 3));
+    $('aiDiff').value = Store.get('diff', 'normal');
+    $('tutorial').checked = !Store.get('tutorialDone', false);
+    $('startBtn').onclick = () => {
+      const cnt = +$('aiCount').value, diff = $('aiDiff').value;
+      Store.set('race', this.pickedRace); Store.set('aiCount', cnt); Store.set('diff', diff);
+      onStart(this.pickedRace, cnt, diff, $('tutorial').checked);
+    };
   },
 
   initHUD() {
@@ -37,7 +50,9 @@ const UI = {
     document.querySelectorAll('#speed button').forEach((b) => {
       b.onclick = () => { setSpeed(+b.dataset.speed); SFX.click(); };
     });
-    $('mute').onclick = () => { SFX.setMuted(!SFX.muted); $('mute').textContent = SFX.muted ? '🔇' : '🔊'; };
+    $('mute').onclick = () => { SFX.setMuted(!SFX.muted); Store.set('muted', SFX.muted); $('mute').textContent = SFX.muted ? '🔇' : '🔊'; };
+    $('mute').textContent = SFX.muted ? '🔇' : '🔊';
+    $('btnInfo').onclick = () => $('leftcol').classList.toggle('open');
     // 滑条
     const keys = ['tech', 'nuke', 'def'];
     keys.forEach((k) => {
@@ -48,6 +63,14 @@ const UI = {
     // 技能
     $('sk-shield').onclick = () => useShield(G.player);
     $('sk-net').onclick = () => useNet(G.player);
+    const U = G.player.race.ult;
+    $('ic-ult').textContent = U.icon; $('nm-ult').textContent = U.name;
+    $('sk-ult').title = `国家大招 (Q)：${U.name}。${U.desc}。冷却 ${U.cd} 秒，开局 ${ULT_FIRST} 秒后可用。`;
+    $('sk-ult').onclick = () => playerUlt();
+    $('tipX').onclick = () => this.hideTip();
+    this.tipQueue = []; this.tipSeen = new Set(); this.tipCd = {}; this.tipCur = null; this.tipCheckT = 0;
+    $('tip').classList.add('hidden'); $('countdown').classList.add('hidden');
+    document.body.classList.remove('midnight');
     $('sk-autonet').checked = true;
     $('sk-autonet').onchange = (e) => { G.player.autoNet = e.target.checked; };
     $('sk-autorebuild').checked = true;
@@ -129,9 +152,18 @@ const UI = {
     const p = G.player;
     // 顶栏
     $('date').textContent = fmtDate(G.t);
-    $('timer').textContent = `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`;
+    const mob = this.mobile();
+    $('timer').textContent = mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`;
     const mins = Math.max(0, Math.ceil(17 * (1 - G.t / CFG.MIDNIGHT)));
-    $('doom').innerHTML = G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 距午夜 <b>${mins}</b> 分`;
+    $('doom').innerHTML = G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`;
+    document.body.classList.toggle('midnight', G.midnight);
+    $('timer').classList.toggle('urgent', CFG.GAME_END - G.t < 60);
+    // 午夜前 10 秒倒计时
+    const toMid = CFG.MIDNIGHT - G.t, cd = $('countdown');
+    if (!G.midnight && toMid <= 10 && toMid > 0) {
+      const k = String(Math.ceil(toMid));
+      if (cd.textContent !== k) { cd.textContent = k; cd.classList.remove('hidden'); cd.style.animation = 'none'; void cd.offsetWidth; cd.style.animation = ''; SFX.tick(); }
+    } else if (!cd.classList.contains('hidden')) cd.classList.add('hidden');
     document.querySelectorAll('#speed button').forEach((b) => b.classList.toggle('on', +b.dataset.speed === G.speed));
 
     // 各国
@@ -163,15 +195,23 @@ const UI = {
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
     $('energyTxt').textContent = `⚡ ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}`;
-    if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / SKILLS.shield.dur);
+    if (p.hackT > 0) { this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); this.skillCard('net', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); }
+    else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / SKILLS.shield.dur);
     else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
     else if (p.energy < COSTS.shield) this.skillCard('shield', `需 ⚡${COSTS.shield}`, 'poor', p.energy / COSTS.shield);
     else this.skillCard('shield', `就绪 · ⚡${COSTS.shield}`, 'ready', 1);
     const netOn = p.netT > 0 && p.netCharges > 0;
-    if (netOn) this.skillCard('net', `锁定中 · 剩 ${p.netCharges} 发`, 'active', p.netCharges / netMax(p));
+    if (p.hackT > 0) { /* 断网：上面已经处理 */ }
+    else if (netOn) this.skillCard('net', `锁定中 · 剩 ${p.netCharges} 发`, 'active', p.netCharges / netMax(p));
     else if (p.netCd > 0) this.skillCard('net', `冷却 ${p.netCd.toFixed(0)}s`, 'cd', 1 - p.netCd / SKILLS.net.cd);
     else if (p.energy < COSTS.net) this.skillCard('net', `需 ⚡${COSTS.net}`, 'poor', p.energy / COSTS.net);
     else this.skillCard('net', `就绪 · ${netMax(p)} 发 · ${Math.round(netChance(p) * 100)}%`, 'ready', 1);
+    // 国家大招
+    const U = p.race.ult, buffT = p.overtimeT || p.harpoonT;
+    if (buffT > 0) this.skillCard('ult', `生效中 ${buffT.toFixed(0)}s`, 'active', buffT / U.dur);
+    else if (p.ultCd > 0) this.skillCard('ult', `${p.ultCd.toFixed(0)}s 后就绪`, 'cd', 1 - p.ultCd / (p.stats.ult ? U.cd : ULT_FIRST));
+    else if (ultNeedsTarget(p) && !(G.nations[G.target] && G.nations[G.target].alive)) this.skillCard('ult', '就绪 · 先选目标', 'cd', 1);
+    else this.skillCard('ult', '就绪！', 'ready', 1);
     // 重建状态
     const ruined = p.cities.filter((c) => c.ruined && c.rebuild <= 0).length;
     const building = p.cities.filter((c) => c.rebuild > 0).length + p.facilities.filter((f) => f.rebuild > 0).length;
@@ -279,6 +319,7 @@ const UI = {
     const inc = incomingFor(G.player);
     const box = $('incoming');
     SFX.tension(inc.length > 0);
+    document.body.classList.toggle('inc-on', inc.length > 0); // 来袭面板显示时，提示卡让到下方
     if (!inc.length) { box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
     // 每一波新来袭只响一次短促警报
@@ -318,7 +359,58 @@ const UI = {
     this.bannerTimer = 3;
   },
 
+  // ---------- 提示卡：新手引导 + “为什么挨打” ----------
+  // key：同一条提示只出一次（cd>0 时改为冷却 cd 秒后可再出）；tutorial：只在开启新手提示时显示
+  tip(key, html, { cd = 0, tutorial = false, life = 7 } = {}) {
+    if (!G || (tutorial && !G.tutorial)) return;
+    if (cd) { if (G.t < (this.tipCd[key] ?? -1e9)) return; this.tipCd[key] = G.t + cd; }
+    else { if (this.tipSeen.has(key)) return; this.tipSeen.add(key); }
+    this.tipQueue = this.tipQueue.filter((t) => t.key !== key);
+    this.tipQueue.push({ key, html, life });
+    if (this.tipQueue.length > 3) this.tipQueue.shift();
+  },
+  hideTip() { $('tip').classList.add('hidden'); this.tipCur = null; },
+  checkTips() {
+    const p = G.player;
+    if (!p.alive || G.over) return;
+    const t = G.t, U = p.race.ult;
+    // 新手引导
+    if (t > 1.5) this.tip('start', `👋 欢迎！${this.mobile() ? '左上角 📊 里的' : '左侧'}<b>国力分配</b>决定科技、核武、三防的产出。前期多投<b>科技</b>，尽快解锁核包裹。`, { tutorial: true, life: 9 });
+    if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，<b>按住</b>发射键蓄力，松开发射。`, { tutorial: true, life: 9 });
+    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>核包裹按钮蓄力，数量越涨越快；<b>梭哈</b>一次全发。', { tutorial: true });
+    if (incomingFor(p).length) this.tip('incoming', '⚠ 有东西飞过来了！少量来袭会<b>自动拦截</b>；来得多就开<b>护盾</b>（B）。', { tutorial: true });
+    if (p.cities.some((c) => c.ruined)) this.tip('ruin', '🏚 城市变成废墟，产出减半。开着<b>自动重建</b>会消耗能量慢慢修好。', { tutorial: true });
+    if (p.ultCd <= 0 && t >= ULT_FIRST) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, { tutorial: true, life: 9 });
+    if (t > 30 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', '🏭 <b>军工热度</b>低时核武产出打折，持续投入约 100 秒才能升满。临时转产效率很低。', { tutorial: true });
+    if (t > 300) this.tip('score', '📊 时间到时按<b>综合得分 = 人口 + 造成伤亡 × 0.4</b> 排名，光苟着拿不了第一。', { tutorial: true });
+    if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×3，人口不再加速恢复。', { tutorial: true });
+    // 局势提醒（始终开启，有冷却）
+    const alive = G.nations.filter((x) => x.alive);
+    const idle = t - Math.max(p.lastAttack, 60);
+    if (t > 90 && idle > CFG.BYSTANDER_AFTER - 15 && alive.length > 2)
+      this.tip('idle', `👀 你已经 ${Math.round(idle)} 秒没出手了。再观望下去会被当成<b>隔岸观火</b>，各国都会更恨你。`, { cd: 90 });
+    if (p.intelUntil < t && stock(p) >= CFG.INTEL_STOCK - 5 && alive.length > 2)
+      this.tip('stock', `📦 你囤了 ${stock(p)} 个核包裹。超过 ${CFG.INTEL_STOCK} 个会被情报机构<b>点名</b>，遭到围攻。`, { cd: 90 });
+    const others = alive.filter((x) => x !== p);
+    if (others.length >= 2 && p.intelUntil < t && p.techIdx - Math.max(...others.map((o) => o.techIdx)) === CFG.INTEL_TECH_LEAD - 1)
+      this.tip('techlead', '🔬 你的科技已经明显领先，再拉开差距会被情报<b>点名</b>，别光顾着闷头研发。', { cd: 120 });
+    if (others.length >= 2 && others.every((o) => totalPop(o) * 1.3 < totalPop(p)))
+      this.tip('bird', '🐦 你的人口遥遥领先，成了<b>出头鸟</b>，大家都更想打你。', { cd: 150 });
+  },
+  mobile() { return document.body.classList.contains('compact'); },
+
   tick(dt) {
+    if (G && !G.over) {
+      this.tipCheckT -= dt;
+      if (this.tipCheckT <= 0) { this.tipCheckT = 0.5; this.checkTips(); }
+      if (this.tipCur) { this.tipCur.left -= dt; if (this.tipCur.left <= 0) this.hideTip(); }
+      else if (this.tipQueue.length) {
+        const tp = this.tipQueue.shift();
+        this.tipCur = { ...tp, left: tp.life };
+        $('tipBody').innerHTML = tp.html;
+        const el = $('tip'); el.classList.remove('hidden'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+      }
+    }
     this.uiTimer -= dt;
     if (this.uiTimer <= 0) { this.uiTimer = 0.15; if (G) this.refreshAll(); }
     if (this.leaderTimer > 0) { this.leaderTimer -= dt; if (this.leaderTimer <= 0) $('leader').classList.add('hidden'); }
@@ -371,11 +463,13 @@ const UI = {
         <div>打成烟花 <b>${s.intercepted}</b></div>
         <div>护盾挡下 <b>${s.blocked || 0}</b></div>
         <div>重建城市 <b>${s.rebuilt}</b></div>
+        <div>大招次数 <b>${s.ult}</b></div>
         <div>综合得分 <b>${Math.round(finalScore(p))}</b></div>
       </div>
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       <button id="againBtn">再核平一次</button>`;
     $('end').classList.remove('hidden');
+    if (G.tutorial) Store.set('tutorialDone', true);
     $('againBtn').onclick = () => location.reload();
   },
 };

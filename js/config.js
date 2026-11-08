@@ -110,46 +110,54 @@ const RACES = [
   {
     id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
     trait: '全民内卷：科技 +5%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.05 }, special: '加班投送',
+    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.6' },
     cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
     lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
   {
     id: 'mole', name: '刀盾', emoji: '🛡', color: '#d0965a',
     trait: '盾坚如铁：护盾减伤 97%（常规 85%），冷却 -30%', weak: '科技 -4%',
-    mods: { tech: 0.96, shield: 0.97, shieldCd: 0.7 }, special: '盾后突刺',
+    mods: { tech: 0.96, shield: 0.97, shieldCd: 0.7 }, ult: { name: '盾后突刺', icon: '🗡', cd: 110, desc: '免费开启护盾，并向最近打你的国家回敬 6 枚常规导弹' },
     cities: ['铁壁堡', '刀锋港', '盾城', '守望镇', '磐石市', '锋口'],
     lines: { launch: '左手刀，右手盾，先砍你再说。', hit: '打不着，打不着，略略略。', dead: '盾……碎了……' },
   },
   {
     id: 'octopus', name: '鱼叉', emoji: '🔱', color: '#b67bff',
     trait: '深海猎手：潜航器造价 -40%，送达更快', weak: '投送站火箭造价 +10%',
-    mods: { sea: 0.6, rocket: 1.1, seaSpeed: 0.75 }, special: '一叉入魂',
+    mods: { sea: 0.6, rocket: 1.1, seaSpeed: 0.75 }, ult: { name: '一叉入魂', icon: '🔱', cd: 110, dur: 30, desc: '潜航器立即满载出海；30 秒内发射的核包裹无法被拦截、不会被拒收' },
     cities: ['鱼叉湾', '捕鲸港', '渔场城', '浪尖镇', '礁石市', '深海口'],
     lines: { launch: '鱼叉已上膛，目标锁定。', hit: '浪再大，也掀不翻我们的船。', dead: '回归……大海……' },
   },
   {
     id: 'mushroom', name: '吃土', emoji: '🥄', color: '#ff5e8a',
     trait: '吃土长大：辐射灰地块人口反而增长', weak: '初始人口 -25%',
-    mods: { pop: 0.75, dustLove: true }, special: '吃土包邮',
+    mods: { pop: 0.75, dustLove: true }, ult: { name: '扬沙', icon: '🌪', cd: 100, desc: '向所有敌国扬起辐射沙尘：敌国人口停止增长并缓慢流失，你在沙里长得更快' },
     cities: ['土坡村', '泥饼城', '月光镇', '尘埃港', '土豆岭', '灰原'],
     lines: { launch: '反正已经在吃土了，不怕多吃一点。', hit: '谢谢投喂，再来点。', dead: '这次……真的只剩土了……' },
   },
   {
     id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
     trait: '义体改造：科技 +8%，不怕辐射灰', weak: '人口增长 -30%',
-    mods: { tech: 1.08, growth: 0.7, dustImmune: true }, special: '光速云配送',
+    mods: { tech: 1.08, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
     cities: ['霓虹市', '义体街', '电子港', '节点-7', '矩阵城', '云端堡'],
     lines: { launch: '检测到你的城市即将离线。', hit: '义体受损……正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
   },
   {
     id: 'roach', name: '青铜', emoji: '🥉', color: '#e8d04a',
     trait: '越级挑战：倒下也能爬起来，人口恢复 ×2', weak: '科技 -10%',
-    mods: { tech: 0.9, growth: 2.0 }, special: '小宇宙直达',
+    mods: { tech: 0.9, growth: 2.0 }, ult: { name: '燃烧吧小宇宙', icon: '🔥', cd: 150, desc: '所有废墟和宕机设施立即复原，城市人口至少恢复到 60%' },
     cities: ['青铜城', '小宇宙港', '燃烧镇', '越级堡', '不屈岭', '星光市'],
     lines: { launch: '燃烧吧，小宇宙！', hit: '倒下了？我们还能再站起来！', dead: '小宇宙……燃尽了……' },
   },
 ];
+
+// AI 难度：产出倍率、出手积极度、报复反应时间倍率、多久不出手就必须打一轮、大招使用意愿
+const DIFFS = {
+  easy:   { name: '简单', prod: 0.8, aggro: 0.7,  react: 1.6, idle: 100, ult: 0.35 },
+  normal: { name: '普通', prod: 1.0, aggro: 1.0,  react: 1.0, idle: 60,  ult: 1 },
+  hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1 },
+};
+const ULT_FIRST = 90; // 开局 90 秒后大招才可用
 
 const PERSONALITIES = {
   hot:     { name: '暴躁', react: [1, 2.5],   aggro: 1.6, start: 75 },

@@ -2,7 +2,7 @@
 'use strict';
 
 const FX = {
-  parts: [], rings: [], balls: [], texts: [], glows: [], columns: [], capGlows: [], rays: [], groundFlash: [],
+  parts: [], rings: [], balls: [], texts: [], glows: [], columns: [], capGlows: [], rays: [], groundFlash: [], fires: [], cine: null, midFlash: 0,
   flash: 0, flashColor: '255,255,255', whiteout: 0, shake: 0, shakeHold: 0, slowmo: 0, punch: 0, tint: 0,
   sprites: {},
 
@@ -36,6 +36,7 @@ const FX = {
       green: this.sprite('gr', 120, 255, 110),
       smoke: this.sprite('sm', 70, 62, 58, 'smoke'),
       smokeLight: this.sprite('sl', 120, 108, 100, 'smoke'),
+      dust: this.sprite('du', 170, 140, 80, 'smoke'),
     };
     this.hue = [];
     for (let h = 0; h < 12; h++) {
@@ -51,8 +52,10 @@ const FX = {
     Bus.on('fizzle', (p) => this.onFizzle(p));
     Bus.on('cityHit', (e) => this.text(e.city.tile.x, e.city.tile.y - 10, '-' + fmtPop(e.loss), '#ff6b5b', 1));
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));
+    Bus.on('ult', (e) => this.onUlt(e));
+    Bus.on('midnight', () => { this.midFlash = 1; });
   },
-  reset() { this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
+  reset() { this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   part(o) {
     this.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, age: 0, size: 4, grow: 0, alpha: 1, add: true, drag: 0, grav: 0, delay: 0, fire: 0 }, o));
@@ -68,6 +71,7 @@ const FX = {
     if (near) this.flash = Math.max(this.flash, 0.06);
     SFX.blast(near);
     Render.addScorch(x, y, R * 0.6, 0);
+    if (G.world.isLand(tile)) this.addFire(x, y, 10 + Math.random() * 6, 0.6);
     this.balls.push({ x, y, R: R * 0.55, age: 0, life: 0.9 });
     this.rings.push({ x, y, R: R * 1.8, age: 0, life: 0.55, w: 1.5, fast: true });
     this.groundFlash.push({ x, y, R: R * 1.6, age: 0, life: 0.35 });
@@ -149,6 +153,8 @@ const FX = {
     if (P.ultimate) { this.whiteout = 1.3; this.slowmo = 2.2; }
     SFX.boom(s, near);
     Render.addScorch(x, y, R * 1.15, lv);
+    this.igniteArea(tile, P.r, lv);
+    if (P.ultimate && this.cine) this.cine.boom = this.cine.age;
 
     // 火球
     this.balls.push({ x, y, R: R * 0.75, age: 0, life: 2.2 + s * 0.5 });
@@ -227,7 +233,134 @@ const FX = {
     }
   },
 
+  // ---------- 废墟余火：爆炸范围内的陆地会燃烧一段时间，地图越打越像末日 ----------
+  addFire(x, y, life, s) {
+    this.fires.push({ x, y, age: 0, life, s, ph: Math.random() * 6.28 });
+    if (this.fires.length > 360) this.fires.splice(0, this.fires.length - 360);
+  },
+  igniteArea(tile, r, lv) {
+    const vr = (lo, hi) => lo + Math.random() * (hi - lo);
+    for (const t of G.world.tiles) {
+      const d = hexDist(t, tile);
+      if (d > r || !G.world.isLand(t)) continue;
+      const n = d === 0 ? 3 : 2;
+      for (let i = 0; i < n; i++) this.addFire(t.x + vr(-0.4, 0.4) * HEX_W, t.y + vr(-0.35, 0.35) * HEX_W, vr(22, 40) * (lv >= 3 ? 1.3 : 1), vr(0.7, 1.3) * (1 + lv * 0.08));
+    }
+  },
+  emitEmbers(dt) {
+    const vr = (lo, hi) => lo + Math.random() * (hi - lo);
+    const wind = Math.cos(G.world.windAngle) * 8;
+    for (const f of this.fires) {
+      const k = f.age / f.life, it = Math.min(1, f.age / 1.5) * (1 - k);
+      if (Math.random() < dt * 0.45 * it) this.part({ x: f.x + vr(-2, 2), y: f.y, vx: wind + vr(-4, 4), vy: vr(-30, -16), life: vr(0.9, 1.6), size: vr(0.9, 1.7), sprite: this.S.orange, grav: -4, drag: 0.6 });
+    }
+    // 废墟城市：持续冒火星和黑烟（已被核平的国家火势小一些）
+    for (const c of G.world.cities) {
+      if (!c.ruined) continue;
+      const alive = G.nations[c.nation].alive, x = c.tile.x, y = c.tile.y;
+      if (Math.random() < dt * (alive ? 2.2 : 0.8)) this.part({ x: x + vr(-6, 6), y: y + vr(-3, 3), vx: wind + vr(-5, 5), vy: vr(-34, -18), life: vr(1, 1.8), size: vr(1, 2), sprite: Math.random() < 0.3 ? this.S.warm : this.S.orange, grav: -4, drag: 0.5 });
+      if (Math.random() < dt * (alive ? 0.9 : 0.35)) this.part({ x: x + vr(-5, 5), y: y - 2, vx: wind * 1.5 + vr(-3, 3), vy: vr(-14, -8), life: vr(2.5, 4), size: vr(3, 5), grow: 5, sprite: this.S.smoke, add: false, alpha: 0.28, drag: 0.3 });
+    }
+  },
+  drawFires(ctx) {
+    const T = Render.time;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of this.fires) {
+      const k = f.age / f.life, it = Math.min(1, f.age / 1.2) * Math.pow(1 - k, 0.6);
+      const fl = 0.65 + 0.35 * Math.sin(T * 11 + f.ph) * Math.sin(T * 6.7 + f.ph * 1.7);
+      const s = f.s;
+      ctx.globalAlpha = 0.4 * it * fl;
+      ctx.drawImage(this.S.red, f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s);
+      ctx.globalAlpha = 0.75 * it * fl;
+      ctx.drawImage(this.S.orange, f.x - 2.6 * s, f.y - 3.4 * s, 5.2 * s, 5.2 * s);
+      ctx.globalAlpha = 0.5 * it * fl * fl;
+      ctx.drawImage(this.S.warm, f.x - 1.2 * s, f.y - 2.4 * s, 2.4 * s, 2.4 * s);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  },
+
+  // ---------- 国家大招特效 ----------
+  onUlt({ n, tgt }) {
+    const vr = (lo, hi) => lo + Math.random() * (hi - lo);
+    const c = Render.nationCenters[n.id] || { x: WORLD_W / 2, y: WORLD_H / 2 };
+    const U = n.race.ult, [r, g, b] = hexToRgb(n.color);
+    const glow = this.sprite('u' + n.color, r, g, b);
+    SFX.ult();
+    this.text(c.x, c.y - 4, `${U.icon} ${U.name}`, n.color, 1.6);
+    for (const city of n.cities) {
+      if (city.pop <= 0 && !city.ruined) continue;
+      const x = city.tile.x, y = city.tile.y;
+      this.rings.push({ x, y, R: HEX_W * 2.2, age: 0, life: 0.8, w: 1.6, fast: true });
+      for (let i = 0; i < 8; i++) this.part({ x: x + vr(-6, 6), y: y + vr(-4, 4), vx: vr(-8, 8), vy: vr(-40, -20), life: vr(0.8, 1.4), size: vr(2, 3.5), sprite: n.race.id === 'roach' ? this.S.warm : glow, grav: -6, drag: 1 });
+    }
+    if (n.race.id === 'mushroom') { // 扬沙：敌国上空卷起黄沙
+      const land = G.world.tiles.filter((t) => t.owner >= 0 && t.owner !== n.id && G.nations[t.owner].alive);
+      const wind = Math.cos(G.world.windAngle) * 25;
+      for (let i = 0; i < Math.min(120, land.length * 2); i++) {
+        const t = land[Math.floor(Math.random() * land.length)];
+        this.part({ x: t.x + vr(-8, 8), y: t.y + vr(-6, 6), vx: wind + vr(-6, 6), vy: vr(-6, 2), life: vr(3, 5.5), size: vr(8, 16), grow: 6, sprite: this.S.dust, add: false, alpha: 0.32, drag: 0.4, delay: Math.random() * 0.8 });
+      }
+    }
+    if (n.race.id === 'ai' && tgt) { // 断网：目标国上空的青色乱码
+      const tc = Render.nationCenters[tgt.id];
+      this.text(tc.x, tc.y - 4, '📡 断网', '#3ef0d0', 1.5);
+      for (let i = 0; i < 40; i++) this.part({ x: tc.x + vr(-60, 60), y: tc.y + vr(-40, 40), vx: vr(-90, 90), vy: 0, life: vr(0.3, 0.9), size: vr(1.5, 3), sprite: this.S.cyan, drag: 3, delay: Math.random() * 0.6 });
+    }
+    if (n.race.id === 'octopus') for (const sub of n.subs) {
+      const x = sub.tile.x, y = sub.tile.y;
+      this.rings.push({ x, y, R: HEX_W * 1.6, age: 0, life: 0.9, w: 2, shield: true });
+    }
+  },
+
+  // ---------- 东风镜头：落地前慢放、压暗、天降光柱 ----------
+  startCine(p) {
+    if (this.cine) return;
+    this.cine = { x: p.tx, y: p.ty, pid: p.id, age: 0, boom: -1 };
+    this.slowmo = Math.max(this.slowmo, 1.6);
+    SFX.riser();
+  },
+  cineDark() {
+    const c = this.cine;
+    if (!c) return 0;
+    const pre = Math.min(1, c.age / 0.35);
+    const post = c.boom >= 0 ? Math.max(0, 1 - (c.age - c.boom) / 0.6) : 1;
+    return pre * post;
+  },
+  drawCineDark(ctx) {
+    const k = this.cineDark();
+    if (k <= 0) return;
+    ctx.save();
+    ctx.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(0,0,0,${0.62 * k})`;
+    ctx.fillRect(0, 0, Render.w, Render.h);
+    ctx.restore();
+  },
+  drawCinePillar(ctx, z) {
+    const c = this.cine;
+    if (!c || c.boom >= 0) return;
+    const pre = Math.min(1, c.age / 0.35), T = Render.time;
+    const H = 700, w = (2.5 + 5 * pre + Math.sin(T * 40) * 0.8) / Math.max(0.6, z);
+    const g = ctx.createLinearGradient(0, c.y - H, 0, c.y);
+    g.addColorStop(0, 'rgba(255,240,200,0)');
+    g.addColorStop(0.7, `rgba(255,235,180,${0.35 * pre})`);
+    g.addColorStop(1, `rgba(255,255,240,${0.9 * pre})`);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.fillRect(c.x - w, c.y - H, w * 2, H);
+    ctx.globalAlpha = 0.25 * pre; ctx.fillRect(c.x - w * 4, c.y - H, w * 8, H);
+    ctx.globalAlpha = 0.8 * pre;
+    ctx.drawImage(this.S.warm, c.x - 40, c.y - 28, 80, 56);
+    ctx.globalAlpha = 1;
+    // 收缩的瞄准环
+    const rr = 10 + 50 * (1 - pre) + 4 * Math.sin(T * 12);
+    ctx.strokeStyle = `rgba(255,220,140,${0.9 * pre})`; ctx.lineWidth = 1.5 / z;
+    ctx.beginPath(); ctx.ellipse(c.x, c.y, rr, rr * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+  },
+
   onIntercept(p) {
+    if (this.cine && this.cine.pid === p.id) this.cine.boom = this.cine.age;
     const pos = Render.projPos(p), x = pos.x, y = pos.y;
     for (let i = 0; i < 46; i++) {
       const a = rand() * Math.PI * 2, v = rnd(30, 90);
@@ -251,6 +384,11 @@ const FX = {
     else this.shake = Math.max(0, this.shake - dt * Math.max(6, this.shake * 1.6));
     this.punch = Math.max(0, this.punch - dt * 0.12);
     this.tint = Math.max(0, this.tint - dt * 0.35);
+    this.midFlash = Math.max(0, this.midFlash - dt * 0.5);
+    if (this.cine) { this.cine.age += dt; if ((this.cine.boom >= 0 && this.cine.age - this.cine.boom > 0.6) || this.cine.age > 6) this.cine = null; }
+    for (const f of this.fires) f.age += dt;
+    this.fires = this.fires.filter((f) => f.age < f.life);
+    if (G && dt > 0) this.emitEmbers(dt);
     for (const p of this.parts) {
       if (p.delay > 0) { p.delay -= dt; continue; }
       p.age += dt;
@@ -419,6 +557,21 @@ const FX = {
   },
 
   drawScreen(ctx, w, h) {
+    // 午夜狂欢：画面整体偏红，四周脉动的血色暗角
+    if (G && G.midnight) {
+      const T = Render.time, pulse = 0.5 + 0.5 * Math.sin(T * 1.3);
+      ctx.fillStyle = 'rgba(90,0,0,0.07)'; ctx.fillRect(0, 0, w, h);
+      const rg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.72);
+      rg.addColorStop(0, 'rgba(255,0,0,0)'); rg.addColorStop(1, `rgba(200,10,10,${0.16 + 0.1 * pulse})`);
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
+    }
+    if (this.midFlash > 0.01) { ctx.fillStyle = `rgba(255,30,20,${0.4 * this.midFlash * this.midFlash})`; ctx.fillRect(0, 0, w, h); }
+    // 东风镜头：电影黑边
+    const ck = this.cineDark();
+    if (ck > 0) {
+      const bh = h * 0.085 * ck;
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, bh); ctx.fillRect(0, h - bh, w, bh);
+    }
     if (this.tint > 0.01) { // 爆炸后整个画面被火光染成橙红
       ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = `rgba(255,110,40,${this.tint * 0.5})`;

@@ -9,7 +9,7 @@ const Bus = {
 
 let G = null;
 
-function newGame(playerRaceId, aiCount) {
+function newGame(playerRaceId, aiCount, diff = 'normal') {
   const others = shuffle(RACES.map((r) => r.id).filter((id) => id !== playerRaceId)).slice(0, aiCount);
   const raceIds = shuffle([playerRaceId, ...others]);
   const seed = (Math.random() * 1e9) | 0;
@@ -34,7 +34,8 @@ function newGame(playerRaceId, aiCount) {
       lastHit: -99, lastAttacker: -1, retaliate: null, lastStrike: -99,
       aiNext: rnd(1, 3),
       autoNet: true, autoRebuild: true,
-      stats: { sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
+      ultCd: ULT_FIRST, overtimeT: 0, harpoonT: 0, hackT: 0,
+      stats: { ult: 0, sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
     });
     n.anger[i] = -1e9;
     n.mods = n.race.mods;
@@ -44,7 +45,7 @@ function newGame(playerRaceId, aiCount) {
     player: nations.find((n) => n.isPlayer),
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
-    newsQueue: [],
+    newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
   };
   news(`${fmtDate(0)}：世界和平，一切安好。暂时。`);
   return G;
@@ -81,7 +82,9 @@ const heatEff = (n) => CFG.HEAT_MIN + (CFG.HEAT_MAX - CFG.HEAT_MIN) * n.heat;
 function production(n) {
   let p = 0;
   for (const c of n.cities) p += c.pop * (c.ruined ? CFG.RUIN_PROD : 1);
-  return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n);
+  return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n)
+    * (n.overtimeT > 0 ? 1.6 : 1)              // 卷王大招：加班
+    * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }
 const sendCount = (D, scale) => (D <= 0 ? 0 : scale === 0 ? 1 : scale === 1 ? Math.ceil(D / 2) : D);
 
@@ -172,6 +175,9 @@ function stepNation(n, dt) {
   n.netT = Math.max(0, n.netT - dt); n.netCd = Math.max(0, n.netCd - dt);
   n.convCd = Math.max(0, n.convCd - dt);
   n.convBuildT = Math.max(0, (n.convBuildT || 0) - dt);
+  n.ultCd = Math.max(0, n.ultCd - dt);
+  n.overtimeT = Math.max(0, n.overtimeT - dt); n.harpoonT = Math.max(0, n.harpoonT - dt);
+  if (n.hackT > 0) { n.hackT = Math.max(0, n.hackT - dt); n.netT = 0; n.netCharges = 0; }
 }
 
 function pickSeaTile(from) {
@@ -299,7 +305,7 @@ function launch(att, tgt, scale, legs, count) {
           id: G.pid++, kind: s.kind, lv, att: att.id, tgt: tgt.id,
           fx: lead.fx, fy: lead.fy, tile: to, tx: to.x, ty: to.y,
           arcH: lead.arcH, delay: lead.delay, flight: lead.flight,
-          mirvOf: lead.id, bx: lead.tx, by: lead.ty,
+          mirvOf: lead.id, bx: lead.tx, by: lead.ty, unstop: lead.unstop,
           t: 0, launched: false, done: false,
         });
       } else {
@@ -309,7 +315,7 @@ function launch(att, tgt, scale, legs, count) {
           fx: from.x, fy: from.y, tile: to, tx: to.x, ty: to.y,
           arcH: rnd(0.3, 0.62),                               // 弧线高低不一，尾迹像扇面一样散开
           delay: order * 0.07 + rnd(0, 0.5), flight: s.flight * rnd(0.92, 1.08),
-          t: 0, launched: false, done: false,
+          t: 0, launched: false, done: false, unstop: att.harpoonT > 0,
         };
         G.projectiles.push(proj);
         leaders.set(s, proj);
@@ -419,7 +425,7 @@ function assignLocks(n) {
   let locked = 0;
   const free = [];
   for (const p of G.projectiles) {
-    if (p.tgt !== n.id || !p.launched || p.done || p.engaged) continue;
+    if (p.tgt !== n.id || !p.launched || p.done || p.engaged || p.unstop) continue;
     if (!active) { p.locked = false; continue; }
     if (p.locked) locked++; else if (nearHome(p, n)) free.push(p);
   }
@@ -447,7 +453,7 @@ function engage(p) {
 // 自动拦截：只要有来袭、拦截弹没在工作，就自动开启
 function autoNet(n) {
   if (n.netT > 0 && n.netCharges > 0) return;
-  if (G.projectiles.some((p) => p.tgt === n.id && p.launched && !p.done && !p.engaged)) useNet(n);
+  if (G.projectiles.some((p) => p.tgt === n.id && p.launched && !p.done && !p.engaged && !p.unstop)) useNet(n);
 }
 
 function arrive(p) {
@@ -459,7 +465,7 @@ function arrive(p) {
     return;
   }
   if (p.kind === 'conv') { convExplode(p.tile, att); return; }
-  if (chance(PARCELS[p.lv].fizzle + (att.mods.fizzle || 0))) {
+  if (!p.unstop && chance(PARCELS[p.lv].fizzle + (att.mods.fizzle || 0))) {
     Bus.emit('fizzle', p);
     if (chance(0.3)) news(`一个包裹被 ${tgt.name} 拒收了，投送员表示很委屈`);
     return;
@@ -515,7 +521,7 @@ function applyLosses(losses, att, angerMul) {
     v.lastHit = G.t; v.lastAttacker = att.id;
     if (vid !== att.id) {
       v.anger[att.id] += (10 + loss * 1.5) * angerMul;
-      if (!v.isPlayer && !v.retaliate) v.retaliate = { target: att.id, at: G.t + rnd(...PERSONALITIES[v.pers].react) };
+      if (!v.isPlayer && !v.retaliate) v.retaliate = { target: att.id, at: G.t + rnd(...PERSONALITIES[v.pers].react) * G.diff.react };
     }
   }
 }
@@ -531,18 +537,61 @@ function eliminate(n) {
 
 // ---------- 技能 ----------
 function useShield(n) {
-  if (!n.alive || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
+  if (!n.alive || n.hackT > 0 || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
   n.energy -= COSTS.shield; n.shieldT = SKILLS.shield.dur; n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
 const netMax = (n) => (has(n, 'net') ? SKILLS.net.chargesUp : SKILLS.net.charges);
 function useNet(n) {
-  if (!n.alive || n.netCd > 0 || n.energy < COSTS.net) return false;
+  if (!n.alive || n.hackT > 0 || n.netCd > 0 || n.energy < COSTS.net) return false;
   n.energy -= COSTS.net; n.netT = SKILLS.net.dur; n.netCd = SKILLS.net.cd;
   n.netCharges = netMax(n);
   Bus.emit('skill', { n, kind: 'net' }); return true;
 }
+// ---------- 国家大招 ----------
+// tgt：需要目标的大招（断网攻击、盾后突刺的后备目标）使用
+function ultNeedsTarget(n) { return n.race.id === 'ai'; }
+function useUlt(n, tgt) {
+  if (!n.alive || n.ultCd > 0) return false;
+  const U = n.race.ult, id = n.race.id;
+  if (tgt && (!tgt.alive || tgt === n)) tgt = null;
+  if (id === 'human') n.overtimeT = U.dur;
+  else if (id === 'mole') {
+    n.shieldT = Math.max(n.shieldT, SKILLS.shield.dur);
+    const foe = G.nations[n.lastAttacker];
+    const t2 = foe && foe.alive && foe !== n ? foe : tgt;
+    if (t2) { n.conv += 6; n.convCd = 0; launchConv(n, t2, 0, 6); }
+  } else if (id === 'octopus') {
+    n.harpoonT = U.dur;
+    const base = facOf(n, 'sea')[0];
+    if (has(n, 'sea') && base && base.alive && !n.subs.length) n.subs.push({ state: 'dock', timer: 0, rockets: 0, tile: base.tile });
+    for (const s of n.subs) {
+      if (s.state !== 'out') { s.state = 'out'; s.tile = pickSeaTile(base ? base.tile : s.tile); }
+      s.rockets = CFG.SEA_CAP;
+    }
+  } else if (id === 'mushroom') {
+    for (const t of G.world.tiles) {
+      if (t.owner < 0 || !G.nations[t.owner].alive) continue;
+      t.rad = Math.min(1.5, t.rad + (t.owner === n.id ? 0.5 : 0.95));
+    }
+    n.lastAttack = G.t; // 扬沙算出手（不算隔岸观火），但不直接拉仇恨
+  } else if (id === 'ai') {
+    if (!tgt) return false;
+    tgt.hackT = U.dur; tgt.shieldT = 0; tgt.netT = 0; tgt.netCharges = 0;
+    const loot = tgt.bank * 0.3;
+    tgt.bank -= loot; n.bank = Math.min(CFG.BANK_CAP, n.bank + loot);
+    tgt.anger[n.id] += 15; markHostile(n, tgt); n.lastAttack = G.t;
+  } else if (id === 'roach') {
+    for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.6); }
+    for (const f of n.facilities) if (!f.alive) { f.alive = true; f.rebuild = 0; Bus.emit('rebuilt', f); }
+  }
+  n.ultCd = U.cd; n.stats.ult++;
+  news(`${U.icon} ${n.race.emoji}${n.name} 发动大招【${U.name}】${tgt && id === 'ai' ? ' → ' + tgt.race.emoji + tgt.name : ''}`);
+  Bus.emit('ult', { n, tgt });
+  return true;
+}
+
 function rebuildCity(n, c) {
   if (!n.alive || !c.ruined || c.rebuild > 0 || n.energy < COSTS.rebuild) return false;
   n.energy -= COSTS.rebuild; c.rebuild = CFG.REBUILD_TIME;
@@ -610,6 +659,7 @@ function stepEvents() {
     G.midnight = true;
     news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.5，人口不再加速恢复，所有仓库清仓甩卖！');
     Bus.emit('banner', '🕛 午夜狂欢');
+    Bus.emit('midnight');
   }
   if (G.t >= (G.nextIntel || 0)) { G.nextIntel = G.t + 5; checkIntel(); }
   if (G.t >= G.nextEvent) {
@@ -631,7 +681,7 @@ function checkIntel() {
     else if (techLead >= CFG.INTEL_TECH_LEAD) why = '的科技突飞猛进，正在憋大招';
     else if (stock(x) >= CFG.INTEL_STOCK) why = `正在囤积核包裹（已超过 ${CFG.INTEL_STOCK} 个）`;
     if (!why) continue;
-    x.intelUntil = G.t + CFG.INTEL_FOCUS; x.intelCd = G.t + CFG.INTEL_CD;
+    x.intelWhy = why; x.intelUntil = G.t + CFG.INTEL_FOCUS; x.intelCd = G.t + CFG.INTEL_CD;
     for (const o of others) o.anger[x.id] += 30;
     news(`🕵 情报显示：${x.race.emoji}${x.name} ${why}！各国决定先下手为强`);
     Bus.emit('intel', x);
