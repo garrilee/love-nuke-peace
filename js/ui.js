@@ -504,7 +504,7 @@ const UI = {
     // 新手引导
     if (t > 1.5) this.tip('start', `👋 欢迎！${this.mobile() ? '左上角 📊 里的' : '左侧'}<b>国力分配</b>决定科技、核武、三防的产出。前期多投<b>科技</b>，尽快解锁核包裹。`, { tutorial: true, life: 9 });
     if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，<b>按住</b>发射键蓄力，松开发射。`, { tutorial: true, life: 9 });
-    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>核包裹按钮蓄力，数量越涨越快；<b>梭哈</b>一次全发。', { tutorial: true });
+    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>核包裹按钮蓄力，匀速 +1，到想要的数量就松手；<b>梭哈</b>一次全发。', { tutorial: true });
     if (incomingFor(p).length) this.tip('incoming', '⚠ 有东西飞过来了！少量来袭会<b>自动拦截</b>；来得多就开<b>护盾</b>（B）。', { tutorial: true });
     if (p.cities.some((c) => c.ruined)) this.tip('ruin', '🏚 城市变成废墟，产出减半。开着<b>自动重建</b>会消耗能量慢慢修好。', { tutorial: true });
     if (p.ultCd <= 0 && t >= ULT_FIRST) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, { tutorial: true, life: 9 });

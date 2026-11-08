@@ -69,21 +69,19 @@ function execCmd(n, c) {
 const fireMax = (ammo) => (ammo === 'conv' ? G.player.conv : deliverable(G.player, G.legs));
 
 // ---------- 长按蓄力 / 梭哈 ----------
-// 单击发 1 个；按住超过 0.2 秒开始蓄力，数量越涨越快，最多到可发射上限；松开发射
+// 单击发 1 个；按住超过 0.2 秒开始蓄力，之后匀速每 0.4 秒 +1，最多到可发射上限；松开发射
 const Fire = {
   charging: null,   // { ammo, start, count }
   allin: null,      // { ammo, start }
+  HOLD: 0.2,        // 按住多久才开始蓄力（短按 = 发 1 个）
+  STEP: 0.4,        // 之后每 0.4 秒 +1，匀速，方便控制数量
   countAt(t) {      // t：按住的秒数
-    if (t < 0.2) return 1;
-    const s = t - 0.2;
-    return 1 + Math.floor(s * 3 + s * s * 2.5);
+    return t < this.HOLD ? 1 : 1 + Math.floor((t - this.HOLD) / this.STEP + 1e-6); // 1e-6：避免浮点误差少算一格
   },
-  // 当前这一格的进度（圆环）：第一圈从按下开始一路匀速转满，正好在数量变成 2 时转完，不会中途跳回去
-  FIRST_LAP: 0.2 + (Math.sqrt(19) - 3) / 5,   // 数量第一次 +1 的时刻（约 0.47 秒）
-  progressAt(t) {
-    if (t < this.FIRST_LAP) return t / this.FIRST_LAP;
-    const s = t - 0.2, v = s * 3 + s * s * 2.5;
-    return v - Math.floor(v);
+  // 圆环：表示离"可发射上限"还有多远，匀速填满，填满时正好到上限
+  progressAt(t, max) {
+    if (max <= 1) return 1;
+    return clamp((t - this.HOLD) / this.STEP / (max - 1), 0, 1);
   },
   begin(ammo, pid = -1) {
     if (this.charging || fireMax(ammo) <= 0 || !G.nations[G.target] || !G.nations[G.target].alive) {
@@ -96,6 +94,8 @@ const Fire = {
   release(fire = true) {
     const c = this.charging;
     if (!c) return;
+    // 松手时按实际按住的时长重新算数量（画面掉帧时也不会少算）
+    c.count = Math.max(1, Math.min(fireMax(c.ammo), this.countAt((performance.now() - c.start) / 1000)));
     this.charging = null;
     $('fire-' + c.ammo).classList.remove('charging');
     this.syncIdle();
@@ -118,7 +118,7 @@ const Fire = {
       const max = fireMax(c.ammo);
       c.count = Math.max(1, Math.min(max, this.countAt(t)));
       const full = c.count >= max;
-      this.ring(c.ammo, full ? 1 : this.progressAt(t), c.count);
+      this.ring(c.ammo, full ? 1 : this.progressAt(t, max), c.count);
     }
     if (this.allin) {
       const a = this.allin, k = Math.min(1, (now - a.start) / 400);

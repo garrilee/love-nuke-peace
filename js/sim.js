@@ -196,6 +196,11 @@ function stepNation(n, dt) {
   n.convCd = Math.max(0, n.convCd - dt);
   n.convBuildT = Math.max(0, (n.convBuildT || 0) - dt);
   n.ultCd = Math.max(0, n.ultCd - dt);
+  // 进入火箭时代：投送站装好 3 枚火箭，或者研发出投送站 45 秒后
+  if (!n.rocketEra && has(n, 'pad')) {
+    if (n.padAt === undefined) n.padAt = G.t;
+    if (G.t - n.padAt >= 45 || facOf(n, 'pad').reduce((k, f) => k + (f.alive ? f.missiles : 0), 0) >= 3) n.rocketEra = true;
+  }
   n.overtimeT = Math.max(0, n.overtimeT - dt); n.harpoonT = Math.max(0, n.harpoonT - dt);
   if (n.hackT > 0) { n.hackT = Math.max(0, n.hackT - dt); n.netT = 0; n.netCharges = 0; }
 }
@@ -226,10 +231,12 @@ function autoBuild(n) {
     const ufoTotal = n.ufoReady + n.ufoReturn.length;
     const dead = n.facilities.find((f) => !f.alive && f.rebuild <= 0);
     let item = null, cost = 0;
-    if (st < slots + 1 && st < 30) { item = 'parcel'; cost = pc; }
+    const loaded = facOf(n, 'pad').reduce((k, f) => k + (f.alive ? f.missiles : 0), 0);
+    if (!n.rocketEra && has(n, 'pad') && pad && loaded < 3) { item = 'rocket'; cost = COSTS.rocket * (n.mods.rocket || 1); } // 先把投送站装上火箭，换掉飞机
+    else if (st < slots + 1 && st < 30) { item = 'parcel'; cost = pc; }
     else if (has(n, 'pad') && pad) { item = 'rocket'; cost = COSTS.rocket * (n.mods.rocket || 1); }
     else if (has(n, 'sea') && seaBase && n.subs.length < CFG.MAX_SEA) { item = 'sea'; cost = COSTS.sea * (n.mods.sea || 1); }
-    else if (ufoBase && ufoTotal < CFG.MAX_UFO) { item = 'ufo'; cost = COSTS.ufo; }
+    else if (ufoBase && ufoTotal < CFG.MAX_UFO && !has(n, 'pad')) { item = 'ufo'; cost = COSTS.ufo; } // 有投送站后不再造飞机
     else if (!n.isPlayer && dead) { item = 'fac'; cost = COSTS.facility; }
     else if (n.conv < CONV.stockCap && n.convBuildT <= 0) { item = 'conv'; cost = CONV.cost; }
     else if (st < 30) { item = 'parcel'; cost = pc; }
@@ -253,7 +260,10 @@ function collectSlots(n, legs) {
   if (legs.sea && has(n, 'sea')) {
     for (const s of n.subs) if (s.state === 'out') for (let i = 0; i < s.rockets; i++) slots.push({ kind: 'rocket', src: s, sub: true, cap: k, tile: s.tile, flight: rnd(5, 8) * (n.mods.seaSpeed || 1) });
   }
-  if (legs.ufo && facOf(n, 'ufo').some((f) => f.alive)) {
+  // 飞机只是前期的运载工具：投送站第一次装好火箭（rocketEra）之后就不再派飞机，火箭打完了就等装填；
+  // 投送站全被打掉、也没有潜航器时，飞机才重新出来兜底
+  const rocketSites = n.rocketEra && ((has(n, 'pad') && facOf(n, 'pad').some((f) => f.alive)) || (has(n, 'sea') && n.subs.length > 0));
+  if (legs.ufo && !rocketSites && facOf(n, 'ufo').some((f) => f.alive)) {
     const base = facOf(n, 'ufo').find((f) => f.alive);
     for (let i = 0; i < n.ufoReady; i++) slots.push({ kind: 'ufo', src: base, cap: 1, tile: base.tile, flight: rnd(10, 14) });
   }
