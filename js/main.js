@@ -1,7 +1,7 @@
 // ===================== 主循环与输入 =====================
 'use strict';
 
-let lastFrame = 0, simAcc = 0, running = false;
+let lastFrame = 0, lastDraw = 0, simAcc = 0, running = false;
 
 // 联机时只有房主能调速度，并且不能暂停（暂停会卡住所有人）
 function setSpeed(s) { if (G && (!G.mp || (Net.role === 'host' && s > 0))) G.speed = s; }
@@ -128,8 +128,8 @@ const Fire = {
   },
   ring(ammo, frac, num) {
     const el = $('fire-' + ammo);
-    el.querySelector('.prog').style.strokeDashoffset = String(170 * (1 - frac));
-    $('num-' + ammo).textContent = num;
+    setStyle(el.querySelector('.prog'), 'strokeDashoffset', (170 * (1 - frac)).toFixed(1));
+    setText($('num-' + ammo), num);
   },
   syncIdle() {
     for (const ammo of ['nuke', 'conv']) {
@@ -202,7 +202,11 @@ function frame(ts) {
     Fire.tick();
     UI.tick(real);
   }
-  Render.draw(real);
+  // 高刷新率屏幕（120/144Hz）上把绘制限制在约 60 帧；结算画面盖住地图时不画
+  if (ts - lastDraw >= 13 && !(G && G.over && !$('end').classList.contains('hidden'))) {
+    Render.draw((ts - lastDraw) / 1000 > 0.1 ? real : Math.min(0.1, (ts - lastDraw) / 1000));
+    lastDraw = ts;
+  }
   requestAnimationFrame(frame);
 }
 

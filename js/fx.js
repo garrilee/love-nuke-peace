@@ -37,6 +37,7 @@ const FX = {
       smoke: this.sprite('sm', 70, 62, 58, 'smoke'),
       smokeLight: this.sprite('sl', 120, 108, 100, 'smoke'),
       dust: this.sprite('du', 170, 140, 80, 'smoke'),
+      ray: this.raySprite(),
     };
     this.hue = [];
     for (let h = 0; h < 12; h++) {
@@ -55,9 +56,21 @@ const FX = {
     Bus.on('ult', (e) => this.onUlt(e));
     Bus.on('midnight', () => { this.midFlash = 1; });
   },
+  // 爆炸光芒：一根从中心向外变淡的光束，预先画好，绘制时旋转贴上
+  raySprite() {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 16;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 128, 0);
+    g.addColorStop(0, 'rgba(255,250,230,0.7)'); g.addColorStop(1, 'rgba(255,200,120,0)');
+    x.fillStyle = g;
+    x.beginPath(); x.moveTo(0, 8); x.lineTo(128, 0); x.lineTo(128, 16); x.closePath(); x.fill();
+    return c;
+  },
   reset() { this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
+  MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
   part(o) {
+    if (this.parts.length >= this.MAX_PARTS && !o.fire && !o.orbit) return;
     this.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, age: 0, size: 4, grow: 0, alpha: 1, add: true, drag: 0, grav: 0, delay: 0, fire: 0 }, o));
   },
   text(x, y, str, color, scale = 1) { this.texts.push({ x, y, str, color, age: 0, life: 1.8, scale }); },
@@ -271,10 +284,8 @@ const FX = {
       const s = f.s;
       ctx.globalAlpha = 0.4 * it * fl;
       ctx.drawImage(this.S.red, f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s);
-      ctx.globalAlpha = 0.75 * it * fl;
-      ctx.drawImage(this.S.orange, f.x - 2.6 * s, f.y - 3.4 * s, 5.2 * s, 5.2 * s);
-      ctx.globalAlpha = 0.5 * it * fl * fl;
-      ctx.drawImage(this.S.warm, f.x - 1.2 * s, f.y - 2.4 * s, 2.4 * s, 2.4 * s);
+      ctx.globalAlpha = 0.85 * it * fl;
+      ctx.drawImage(fl > 0.85 ? this.S.warm : this.S.orange, f.x - 2.6 * s, f.y - 3.4 * s, 5.2 * s, 5.2 * s);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   },
@@ -454,22 +465,21 @@ const FX = {
         ctx.beginPath(); ctx.ellipse(r.x, r.y, rad * 0.97, rad * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
       }
     }
-    // 光芒
+    // 光芒（预先画好的光束图，旋转后贴上；压扁成椭圆透视）
     for (const r of this.rays) {
       const k = r.age / r.life, a = Math.pow(1 - k, 1.6);
       const len = r.R * (0.4 + 0.6 * Math.min(1, r.age / 0.15));
+      ctx.save();
+      ctx.translate(r.x, r.y); ctx.scale(1, 0.62);
+      ctx.globalAlpha = a;
       for (let i = 0; i < r.n; i++) {
         const ang = r.rot + (i / r.n) * Math.PI * 2 + Math.sin(i * 7.3) * 0.15;
         const L = len * (0.6 + 0.4 * Math.abs(Math.sin(i * 3.7)));
-        const w = 0.07;
-        const g = ctx.createLinearGradient(r.x, r.y, r.x + Math.cos(ang) * L, r.y + Math.sin(ang) * L * 0.62);
-        g.addColorStop(0, `rgba(255,250,230,${0.7 * a})`); g.addColorStop(1, 'rgba(255,200,120,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.moveTo(r.x, r.y);
-        ctx.lineTo(r.x + Math.cos(ang - w) * L, r.y + Math.sin(ang - w) * L * 0.62);
-        ctx.lineTo(r.x + Math.cos(ang + w) * L, r.y + Math.sin(ang + w) * L * 0.62);
-        ctx.closePath(); ctx.fill();
+        ctx.rotate(ang);
+        ctx.drawImage(this.S.ray, 0, -L * 0.07, L, L * 0.14);
+        ctx.rotate(-ang);
       }
+      ctx.restore();
     }
     // 火球
     for (const b of this.balls) {
@@ -509,35 +519,41 @@ const FX = {
     // 粒子
     // 同屏蘑菇云越多，烟越稀：避免大规模轰炸后整片地图被烟挡住
     const crowd = clamp(1.1 - this.capGlows.length * CFG.SMOKE_CROWD, CFG.SMOKE_MIN_ALPHA, 1);
+    // 粒子分两批画：先画所有烟（普通混合），再一次性画所有火光/火星（加色混合），避免每个粒子都切换混合模式
+    // 烟雾：前 35% 的寿命保持浓烈（爆炸时的震撼感不变），之后才变淡、变稀
+    ctx.globalCompositeOperation = 'source-over';
     for (const p of this.parts) {
-      if (p.delay > 0) continue;
-      const k = p.age / p.life;
-      const fadeIn = Math.min(1, p.age / 0.25);
-      // 火光/火星照旧；烟雾从一开始就慢慢变淡，后半程淡得更快
-      // 烟雾：前 35% 的寿命保持浓烈（爆炸时的震撼感不变），之后才变淡、变稀
-      const late = clamp((k - 0.35) / 0.65, 0, 1);
-      const a = p.add ? p.alpha * fadeIn * (1 - k * k)
-        : p.alpha * fadeIn * Math.pow(1 - late, 1.4) * lerp(1, crowd, late);
+      if (p.delay > 0 || p.add) continue;
+      const k = p.age / p.life, late = clamp((k - 0.35) / 0.65, 0, 1);
+      const a = p.alpha * Math.min(1, p.age / 0.25) * Math.pow(1 - late, 1.4) * lerp(1, crowd, late);
       if (a <= 0.01) continue;
       const s = p.size;
-      ctx.globalCompositeOperation = p.add ? 'lighter' : 'source-over';
       ctx.globalAlpha = a;
       ctx.drawImage(p.sprite, p.x - s, p.y - s, s * 2, s * 2);
-      if (p.fire) { // 被火光从内部照亮，逐渐冷却成烟
-        const fire = Math.max(0, 1 - k * 1.7);
-        if (fire > 0) {
-          ctx.globalCompositeOperation = 'lighter';
-          // 下半部被火光照亮，上半部偏暗
-          const under = p.orbit ? clamp(0.5 + (p.y - p.cy) / (s + 1), 0.25, 1) : 1;
-          ctx.globalAlpha = fire * 0.8 * under;
-          ctx.drawImage(k < 0.1 ? this.S.warm : this.S.orange, p.x - s * 0.85, p.y - s * 0.7, s * 1.7, s * 1.7);
-          if (k < 0.08) { ctx.globalAlpha = (1 - k / 0.08) * 0.5; ctx.drawImage(this.S.white, p.x - s * 0.5, p.y - s * 0.5, s, s); }
-        }
-        if (p.hue >= 0) {
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = 0.35 * (1 - k);
-          ctx.drawImage(this.hue[(p.hue + Math.floor(p.age * 6)) % 12], p.x - s, p.y - s, s * 2, s * 2);
-        }
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of this.parts) {
+      if (p.delay > 0) continue;
+      const k = p.age / p.life, s = p.size;
+      if (p.add) {
+        const a = p.alpha * Math.min(1, p.age / 0.25) * (1 - k * k);
+        if (a <= 0.01) continue;
+        ctx.globalAlpha = a;
+        ctx.drawImage(p.sprite, p.x - s, p.y - s, s * 2, s * 2);
+        continue;
+      }
+      if (!p.fire) continue;
+      // 烟被火光从内部照亮，逐渐冷却：下半部亮、上半部暗
+      const fire = Math.max(0, 1 - k * 1.7);
+      if (fire > 0) {
+        const under = p.orbit ? clamp(0.5 + (p.y - p.cy) / (s + 1), 0.25, 1) : 1;
+        ctx.globalAlpha = fire * 0.7 * under;
+        ctx.drawImage(k < 0.1 ? this.S.warm : this.S.orange, p.x - s * 0.85, p.y - s * 0.7, s * 1.7, s * 1.7);
+        if (k < 0.08) { ctx.globalAlpha = (1 - k / 0.08) * 0.5; ctx.drawImage(this.S.white, p.x - s * 0.5, p.y - s * 0.5, s, s); }
+      }
+      if (p.hue >= 0) {
+        ctx.globalAlpha = 0.35 * (1 - k);
+        ctx.drawImage(this.hue[(p.hue + Math.floor(p.age * 6)) % 12], p.x - s, p.y - s, s * 2, s * 2);
       }
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
@@ -561,9 +577,9 @@ const FX = {
     if (G && G.midnight) {
       const T = Render.time, pulse = 0.5 + 0.5 * Math.sin(T * 1.3);
       ctx.fillStyle = 'rgba(90,0,0,0.07)'; ctx.fillRect(0, 0, w, h);
-      const rg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.72);
-      rg.addColorStop(0, 'rgba(255,0,0,0)'); rg.addColorStop(1, `rgba(200,10,10,${0.16 + 0.1 * pulse})`);
-      ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 0.16 + 0.1 * pulse;
+      ctx.drawImage(Render.vignette('midnight'), 0, 0, w, h);
+      ctx.globalAlpha = 1;
     }
     if (this.midFlash > 0.01) { ctx.fillStyle = `rgba(255,30,20,${0.4 * this.midFlash * this.midFlash})`; ctx.fillRect(0, 0, w, h); }
     // 东风镜头：电影黑边

@@ -113,6 +113,8 @@ const Render = {
     }
     x.restore();
     this.buildLinks();
+    this.glowCache = new Map();   // 国界变了，发光层重画
+    this.cityCache = new Map();
     this.base = c;
     if (!this.scorch) {
       this.scorch = document.createElement('canvas');
@@ -120,6 +122,43 @@ const Render = {
     }
   },
   resetScorch() { this.scorch = null; },
+  linkImage(dots) {
+    if (!dots.length) return null;
+    const pad = 4, K = 2;
+    const xs = dots.map((d) => d.x), ys = dots.map((d) => d.y);
+    const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad, x1 = Math.max(...xs) + pad, y1 = Math.max(...ys) + pad;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil((x1 - x0) * K); c.height = Math.ceil((y1 - y0) * K);
+    const x = c.getContext('2d');
+    x.globalCompositeOperation = 'lighter'; x.scale(K, K);
+    for (const d of dots) {
+      const s = 3 * d.s;
+      x.globalAlpha = 0.65 + 0.35 * Math.sin(d.ph);
+      x.drawImage(FX.S.warm, d.x - x0 - s / 2, d.y - y0 - s / 2, s, s);
+    }
+    return { c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  },
+  // 一座城当前亮着的灯，画成一张小图（按亮灯数量缓存）
+  cityLights(c, b) {
+    const n = c.lights.reduce((k, L) => k + (L.rank <= b ? 1 : 0), 0);
+    let e = this.cityCache.get(c.id);
+    if (e && e.n === n) return e;
+    const r = CFG.HEX * 1.8, K = 3, cv = (e && e.c) || document.createElement('canvas');
+    cv.width = cv.height = Math.ceil(r * 2 * K);
+    const x = cv.getContext('2d');
+    x.clearRect(0, 0, cv.width, cv.height);
+    x.globalCompositeOperation = 'lighter';
+    x.scale(K, K);
+    for (const L of c.lights) {
+      if (L.rank > b) continue;
+      const s = 3.2 * L.s;
+      x.globalAlpha = 0.6 + 0.3 * Math.abs(Math.sin(L.ph)); // 每盏灯亮度略有不同
+      x.drawImage(FX.S.warm, r + L.x - s / 2, r + L.y - s / 2, s, s);
+    }
+    e = { c: cv, r, n };
+    this.cityCache.set(c.id, e);
+    return e;
+  },
   // 同一国家相邻城市之间的“公路灯带”：夜景地球上连成一片的灯光
   buildLinks() {
     const W = G.world, seen = new Set();
@@ -141,7 +180,7 @@ const Render = {
             const u = k / cnt, off = bend * Math.sin(Math.PI * u) + (hash(k * 7 + a.id) - 0.5) * 3;
             dots.push({ x: a.tile.x + dx * u + nx * off, y: a.tile.y + dy * u + ny * off, ph: hash(k + b.id * 3) * 6.28, s: 0.7 + hash(k * 3 + a.id) * 0.8 });
           }
-          this.links.push({ a, b, dots });
+          this.links.push({ a, b, dots, img: this.linkImage(dots) });
         }
       }
     }
@@ -221,33 +260,19 @@ const Render = {
     ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
     const S = FX.S;
 
-    // 我方国土：更亮的底色 + 呼吸发光的金色国境线
+    // 我方国土：更亮的底色 + 呼吸发光的金色国境线（发光层预先画好，每帧只调透明度）
     const me = G.player;
     if (me.alive && this.nationPaths[me.id]) {
       const pulse = 0.5 + 0.5 * Math.sin(T * 2.2);
-      ctx.save();
       ctx.fillStyle = rgba(me.color, 0.13 + 0.05 * pulse); ctx.fill(this.nationPaths[me.id]);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.shadowColor = '#ffd27a'; ctx.shadowBlur = 16 + 8 * pulse;
-      ctx.strokeStyle = `rgba(255,215,120,${0.65 + 0.3 * pulse})`; ctx.lineWidth = 3.2 / z;
-      ctx.stroke(this.borderPaths[me.id]);
-      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1 / z;
-      ctx.stroke(this.borderPaths[me.id]);
-      ctx.restore();
+      this.drawGlow(ctx, me.id, 'me', 0.7 + 0.3 * pulse);
     }
     // 当前打击目标：红色呼吸国境 + 淡红底色
     const tg = G.nations[G.target];
     if (tg && tg.alive && this.borderPaths[tg.id]) {
       const pulse = 0.5 + 0.5 * Math.sin(T * 4);
-      ctx.save();
       ctx.fillStyle = `rgba(255,50,40,${0.07 + 0.05 * pulse})`; ctx.fill(this.nationPaths[tg.id]);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 14 + 8 * pulse;
-      ctx.strokeStyle = `rgba(255,70,50,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 3.2 / z;
-      ctx.stroke(this.borderPaths[tg.id]);
-      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,220,210,0.85)'; ctx.lineWidth = 1 / z;
-      ctx.stroke(this.borderPaths[tg.id]);
-      ctx.restore();
+      this.drawGlow(ctx, tg.id, 'target', 0.7 + 0.3 * pulse);
     }
     // 选目标窗口里悬停预览 / 护盾
     for (const n of G.nations) {
@@ -269,9 +294,8 @@ const Render = {
         const fade = n.shieldT < 2 ? (Math.sin(T * 20) > 0 ? 1 : 0.4) : 1;
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = `rgba(90,200,255,${(0.16 + 0.06 * Math.sin(T * 6)) * fade})`; ctx.fill(path);
-        ctx.shadowColor = '#6cf'; ctx.shadowBlur = 14;
-        ctx.strokeStyle = `rgba(150,235,255,${0.9 * fade})`; ctx.lineWidth = 3.5 / z; ctx.stroke(this.borderPaths[n.id]);
         ctx.restore();
+        this.drawGlow(ctx, n.id, 'shield', fade);
       }
     }
 
@@ -306,16 +330,65 @@ const Render = {
 
     // ---- 屏幕层 ----
     const w = this.w, h = this.h;
-    const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)');
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(this.vignette('black'), 0, 0, w, h);
     if (G.player.alive && incomingFor(G.player).length) {
-      const a = 0.18 + 0.12 * Math.sin(T * 7);
-      const rg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.4, w / 2, h / 2, Math.max(w, h) * 0.7);
-      rg.addColorStop(0, 'rgba(255,0,0,0)'); rg.addColorStop(1, `rgba(255,20,20,${a})`);
-      ctx.fillStyle = rg; ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 0.18 + 0.12 * Math.sin(T * 7);
+      ctx.drawImage(this.vignette('red'), 0, 0, w, h);
+      ctx.globalAlpha = 1;
     }
     FX.drawScreen(ctx, w, h);
+  },
+
+  // ---------- 国境发光层缓存：shadowBlur 很贵，只在国界变化时画一次 ----------
+  GLOW_STYLE: {
+    me: { shadow: '#ffd27a', blur: 20, color: 'rgba(255,215,120,0.95)', w: 3.2, inner: 'rgba(255,255,240,0.9)' },
+    target: { shadow: '#ff3020', blur: 18, color: 'rgba(255,70,50,1)', w: 3.2, inner: 'rgba(255,220,210,0.85)' },
+    shield: { shadow: '#66ccff', blur: 14, color: 'rgba(150,235,255,0.9)', w: 3.5, inner: null },
+  },
+  drawGlow(ctx, id, kind, alpha) {
+    const key = kind + ':' + id;
+    let g = this.glowCache.get(key);
+    if (!g) { g = this.buildGlow(id, kind); this.glowCache.set(key, g); }
+    if (!g) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(g.c, g.x, g.y, g.w, g.h);
+    ctx.restore();
+  },
+  buildGlow(id, kind) {
+    const tiles = G.world.tiles.filter((t) => t.owner === id);
+    if (!tiles.length) return null;
+    const st = this.GLOW_STYLE[kind], pad = 30, K = 2;   // K：缓存分辨率（每个世界像素 2 个像素）
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const t of tiles) { x0 = Math.min(x0, t.x); y0 = Math.min(y0, t.y); x1 = Math.max(x1, t.x); y1 = Math.max(y1, t.y); }
+    x0 -= CFG.HEX + pad; y0 -= CFG.HEX + pad; x1 += CFG.HEX + pad; y1 += CFG.HEX + pad;
+    const c = document.createElement('canvas');
+    c.width = Math.ceil((x1 - x0) * K); c.height = Math.ceil((y1 - y0) * K);
+    const x = c.getContext('2d');
+    x.scale(K, K); x.translate(-x0, -y0);
+    x.lineJoin = 'round';
+    x.shadowColor = st.shadow; x.shadowBlur = st.blur * K;
+    x.strokeStyle = st.color; x.lineWidth = st.w;
+    x.stroke(this.borderPaths[id]); x.stroke(this.borderPaths[id]); // 描两遍，光晕更饱满
+    if (st.inner) { x.shadowBlur = 0; x.strokeStyle = st.inner; x.lineWidth = 1; x.stroke(this.borderPaths[id]); }
+    return { c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  },
+
+  // ---------- 屏幕暗角缓存 ----------
+  vignette(kind) {
+    const key = kind + this.w + 'x' + this.h;
+    if (this.vigCache && this.vigCache[kind] && this.vigCache[kind].key === key) return this.vigCache[kind].c;
+    const w = this.w, h = this.h, c = document.createElement('canvas');
+    c.width = Math.ceil(w / 2); c.height = Math.ceil(h / 2); // 暗角很柔和，半分辨率就够
+    const x = c.getContext('2d'); x.scale(0.5, 0.5);
+    const inner = kind === 'black' ? 0.35 : kind === 'red' ? 0.4 : 0.3, outer = kind === 'red' ? 0.7 : kind === 'black' ? 0.75 : 0.72;
+    const g = x.createRadialGradient(w / 2, h / 2, Math.min(w, h) * inner, w / 2, h / 2, Math.max(w, h) * outer);
+    const col = kind === 'black' ? '0,0,0' : kind === 'red' ? '255,20,20' : '200,10,10';
+    g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(1, `rgba(${col},${kind === 'black' ? 0.6 : 1})`);
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    (this.vigCache = this.vigCache || {})[kind] = { key, c };
+    return c;
   },
 
   // 城市亮度：人口越少灯越少；废墟为 0
@@ -323,33 +396,30 @@ const Render = {
   drawCities(ctx, z, T) {
     const S = FX.S;
     ctx.globalCompositeOperation = 'lighter';
-    // 公路灯带：两端城市都亮着才亮
+    // 公路灯带：两端城市都亮着才亮（每条灯带预先画成一张图）
     for (const L of this.links || []) {
       const a = Math.min(this.cityLit(L.a), this.cityLit(L.b), 1) * 0.42;
-      if (a < 0.03) continue;
-      for (const d of L.dots) {
-        ctx.globalAlpha = a * (0.65 + 0.35 * Math.sin(T * 1.7 + d.ph));
-        const s = 3 * d.s;
-        ctx.drawImage(S.warm, d.x - s / 2, d.y - s / 2, s, s);
-      }
+      if (a < 0.03 || !L.img) continue;
+      ctx.globalAlpha = a * (0.85 + 0.15 * Math.sin(T * 1.7 + L.a.id));
+      ctx.drawImage(L.img.c, L.img.x, L.img.y, L.img.w, L.img.h);
     }
     for (const c of G.world.cities) {
       const b = this.cityLit(c);
       const x = c.tile.x, y = c.tile.y;
-      // 每盏灯记住开/关状态：熄灭的一瞬间闪一下白光再消失，重新亮起时慢慢变亮——轰炸后能清楚看到“一片片灭掉”
+      // 每盏灯记住开/关状态：熄灭的一瞬间闪一下白光再消失——轰炸后能清楚看到"一片片灭掉"
+      let lit = 0;
       for (const L of c.lights) {
         const on = L.rank <= b;
         if (L.on === undefined) { L.on = on; L.chg = -99; }
         if (L.on !== on) { L.on = on; L.chg = T; }
+        if (on) { lit++; continue; }
         const since = T - L.chg;
-        if (!on) {
-          if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
-          continue;
-        }
-        const f = (0.75 + 0.25 * Math.sin(T * 3 + L.ph)) * Math.min(1, since / 1.2);
-        const s = 3.2 * L.s;
-        ctx.globalAlpha = 0.75 * f;
-        ctx.drawImage(S.warm, x + L.x - s / 2, y + L.y - s / 2, s, s);
+        if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
+      }
+      if (lit) { // 亮着的灯：整座城一张缓存图，整体轻微闪烁
+        const img = this.cityLights(c, b);
+        ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
+        ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
       }
       if (c.ruined) { // 废墟：中心一团摇曳的火光 + 零星余火
         const alive = G.nations[c.nation].alive;
@@ -358,10 +428,9 @@ const Render = {
         ctx.drawImage(S.red, x - 18, y - 13, 36, 26);
         ctx.globalAlpha = (alive ? 0.45 : 0.2) * fl;
         ctx.drawImage(S.orange, x - 7, y - 8, 14, 14);
-        for (let i = 0; i < c.lights.length; i += 3) {
+        for (let i = 0; i < c.lights.length; i += 4) {
           const L = c.lights[i];
-          const f = 0.5 + 0.5 * Math.sin(T * 5 + L.ph * 3);
-          ctx.globalAlpha = 0.5 * f;
+          ctx.globalAlpha = 0.25 + 0.25 * Math.sin(T * 5 + L.ph * 3);
           ctx.drawImage(S.red, x + L.x - 2.5, y + L.y - 2.5, 5, 5);
         }
         continue;
@@ -474,6 +543,8 @@ const Render = {
 
   drawProjectiles(ctx, z, T) {
     const S = FX.S;
+    // 同屏飞弹很多时（大齐射）简化低级包裹的尾迹：省掉外层光晕、少洒火花；4、5 级照旧华丽
+    this.lod = G.projectiles.length > 80;
     ctx.globalCompositeOperation = 'lighter';
     for (const p of G.projectiles) {
       if (!p.launched) continue;
@@ -484,14 +555,16 @@ const Render = {
       const u = this.renderU(p);
       const col = G.nations[p.att].color;
       if (p.kind === 'conv') {
-        const u0 = Math.max(0, u - 0.2), steps = 8;
+        const u0 = Math.max(0, u - 0.2), steps = 6;
         ctx.lineWidth = 1.1 / Math.max(0.6, z);
-        let prev = this.arcPoint(p, u0);
-        for (let i = 1; i <= steps; i++) {
-          const pt = this.arcPoint(p, u0 + (u - u0) * (i / steps));
-          ctx.strokeStyle = `rgba(255,230,170,${(i / steps) * 0.7})`;
-          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
-          prev = pt;
+        const tail = this.arcPoint(p, u0), headPt = this.arcPoint(p, u);
+        if (Math.abs(tail.x - headPt.x) + Math.abs(tail.y - headPt.y) > 0.01) {
+          const g = ctx.createLinearGradient(tail.x, tail.y, headPt.x, headPt.y);
+          g.addColorStop(0, 'rgba(255,230,170,0)'); g.addColorStop(1, 'rgba(255,230,170,0.7)');
+          ctx.strokeStyle = g;
+          ctx.beginPath(); ctx.moveTo(tail.x, tail.y);
+          for (let i = 1; i <= steps; i++) { const pt = this.arcPoint(p, u0 + (u - u0) * (i / steps)); ctx.lineTo(pt.x, pt.y); }
+          ctx.stroke();
         }
         const h = this.arcPoint(p, u);
         ctx.globalAlpha = 0.9; ctx.drawImage(S.warm, h.x - 4, h.y - 4, 8, 8);
@@ -525,39 +598,44 @@ const Render = {
   drawRocketTrail(ctx, p, u, col, z, T) {
     const S = FX.S, lv = p.lv || 1;
     const len = lv >= 5 ? 0.45 : 0.18 + lv * 0.05;
-    const steps = 18, u0 = Math.max(p.mirvOf !== undefined ? CFG.MIRV_SPLIT - 0.05 : 0, u - len);
+    const steps = lv >= 3 ? 12 : 9, u0 = Math.max(p.mirvOf !== undefined ? CFG.MIRV_SPLIT - 0.05 : 0, u - len);
     const w = (1.1 + lv * 0.22) / Math.max(0.6, z);   // 等级越高略粗，但不过分
-    const [cr, cg, cb] = hexToRgb(col);
+    const rgb = this.rgbStr(col);
     const pts = [];
     for (let i = 0; i <= steps; i++) pts.push(this.arcPoint(p, u0 + (u - u0) * (i / steps)));
-    const segColor = (i, a) => {
-      if (lv >= 5) return `rgba(255,${200 + Math.round(55 * i / steps)},${120 + Math.round(135 * i / steps)},${a})`;
-      if (lv === 4) return `hsla(${(T * 160 + i * 22 + p.id * 40) % 360},100%,65%,${a})`;
-      return `rgba(${cr},${cg},${cb},${a})`;
+    const colorAt = (f, a) => {
+      if (lv >= 5) return `rgba(255,${200 + Math.round(55 * f)},${120 + Math.round(135 * f)},${a.toFixed(3)})`;
+      if (lv === 4) return `hsla(${Math.round(T * 160 + f * steps * 22 + p.id * 40) % 360},100%,65%,${a.toFixed(3)})`;
+      return `rgba(${rgb},${a.toFixed(3)})`;
     };
-    // 外层光晕（3 级以上）
-    if (lv >= 3) {
-      ctx.lineCap = 'round';
-      for (let i = 1; i <= steps; i++) {
-        const f = i / steps;
-        ctx.lineWidth = w * (lv >= 5 ? 2.8 : 2.1) * (0.4 + 0.6 * f);
-        ctx.strokeStyle = segColor(i, f * (lv >= 5 ? 0.22 : 0.16));
-        ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    // 尾迹分成 3 段，每段一笔：颜色/透明度用沿途渐变，越靠近弹头越粗越亮
+    const bands = (wMul, aMul, from = 0) => {
+      for (let b = 0; b < 3; b++) {
+        const i0 = Math.max(from, Math.floor(steps * b / 3)), i1 = Math.floor(steps * (b + 1) / 3);
+        if (i1 <= i0) continue;
+        const A = pts[i0], B = pts[i1];
+        if (Math.abs(A.x - B.x) + Math.abs(A.y - B.y) < 0.01) continue;
+        const f0 = i0 / steps, f1 = i1 / steps;
+        const g = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+        g.addColorStop(0, colorAt(f0, f0 * aMul)); g.addColorStop(1, colorAt(f1, f1 * aMul));
+        ctx.strokeStyle = g; ctx.lineWidth = w * wMul * (0.35 + 0.65 * (f0 + f1) / 2);
+        ctx.beginPath(); ctx.moveTo(A.x, A.y);
+        for (let i = i0 + 1; i <= i1; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
       }
-    }
-    // 主尾迹
-    for (let i = 1; i <= steps; i++) {
-      const f = i / steps;
-      ctx.lineWidth = w * (0.35 + 0.65 * f);
-      ctx.strokeStyle = segColor(i, f * 0.95);
-      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
-    }
-    // 白色内芯（3 级以上）
-    if (lv >= 3) {
-      ctx.lineWidth = Math.max(0.6, w * 0.35);
-      for (let i = Math.floor(steps * 0.5); i <= steps; i++) {
-        ctx.strokeStyle = `rgba(255,255,255,${((i / steps) - 0.5) * 1.6})`;
-        ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    };
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (lv >= 4 || (lv === 3 && !this.lod)) bands(lv >= 5 ? 2.8 : 2.1, lv >= 5 ? 0.22 : 0.16); // 外层光晕
+    bands(1, 0.95);                                                   // 主尾迹
+    if (lv >= 3) {                                                    // 白色内芯
+      const i0 = Math.floor(steps / 2), A = pts[i0], B = pts[steps];
+      if (Math.abs(A.x - B.x) + Math.abs(A.y - B.y) > 0.01) {
+        const g = ctx.createLinearGradient(A.x, A.y, B.x, B.y);
+        g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0.8)');
+        ctx.strokeStyle = g; ctx.lineWidth = Math.max(0.6, w * 0.35);
+        ctx.beginPath(); ctx.moveTo(A.x, A.y);
+        for (let i = i0 + 1; i <= steps; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
       }
     }
     ctx.lineCap = 'butt';
@@ -573,11 +651,17 @@ const Render = {
       ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
     }
     // 火花：3 级以上沿途洒落
-    if (lv >= 3 && Math.random() < 0.18 * (lv - 2)) {
+    if (lv >= 3 && Math.random() < 0.18 * (lv - 2) * (this.lod && lv < 4 ? 0.3 : 1)) {
       const spr = lv === 4 ? FX.hue[Math.floor(Math.random() * 12)] : lv >= 5 ? S.warm : S.orange;
       const vr = (lo, hi) => lo + Math.random() * (hi - lo); // 纯视觉随机，不影响游戏逻辑的随机序列
       FX.part({ x: h.x, y: h.y, vx: vr(-14, 14), vy: vr(-6, 18), life: vr(0.4, 0.8), size: vr(1.2, 2.4), sprite: spr, grav: 25, drag: 1.5 });
     }
+  },
+
+  rgbStr(col) {
+    const m = this._rgb || (this._rgb = new Map());
+    if (!m.has(col)) m.set(col, hexToRgb(col).join(','));
+    return m.get(col);
   },
 
   // 飞机：略带弧度的航线、双道尾迹、机翼航行灯

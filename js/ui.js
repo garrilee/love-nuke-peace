@@ -2,6 +2,11 @@
 'use strict';
 
 const $ = (id) => document.getElementById(id);
+// 只在内容真的变了才写 DOM：HUD 每 0.15 秒刷新一次，没变的部分不再重新渲染
+// （不能拿 el.innerHTML 来比较：浏览器会把 HTML 重新格式化，导致每次都"不一样"）
+const setHTML = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
+const setText = (el, t) => { t = String(t); if (el._t !== t) { el._t = t; el.textContent = t; } };
+const setStyle = (el, prop, v) => { const k = '_s_' + prop; if (el[k] !== v) { el[k] = v; el.style[prop] = v; } };
 // 本地设置：读写失败（隐私模式等）时静默忽略
 const Store = {
   get(k, d) { try { const v = localStorage.getItem('lnp.' + k); return v === null ? d : JSON.parse(v); } catch (_) { return d; } },
@@ -123,8 +128,8 @@ const UI = {
     const def = prod * a.def + CFG.ENERGY_BASE + (done ? prod * a.tech * 0.5 : 0);
     const set = (k, html) => {
       const el = $('r-' + k);
-      if (el.innerHTML === html) return;
-      el.innerHTML = html;
+      if (el._h === html) return;
+      setHTML(el, html);
       if (changed) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
     };
     set('tech', done ? '<span class="dim">已满</span>' : `+${tech.toFixed(1)}<small>点/秒</small>`);
@@ -137,12 +142,12 @@ const UI = {
     if (t) hints.push(`下一项【${t.name}】约 ${tech > 0 ? Math.ceil((t.cost - p.techPts) / tech) + ' 秒' : '∞'}`);
     hints.push(`约每 ${nuke > 0 ? (per / nuke).toFixed(0) : '∞'} 秒造出一个包裹`);
     hints.push(`护盾能量 ${def > 0 ? Math.max(0, Math.ceil((COSTS.shield - p.energy) / def)) : '∞'} 秒后够用`);
-    $('allocHint').innerHTML = hints.join('<br>');
+    setHTML($('allocHint'), hints.join('<br>'));
     // 军工热度条
     const target = clamp(a.nuke / CFG.HEAT_FULL_AT, 0, 1);
     const trend = target > p.heat + 0.02 ? '▲ 升温中' : target < p.heat - 0.02 ? '▼ 降温中' : '稳定';
-    $('heatBar').style.width = p.heat * 100 + '%';
-    $('heatTxt').textContent = `效率 ×${heatEff(p).toFixed(2)} · ${trend}`;
+    setStyle($('heatBar'), 'width', (p.heat * 100).toFixed(1) + '%');
+    setText($('heatTxt'), `效率 ×${heatEff(p).toFixed(2)} · ${trend}`);
   },
 
   buildNationList() {
@@ -161,12 +166,12 @@ const UI = {
   refreshAll() {
     const p = G.player;
     // 顶栏
-    $('date').textContent = fmtDate(G.t);
+    setText($('date'), fmtDate(G.t));
     const mob = this.mobile();
     const spdTxt = G.mp && Net.role !== 'host' ? ` · ${G.speed}×` : ''; // 联机玩家看到房主设定的速度
-    $('timer').textContent = (mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`) + spdTxt;
+    setText($('timer'), (mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`) + spdTxt);
     const mins = Math.max(0, Math.ceil(17 * (1 - G.t / CFG.MIDNIGHT)));
-    $('doom').innerHTML = G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`;
+    setHTML($('doom'), G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`);
     document.body.classList.toggle('midnight', G.midnight);
     $('timer').classList.toggle('urgent', CFG.GAME_END - G.t < 60);
     // 午夜前 10 秒倒计时
@@ -181,12 +186,12 @@ const UI = {
     for (const n of G.nations) {
       const d = $('nat-' + n.id);
       const pop = totalPop(n);
-      const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100}%"></i></div>`;
+      const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></div>`;
       d.classList.toggle('dead', !n.alive);
       d.classList.toggle('sel', G.target === n.id);
-      d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}${recentAttacker(n) ? `<span class="tag atk" title="${Math.floor(attackedAgo(n, p))} 秒前攻击过你">⚔</span>` : ''}</div>
+      setHTML(d, `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}${recentAttacker(n) ? `<span class="tag atk" title="${Math.floor(attackedAgo(n, p))} 秒前攻击过你">⚔</span>` : ''}</div>
         <div class="nl">${n.alive ? `👥 ${fmtPop(pop)} · 📦 ${stock(n)} · 🔬 ${n.techIdx}/${TECHS.length}` : '💀 已被核平'}</div>
-        ${n.alive ? anger : ''}`;
+        ${n.alive ? anger : ''}`);
     }
 
     // 我方数据
@@ -196,16 +201,16 @@ const UI = {
     const lvStr = [1, 2, 3, 4, 5].filter((k) => p.parcels[k] > 0).map((k) => `<span class="lv lv${k}">${k}级×${p.parcels[k]}</span>`).join(' ') || '<span class="dim">暂无</span>';
     const pads = facOf(p, 'pad');
     const subsOut = p.subs.filter((s) => s.state === 'out');
-    $('stats').innerHTML = `
+    setHTML($('stats'), `
       <div class="sect-title">${p.race.emoji} ${p.name}</div>
       <div class="big">👥 ${fmtPop(totalPop(p))} <span class="dim">产出 ${prod.toFixed(1)}/秒</span></div>
-      <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${tk * 100}%"></i></span></div>
+      <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${Math.round(tk * 100)}%"></i></span></div>
       <div>📦 包裹 ${lvStr} · <span class="conv">💥 常规×${p.conv}</span></div>
       <div class="dim">🚀 ${has(p, 'pad') ? pads.map((f) => (f.alive ? f.missiles : '✘')).join('/') : '未解锁'} · 🐋 ${has(p, 'sea') ? subsOut.length + '/' + p.subs.length : '未解锁'} · ✈ ${p.ufoReady}${p.ufoReturn.length ? '(+' + p.ufoReturn.length + ')' : ''}</div>
-      <div class="dim">💰 预算 ${Math.floor(p.bank)} · ⚡ 能量 ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}</div>`;
+      <div class="dim">💰 预算 ${Math.floor(p.bank)} · ⚡ 能量 ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}</div>`);
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
-    $('energyTxt').textContent = `⚡ ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}`;
+    setText($('energyTxt'), `⚡ ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}`);
     if (p.hackT > 0) { this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); this.skillCard('net', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); }
     else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / SKILLS.shield.dur);
     else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
@@ -231,7 +236,7 @@ const UI = {
     if (building) rs += `重建中 ${building} 处`;
     if (ruined + deadFac) rs += `${building ? ' · ' : ''}待重建 ${ruined + deadFac} 处${p.autoRebuild ? '（等能量）' : ' · 按 R 重建'}`;
     if (!building && !(ruined + deadFac)) rs += '国土完好';
-    $('rebuildStatus').textContent = rs;
+    setText($('rebuildStatus'), rs);
     if (!$('chooser').classList.contains('hidden')) this.renderChooser();
     if (this.popOpen()) this.renderMapPop();
 
@@ -243,10 +248,10 @@ const UI = {
   skillCard(key, text, state, frac) {
     const b = $('sk-' + key);
     const st = $('st-' + key);
-    if (st.textContent !== text) st.textContent = text;
+    setText(st, text);
     for (const s of ['active', 'cd', 'poor', 'ready']) b.classList.toggle(s, s === state);
     b.disabled = state === 'cd' || state === 'poor';
-    $('cd-' + key).style.width = clamp(frac, 0, 1) * 100 + '%';
+    setStyle($('cd-' + key), 'width', Math.round(clamp(frac, 0, 1) * 100) + '%');
   },
 
   refreshStrike() {
@@ -256,22 +261,22 @@ const UI = {
     // 目标按钮 + 地图上方目标条
     $('pickTarget').classList.toggle('set', hasT);
     const tHtml = hasT ? `<span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span> <span class="small dim">👥${fmtPop(totalPop(tgt))}</span>` : '未选择 · 点击选择';
-    if ($('targetName').innerHTML !== tHtml) $('targetName').innerHTML = tHtml;
+    setHTML($('targetName'), tHtml);
     const badge = $('targetBadge');
     badge.classList.toggle('hidden', !hasT || !p.alive);
     const bHtml = hasT ? `<span class="lbl">🎯 打击目标</span><span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span>` : '';
-    if (badge.innerHTML !== bHtml) badge.innerHTML = bHtml;
+    setHTML(badge, bHtml);
 
     // 核包裹
     const D = deliverable(p, G.legs);
-    $('ct-nuke').textContent = stock(p);
-    $('all-nuke').textContent = '×' + D;
-    $('sub-nuke').textContent = !bestLevel(p) ? '尚未研发' : `可投送 ${D}` + (D < stock(p) ? '（等运载）' : '');
+    setText($('ct-nuke'), stock(p));
+    setText($('all-nuke'), '×' + D);
+    setText($('sub-nuke'), !bestLevel(p) ? '尚未研发' : `可投送 ${D}` + (D < stock(p) ? '（等运载）' : ''));
     // 常规导弹
-    $('ct-conv').textContent = p.conv;
-    $('all-conv').textContent = '×' + p.conv;
-    $('sub-conv').textContent = p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s`
-      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 ${p.convBuildT.toFixed(1)}s` : `每枚 💰${CONV.cost}`;
+    setText($('ct-conv'), p.conv);
+    setText($('all-conv'), '×' + p.conv);
+    setText($('sub-conv'), p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s`
+      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 ${p.convBuildT.toFixed(1)}s` : `每枚 💰${CONV.cost}`);
 
     const ok = hasT && p.alive;
     const holding = (ammo) => !!(Fire.charging && Fire.charging.ammo === ammo); // 按住期间不禁用，保证松手能收到
@@ -285,7 +290,7 @@ const UI = {
     if (!hasT) st = '先选择打击目标';
     else if (Fire.charging) st = `松开发射 <b class="gold">${Fire.charging.count}</b> ${Fire.charging.ammo === 'nuke' ? '个核包裹' : '枚常规导弹'}`;
     else st = '单击发 1 个 · 按住蓄力 · 梭哈全发';
-    if ($('strikeTarget').innerHTML !== st) $('strikeTarget').innerHTML = st;
+    setHTML($('strikeTarget'), st);
   },
 
   openChooser() {
@@ -301,7 +306,7 @@ const UI = {
   chooserTargets() { return G.nations.filter((x) => x.alive && x !== G.player); },
   renderChooser() {
     const p = G.player;
-    $('chooserInfo').textContent = '选定后，地图上方会显示目标，按住开火按钮即可打击。';
+    setText($('chooserInfo'), '选定后，地图上方会显示目标，按住开火按钮即可打击。');
     const list = $('chooserList');
     const targets = this.chooserTargets();
     const sig = targets.map((t) => t.id).join(',');
@@ -322,8 +327,7 @@ const UI = {
       const t = G.nations[+d.dataset.id];
       d.classList.toggle('human', G.mp && t.isPlayer);
       const html = this.nationInfo(t);
-      const body = d.querySelector('.tbody');
-      if (body.innerHTML !== html) body.innerHTML = html;
+      setHTML(d.querySelector('.tbody'), html);
     });
   },
   // 一个国家的简要情报：选目标窗口和地图浮窗共用
@@ -360,11 +364,11 @@ const UI = {
     const n = G.nations[this.popId];
     if (!n || !n.alive || !G.player.alive) return this.closeMapPop();
     const html = `<div class="temo">${n.race.emoji}</div><div class="tbody">${this.nationInfo(n)}</div>`;
-    if ($('mapPopBody').innerHTML !== html) $('mapPopBody').innerHTML = html;
+    setHTML($('mapPopBody'), html);
     const isT = G.target === n.id, go = $('mapPopGo');
     go.disabled = isT;
     const label = isT ? '✔ 已是打击目标' : '🎯 开始打击';
-    if (go.textContent !== label) go.textContent = label;
+    setText(go, label);
   },
   closeMapPop() {
     if (this.popId === undefined || this.popId < 0) return;
@@ -379,7 +383,7 @@ const UI = {
     const box = $('incoming');
     SFX.tension(inc.length > 0);
     document.body.classList.toggle('inc-on', inc.length > 0); // 来袭面板显示时，提示卡让到下方
-    if (!inc.length) { box.classList.add('hidden'); return; }
+    if (!inc.length) { if (!box.classList.contains('hidden')) box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
     // 每一波新来袭只响一次短促警报
     let fresh = false;
@@ -390,8 +394,8 @@ const UI = {
       const tag = p.kind === 'conv' ? '<span class="lv conv">常规</span> 💥' : `<span class="lv lv${p.lv}">${p.lv}级</span> ${p.kind === 'ufo' ? '✈' : '🚀'}`;
       return `<div class="inc"><span style="color:${a.color}">${a.race.emoji}${a.name}</span> ${tag} <b class="mono">${left.toFixed(1)}s</b></div>`;
     }).join('');
-    box.innerHTML = `<div class="sect-title red">⚠ 包裹来袭 ×${inc.length}</div>${rows}
-      <div class="hint">${inc.length > netMax(G.player) ? '<b class="gold">来袭太多！</b>B 开护盾' : 'N 拦截（少量来袭）'} · 或者……回敬一个</div>`;
+    setHTML(box, `<div class="sect-title red">⚠ 包裹来袭 ×${inc.length}</div>${rows}
+      <div class="hint">${inc.length > netMax(G.player) ? '<b class="gold">来袭太多！</b>B 开护盾' : 'N 拦截（少量来袭）'} · 或者……回敬一个</div>`);
   },
 
   addFeed(text) {
@@ -493,7 +497,7 @@ const UI = {
       lines.push(`${info.icon} ${info.name} ${f.alive ? (f.type === 'pad' && mine ? '· 火箭 ' + f.missiles : '') : f.rebuild > 0 ? '· 修复中' : '<span class="red">· 宕机</span>' + (mine ? ' · 点击修复（💰' + COSTS.facility + '）' : '')}`);
     }
     if (tile.rad > 0.03) lines.push(`🌫 灰尘浓度 ${(tile.rad * 100).toFixed(0)}%`);
-    el.innerHTML = lines.join('<br>');
+    setHTML(el, lines.join('<br>'));
     el.classList.remove('hidden');
     el.style.left = Math.min(sx + 16, window.innerWidth - 240) + 'px';
     el.style.top = Math.min(sy + 16, window.innerHeight - 100) + 'px';
