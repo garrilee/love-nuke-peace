@@ -782,11 +782,11 @@ const Render = {
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   },
 
-  // 最近 2 分钟攻击过你的国家：名字下方一个红色「⚔ 攻击过你」标牌，刚挨打时闪烁，时间越久越淡
+  // 最近 2 分钟攻击过你的国家：名字下方一个红色「⚔ 最近攻击过你」标牌，刚挨打时闪烁，时间越久越淡
   drawAttackerBadge(ctx, n, c, z) {
     const ago = attackedAgo(n, G.player), k = 1 / Math.max(0.6, z);
     const fresh = ago < 8, alpha = fresh ? 0.75 + 0.25 * Math.sin(this.time * 12) : clamp(1 - (ago - 8) / (CFG.ATTACKER_MARK - 8) * 0.55, 0.45, 1);
-    const text = `⚔ 攻击过你 · ${ago < 60 ? Math.floor(ago) + '秒前' : Math.floor(ago / 60) + '分钟前'}`;
+    const text = '⚔ 最近攻击过你';
     ctx.save();
     ctx.font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
