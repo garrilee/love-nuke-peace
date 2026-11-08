@@ -702,19 +702,18 @@ const Render = {
     // 尾迹
     const u0 = Math.max(0, u - 0.22), steps = 14;
     ctx.globalCompositeOperation = 'lighter';
-    for (const off of [-2.2, 2.2]) {
-      let prev = null;
-      for (let i = 0; i <= steps; i++) {
-        const uu = u0 + (u - u0) * (i / steps);
-        const q = this.planePos(p, uu), a2 = ang + Math.PI / 2;
-        const pt = { x: q.x + Math.cos(a2) * off, y: q.y + Math.sin(a2) * off };
-        if (prev) {
-          ctx.strokeStyle = `rgba(220,235,255,${(i / steps) * 0.45})`;
-          ctx.lineWidth = (0.6 + (1 - i / steps) * 1.6) / Math.max(0.6, z);
-          ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pt.x, pt.y); ctx.stroke();
-        }
-        prev = pt;
-      }
+    // Both trails share samples and stroke styles; draw each pair in one path.
+    const a2 = ang + Math.PI / 2, dx = Math.cos(a2) * 2.2, dy = Math.sin(a2) * 2.2;
+    let prev = this.planePos(p, u0);
+    for (let i = 1; i <= steps; i++) {
+      const q = this.planePos(p, u0 + (u - u0) * (i / steps));
+      ctx.strokeStyle = `rgba(220,235,255,${(i / steps) * 0.45})`;
+      ctx.lineWidth = (0.6 + (1 - i / steps) * 1.6) / Math.max(0.6, z);
+      ctx.beginPath();
+      ctx.moveTo(prev.x - dx, prev.y - dy); ctx.lineTo(q.x - dx, q.y - dy);
+      ctx.moveTo(prev.x + dx, prev.y + dy); ctx.lineTo(q.x + dx, q.y + dy);
+      ctx.stroke();
+      prev = q;
     }
     ctx.globalAlpha = 0.5;
     ctx.drawImage(FX.sprite('p' + col, ...hexToRgb(col)), pos.x - 12, pos.y - 12, 24, 24);
