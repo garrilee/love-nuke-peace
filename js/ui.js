@@ -163,7 +163,8 @@ const UI = {
     // 顶栏
     $('date').textContent = fmtDate(G.t);
     const mob = this.mobile();
-    $('timer').textContent = mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`;
+    const spdTxt = G.mp && Net.role !== 'host' ? ` · ${G.speed}×` : ''; // 联机玩家看到房主设定的速度
+    $('timer').textContent = (mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`) + spdTxt;
     const mins = Math.max(0, Math.ceil(17 * (1 - G.t / CFG.MIDNIGHT)));
     $('doom').innerHTML = G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`;
     document.body.classList.toggle('midnight', G.midnight);
@@ -330,7 +331,7 @@ const UI = {
     const tags = (human ? ' <span class="tag human">👤 玩家</span>' : '')
       + (t.name !== t.race.name ? ` <span class="dim small">${t.race.emoji}${t.race.name}</span>` : '')
       + (G.target === t.id ? ' <span class="tag tgt">🎯 当前目标</span>' : '');
-    const head = `<div class="tn">${t.name}${tags}</div>
+    const head = `<div class="tn"><span class="nm" title="${t.name}">${t.name}</span>${tags}</div>
       <div class="dim">👥 ${fmtPop(totalPop(t))} · 📦 ${stock(t)} · 🔬 ${t.techIdx}/${TECHS.length}</div>`;
     if (human) return head + '<div class="dim small">🧠 真人玩家：没有怒气条，下一步全看心情</div>';
     const anger = clamp(t.anger[p.id] / CFG.ANGER_MAX, 0, 1);

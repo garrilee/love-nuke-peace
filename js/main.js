@@ -3,7 +3,8 @@
 
 let lastFrame = 0, simAcc = 0, running = false;
 
-function setSpeed(s) { if (G && !G.mp) G.speed = s; }
+// 联机时只有房主能调速度，并且不能暂停（暂停会卡住所有人）
+function setSpeed(s) { if (G && (!G.mp || (Net.role === 'host' && s > 0))) G.speed = s; }
 
 // ---------- 目标 ----------
 function setTarget(id) {
@@ -156,6 +157,7 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null)
   newGame(raceId, aiCount, diff, mp);
   G.tutorial = tutorial;
   document.body.classList.toggle('mp', G.mp);
+  document.body.classList.toggle('mphost', G.mp && Net.role === 'host');
   Render.buildBase();
   UI.initHUD();
   Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
@@ -168,9 +170,9 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null)
 
 // 推进模拟（单机和房主）：dt 为真实时间
 function simAdvance(real) {
-  let spd = G.mp ? 1 : G.speed;
-  // 有包裹飞向你时锁定 1×
-  if (spd > 1 && G.player.alive && incomingFor(G.player).length) spd = 1;
+  let spd = G.speed;
+  // 单机：有包裹飞向你时锁定 1×（联机时大家共用一个速度，不锁）
+  if (!G.mp && spd > 1 && G.player.alive && incomingFor(G.player).length) spd = 1;
   simAcc += G.over ? 0 : real * spd;
   while (simAcc >= CFG.SIM_DT) { simStep(CFG.SIM_DT); simAcc -= CFG.SIM_DT; }
   G.interp = simAcc; // 供渲染插值，飞弹在两次逻辑步之间也能平滑移动
@@ -334,8 +336,8 @@ function setupInput() {
     else if (k === 'q') playerUlt();
     else if (k === 'n') Act.do({ a: 'net' });
     else if (k === 'r') Act.do({ a: 'rebuildAll' });
-    else if (!G.mp && (k === '=' || k === '+')) G.speed = Math.min(3, G.speed + 1);
-    else if (!G.mp && k === '-') G.speed = Math.max(0, G.speed - 1);
+    else if (k === '=' || k === '+') setSpeed(Math.min(3, Math.floor(G.speed) + 1));
+    else if (k === '-') setSpeed(Math.max(G.mp ? 1 : 0, Math.ceil(G.speed) - 1));
   });
   window.addEventListener('keyup', (e) => {
     const k = e.key.toLowerCase();

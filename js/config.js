@@ -75,10 +75,10 @@ const TECHS = [
 
 // 包裹等级（纯游戏数值）
 const PARCELS = {
-  1: { name: '普通件', r: 0, dmg: 0.38, cost: 12, fizzle: 0.12, fx: 0.8, color: '#ffd27a' },
-  2: { name: '次日达', r: 1, dmg: 0.52, cost: 14, fizzle: 0.06, fx: 1.3, color: '#ffb35a' },
-  3: { name: '当日达', r: 1, dmg: 0.65, cost: 16, fizzle: 0.04, fx: 1.9, color: '#ff8a4a' },
-  4: { name: '闪送',   r: 2, dmg: 0.80, cost: 20, fizzle: 0.03, fx: 2.7, color: '#ff6ad5', rainbow: true },
+  1: { name: '普通件', r: 0, dmg: 0.46, cost: 12, fizzle: 0.12, fx: 0.8, color: '#ffd27a' },
+  2: { name: '次日达', r: 1, dmg: 0.62, cost: 14, fizzle: 0.06, fx: 1.3, color: '#ffb35a' },
+  3: { name: '当日达', r: 1, dmg: 0.77, cost: 16, fizzle: 0.04, fx: 1.9, color: '#ff8a4a' },
+  4: { name: '闪送',   r: 2, dmg: 0.90, cost: 20, fizzle: 0.03, fx: 2.7, color: '#ff6ad5', rainbow: true },
   5: { name: '东风',   r: 3, dmg: 0.95, cost: 60, fizzle: 0.03, fx: 4.0, color: '#ffffff', ultimate: true },
 };
 
@@ -86,8 +86,8 @@ const PARCELS = {
 const CONV = {
   cost: 8,            // 每枚预算（核包裹 12~60 + 运载工具）
   buildTime: 2.5,     // 每枚生产耗时（秒），不再瞬间补满
-  dmg: 0.07,          // 命中城市损失 7% 人口
-  facChance: 0.35,    // 命中设施时 35% 打宕机
+  dmg: 0.10,          // 命中城市损失 10% 人口
+  facChance: 0.45,    // 命中设施时 45% 打宕机
   cd: 3,              // 齐射冷却（秒）
   flight: [4, 6],     // 飞行时间
   salvo: [1, 3, 8],   // 一件 / 一半 / 清仓 对应的最多枚数

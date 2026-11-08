@@ -674,7 +674,7 @@ const Render = {
       const bob = Math.sin(T * 2.6 + n.id) * 3 * k;
       const text = me ? `★ ${n.name}` : '👤 玩家';
       ctx.save();
-      ctx.font = `bold ${Math.round((me ? 15 : 11) * k)}px "Microsoft YaHei", sans-serif`;
+      ctx.font = `bold ${Math.round((me ? 15 : 11) * k * (me ? this.nameScale(n.name) : 1))}px "Microsoft YaHei", sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const tw = ctx.measureText(text).width, bw = tw + 14 * k, bh = (me ? 24 : 18) * k;
       const by = y - H - bh / 2 + bob;
@@ -690,6 +690,8 @@ const Render = {
       ctx.restore();
     }
   },
+  // 长国家名在地图上用小一点的字（最小约 65%），避免标签伸出屏幕
+  nameScale(name) { return clamp(12 / ((name || '').length + 2), 0.65, 1); },
   roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
@@ -701,7 +703,7 @@ const Render = {
     for (const n of G.nations) {
       const c = this.nationCenters[n.id];
       if (!c) continue;
-      ctx.font = `bold ${Math.round(16 / Math.max(0.8, z))}px "Microsoft YaHei", sans-serif`;
+      ctx.font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (n === G.player && n.alive) continue; // 我方：名字写在首都上空的金色标牌里
       if (n.id === G.target && n.alive) { // 目标标签：红色
         ctx.save();

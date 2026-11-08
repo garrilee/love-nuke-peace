@@ -367,12 +367,29 @@ body.compact .endstats b { font-size: 18px; }
 .tag.me { background: var(--gold); }
 .tag.human { background: #ff9a5a; }
 .mp-name { margin-top: 8px; }
-#mpName { width: 140px; background: #0a1626; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; user-select: text; }
+#mpName { width: 230px; max-width: 70vw; background: #0a1626; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; user-select: text; }
 .mp-pl .small { margin-left: -2px; }
+/* 长国家名：放不下时省略号截断，鼠标悬停看全名 */
+.mp-pl b { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nh { min-width: 0; }
+.nh b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nh .tag, .nh .emo, .tn .tag, .mp-pl .tag { flex-shrink: 0; white-space: nowrap; }
+.tbody { min-width: 0; }
+.tcard { min-width: 0; }
+.tcard .tbody { padding-right: 18px; } /* 给右上角的数字键留位置 */
+.tbody .tn { display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; }
+.tbody .tn .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.targetbtn .tname { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#targetBadge { max-width: min(440px, 70vw); overflow: hidden; text-overflow: ellipsis; }
+.mprank b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.lname { max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #mpErr { color: #ff8a7a; min-height: 16px; margin-top: 4px; }
 .race.taken { opacity: 0.35; filter: grayscale(0.7); cursor: not-allowed; }
 .race.taken::after { content: '已被选'; float: right; font-size: 11px; color: #ff9a8a; }
-body.mp #speed { display: none; }
+body.mp:not(.mphost) #speed, body.mp #speed button[data-speed="0"] { display: none; }
+.mponly { display: none !important; }
+body.inroom .mponly { display: flex !important; align-items: center; gap: 4px; }
+.start-opts select:disabled { opacity: 0.7; }
 .mprank { max-width: 520px; margin: 0 auto 12px; text-align: left; }
 .mprank > div { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-left: 3px solid var(--c); margin-bottom: 4px; background: rgba(255,255,255,0.04); border-radius: 4px; }
 .mprank > div.me { background: rgba(255, 210, 122, 0.12); }

@@ -9,8 +9,9 @@ const SNAP_EVERY = 0.1;       // 快照间隔（秒）
 const MAX_HUMANS = 6;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-// 自定义国家名：去掉可能破坏页面的字符，最多 8 个字
-const cleanName = (s) => String(s || '').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, 8);
+const NAME_MAX = 20;
+// 自定义国家名：去掉可能破坏页面的字符，最多 20 个字（NAME_MAX）
+const cleanName = (s) => String(s || '').replace(/[<>&"'`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
 const r1 = (v) => Math.round(v * 10) / 10;
 const r2 = (v) => Math.round(v * 100) / 100;
 const SUB_STATES = ['dock', 'out', 'back'];
@@ -87,7 +88,7 @@ Bus.emit = (type, data) => {
 const Net = {
   role: 'solo',           // solo | host | client
   peer: null, conns: new Map(), hostConn: null,
-  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', started: false,
+  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', speed: 1, started: false,
   evQ: [], snapT: 0, ticker: null, allocHold: 0, lastTick: 0, lastFrameAt: 0,
 
   loadLib() {
@@ -177,7 +178,7 @@ const Net = {
   },
   broadcastLobby() {
     const players = this.players.map((p) => ({ id: p.id, race: p.race, host: !!p.host, name: p.name || '' }));
-    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, you: c.peer });
+    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, you: c.peer });
     Lobby.render();
   },
   hostPick(race) {
@@ -191,7 +192,7 @@ const Net = {
     return name && this.players.some((p) => p !== pl && p.name === name) ? '' : name;
   },
   hostName(name) { this.players[0].name = this.uniqueName(this.players[0], name); this.broadcastLobby(); },
-  setOpts(aiCount, diff) { this.aiCount = aiCount; this.diff = diff; this.broadcastLobby(); },
+  setOpts(aiCount, diff, speed = this.speed) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.broadcastLobby(); },
   canStart() { return this.players.length > 0 && this.players.every((p) => p.race); },
   hostStart(tutorial) {
     const humans = this.players.map((p) => p.race);
@@ -201,7 +202,8 @@ const Net = {
     this.started = true;
     this.evQ = []; this.snapT = 0;
     startGame(this.players[0].race, aiCount, this.diff, tutorial, { humans, ids, names });
-    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, humans, ids, names, diff: this.diff };
+    G.speed = this.speed;
+    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, humans, ids, names, diff: this.diff, speed: this.speed };
     for (const c of this.conns.values()) if (c.open) c.send(msg);
     this.startTicker();
   },
@@ -236,7 +238,7 @@ const Net = {
     const W = G.world, rad = [];
     for (const t of W.tiles) if (t.rad > 0.01) rad.push(t.idx, r2(t.rad));
     return {
-      t: r2(G.t), m: G.midnight ? 1 : 0,
+      t: r2(G.t), m: G.midnight ? 1 : 0, sp: G.speed,
       n: G.nations.map((n) => ({
         a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
@@ -284,7 +286,7 @@ const Net = {
   onClientMsg(m) {
     if (!m) return;
     if (m.type === 'lobby') {
-      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff });
+      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff, speed: m.speed || 1 });
       Lobby.checkName();
       Lobby.render();
     } else if (m.type === 'reject') {
@@ -314,13 +316,14 @@ const Net = {
   // 客户端每帧：本地推进时间和飞弹进度，让画面平滑；下一份快照到达时校正
   clientAdvance(real) {
     if (G.over) return;
-    G.t += real;
-    for (const p of G.projectiles) p.t += real;
+    const dt = real * (G.speed || 1); // 和房主同样的游戏速度推进
+    G.t += dt;
+    for (const p of G.projectiles) p.t += dt;
     G.interp = 0;
   },
   applySnap(s) {
     const W = G.world;
-    G.t = s.t; G.midnight = !!s.m;
+    G.t = s.t; G.midnight = !!s.m; if (s.sp) G.speed = s.sp;
     s.n.forEach((d, i) => {
       const n = G.nations[i];
       Object.assign(n, {
@@ -373,8 +376,10 @@ const Lobby = {
       if (navigator.clipboard) navigator.clipboard.writeText(link).then(ok, () => prompt('复制这个链接发给朋友：', link));
       else prompt('复制这个链接发给朋友：', link);
     };
-    $('aiCount').addEventListener('change', () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value); });
-    $('aiDiff').addEventListener('change', () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value); });
+    const opts = () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value, +$('mpSpeed').value); };
+    for (const id of ['aiCount', 'aiDiff', 'mpSpeed']) $(id).addEventListener('change', opts);
+    $('mpSpeed').value = String(Store.get('mpSpeed', 1));
+    $('mpSpeed').addEventListener('change', () => Store.set('mpSpeed', +$('mpSpeed').value));
     // 通过邀请链接打开：自动加入房间
     const room = new URLSearchParams(location.search).get('room');
     if (room) { $('mpCode').value = room.toUpperCase(); this.join(); }
@@ -420,7 +425,7 @@ const Lobby = {
     this.resetName();
     try {
       await Net.createRoom(UI.pickedRace);
-      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value;
+      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value; Net.speed = +$('mpSpeed').value;
       history.replaceState(null, '', `?room=${Net.code}`);
     } catch (e) { this.error(e.message); }
     this.busy = false; $('mpCreate').textContent = '🌐 创建房间';
@@ -473,8 +478,8 @@ const Lobby = {
     }).join('');
     const humans = Net.players.length;
     const ai = clamp(Net.aiCount, humans > 1 ? 0 : 1, MAX_HUMANS - humans);
-    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff;
-    $('aiCount').disabled = $('aiDiff').disabled = Net.role !== 'host';
+    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed);
+    $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = Net.role !== 'host';
     if (Net.role === 'host') {
       const ok = Net.canStart();
       btn.disabled = !ok;
@@ -483,7 +488,7 @@ const Lobby = {
     } else {
       btn.disabled = true;
       btn.textContent = mine && mine.race ? '等待房主开始…' : '先选一个国家';
-      $('mpHint').textContent = `已加入房间，AI ${ai} 个 · 难度 ${DIFFS[Net.diff].name}`;
+      $('mpHint').textContent = `已加入房间，AI ${ai} 个 · 难度 ${DIFFS[Net.diff].name} · 速度 ${Net.speed}×`;
     }
   },
 };
