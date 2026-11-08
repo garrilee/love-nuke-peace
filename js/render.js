@@ -698,6 +698,25 @@ const Render = {
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   },
 
+  // 最近 2 分钟攻击过你的国家：名字下方一个红色「⚔ 攻击过你」标牌，刚挨打时闪烁，时间越久越淡
+  drawAttackerBadge(ctx, n, c, z) {
+    const ago = attackedAgo(n, G.player), k = 1 / Math.max(0.6, z);
+    const fresh = ago < 8, alpha = fresh ? 0.75 + 0.25 * Math.sin(this.time * 12) : clamp(1 - (ago - 8) / (CFG.ATTACKER_MARK - 8) * 0.55, 0.45, 1);
+    const text = `⚔ 攻击过你 · ${ago < 60 ? Math.floor(ago) + '秒前' : Math.floor(ago / 60) + '分钟前'}`;
+    ctx.save();
+    ctx.font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(text).width + 12 * k, h = 17 * k, y = c.y - 6 * k;
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = fresh ? 16 : 8;
+    ctx.fillStyle = 'rgba(150,12,8,0.9)';
+    this.roundRect(ctx, c.x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,120,100,0.9)'; ctx.lineWidth = 1 * k; ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillText(text, c.x, y + 0.5 * k);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+  },
+
   drawLabels(ctx, z) {
     ctx.textAlign = 'center';
     for (const n of G.nations) {
@@ -705,6 +724,7 @@ const Render = {
       if (!c) continue;
       ctx.font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (n === G.player && n.alive) continue; // 我方：名字写在首都上空的金色标牌里
+      if (recentAttacker(n)) this.drawAttackerBadge(ctx, n, c, z);
       if (n.id === G.target && n.alive) { // 目标标签：红色
         ctx.save();
         ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 10;

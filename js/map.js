@@ -1,8 +1,17 @@
 // ===================== 地图生成：大陆、国家、城市、设施 =====================
 'use strict';
 
-function generateWorld(seed, raceIds, humanRaceIds) {
-  const humans = [].concat(humanRaceIds);
+// raceIds：每个国家的类型（可以重复）；humanFlags：对应位置是不是真人玩家
+function generateWorld(seed, raceIds, humanFlags) {
+  // 重复的国家：真人玩家优先拿原名和原色，其余依次加序号（卷王二）、换颜色
+  const dupOf = [], colorOf = [], dupCount = {}, usedColors = new Set();
+  const order = raceIds.map((_, i) => i).sort((a, b) => (!!(humanFlags && humanFlags[b]) - !!(humanFlags && humanFlags[a])) || a - b);
+  for (const i of order) {
+    const race = RACES.find((r) => r.id === raceIds[i]);
+    dupOf[i] = dupCount[race.id] = (dupCount[race.id] ?? -1) + 1;
+    colorOf[i] = !usedColors.has(race.color) ? race.color : ALT_COLORS.find((c) => !usedColors.has(c)) || race.color;
+    usedColors.add(colorOf[i]);
+  }
   setSeed(seed);
   const fbm = makeNoise(seed * 7 + 1);
   const fbm2 = makeNoise(seed * 13 + 5);
@@ -98,7 +107,8 @@ function generateWorld(seed, raceIds, humanRaceIds) {
   for (let i = 0; i < N; i++) {
     const race = RACES.find((r) => r.id === raceIds[i]);
     const own = tiles.filter((t) => t.owner === i);
-    const names = shuffle(race.cities.slice());
+    const dup = dupOf[i], color = colorOf[i];
+    const names = shuffle(race.cities.slice()).map((nm) => nm + (dup ? '·' + (dup + 1) : ''));
     const nCities = 5;
     const placed = [];
     const capital = seeds[i];
@@ -111,7 +121,7 @@ function generateWorld(seed, raceIds, humanRaceIds) {
     }
     const popMul = race.mods.pop || 1;
     const nation = {
-      id: i, race, name: race.name, color: race.color, isPlayer: humans.includes(race.id),
+      id: i, race, name: race.name + DUP_SUFFIX[dup], color, isPlayer: !!(humanFlags && humanFlags[i]),
       cities: [], facilities: [],
     };
     placed.forEach((t, k) => {

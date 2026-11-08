@@ -6,7 +6,7 @@
 const PEER_SRC = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const ROOM_PREFIX = 'lnp-room-';
 const SNAP_EVERY = 0.1;       // 快照间隔（秒）
-const MAX_HUMANS = 6;
+const MAX_HUMANS = MAX_NATIONS; // 最多 8 个国家（真人 + AI），国家可以重复选
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const NAME_MAX = 20;
@@ -137,7 +137,7 @@ const Net = {
   onConn(conn) {
     conn.on('open', () => {
       if (this.started || this.players.length >= MAX_HUMANS) {
-        conn.send({ type: 'reject', reason: this.started ? '这局游戏已经开始了' : '房间已满（最多 6 人）' });
+        conn.send({ type: 'reject', reason: this.started ? '这局游戏已经开始了' : `房间已满（最多 ${MAX_HUMANS} 人）` });
         setTimeout(() => conn.close(), 600);
         return;
       }
@@ -154,7 +154,7 @@ const Net = {
     const pl = this.players.find((p) => p.id === conn.peer);
     if (!pl || !m) return;
     if (m.type === 'pick' && !this.started) {
-      if (RACES.some((r) => r.id === m.race) && !this.players.some((p) => p !== pl && p.race === m.race)) pl.race = m.race;
+      if (RACES.some((r) => r.id === m.race)) pl.race = m.race; // 可以和别人选同一个国家
       if (m.name !== undefined) pl.name = this.uniqueName(pl, m.name);
       this.broadcastLobby();
     } else if (m.type === 'name' && !this.started) {
@@ -182,8 +182,7 @@ const Net = {
     Lobby.render();
   },
   hostPick(race) {
-    const me = this.players[0];
-    if (!this.players.some((p) => p !== me && p.race === race)) me.race = race;
+    this.players[0].race = race;
     this.broadcastLobby();
   },
   // 国家名不能和房间里的其他人重复（同一个浏览器开两个页面时，会读到同一个保存的名字）
@@ -195,15 +194,13 @@ const Net = {
   setOpts(aiCount, diff, speed = this.speed) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.broadcastLobby(); },
   canStart() { return this.players.length > 0 && this.players.every((p) => p.race); },
   hostStart(tutorial) {
-    const humans = this.players.map((p) => p.race);
-    const ids = Object.fromEntries(this.players.map((p) => [p.race, p.id]));
-    const names = Object.fromEntries(this.players.filter((p) => p.name).map((p) => [p.race, p.name]));
-    const aiCount = clamp(this.aiCount, humans.length > 1 ? 0 : 1, MAX_HUMANS - humans.length);
+    const players = this.players.map((p) => ({ race: p.race, id: p.id, name: p.name || '' }));
+    const aiCount = clamp(this.aiCount, players.length > 1 ? 0 : 1, MAX_NATIONS - players.length);
     this.started = true;
     this.evQ = []; this.snapT = 0;
-    startGame(this.players[0].race, aiCount, this.diff, tutorial, { humans, ids, names });
+    startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' });
     G.speed = this.speed;
-    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, humans, ids, names, diff: this.diff, speed: this.speed };
+    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, owners: G.owners, names: G.names, diff: this.diff, speed: this.speed };
     for (const c of this.conns.values()) if (c.open) c.send(msg);
     this.startTicker();
   },
@@ -245,6 +242,7 @@ const Net = {
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
         uC: r1(n.ultCd), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
+        ha: Object.fromEntries(Object.entries(n.hostileAt).map(([k, v]) => [k, r1(v)])),
         u: n.ufoReady, ur: n.ufoReturn.length, sb: n.subs.map((s) => [SUB_STATES.indexOf(s.state), s.tile.idx, s.rockets]),
         al: [r2(n.alloc.tech), r2(n.alloc.nuke), r2(n.alloc.def)], st: n.stats, aN: n.autoNet ? 1 : 0, aR: n.autoRebuild ? 1 : 0,
       })),
@@ -295,7 +293,7 @@ const Net = {
       const me = this.players.find((p) => p.id === this.myId);
       if (!me || !me.race) return;
       this.started = true;
-      startGame(me.race, 0, m.diff, Lobby.tutorial(), { humans: m.humans, ids: m.ids, names: m.names || {}, seed: m.seed, raceIds: m.raceIds });
+      startGame(me.race, 0, m.diff, Lobby.tutorial(), { seed: m.seed, raceIds: m.raceIds, owners: m.owners, names: m.names, me: this.myId });
     } else if (m.type === 'snap') {
       if (G && this.started) this.applySnap(m.s);
     } else if (m.type === 'ev') {
@@ -330,7 +328,7 @@ const Net = {
         alive: !!d.a, isPlayer: !!d.h, techIdx: d.ti, techPts: d.tp, bank: d.b, energy: d.e,
         conv: d.cv, convCd: d.cc, convBuildT: d.cb, heat: d.ht, shieldT: d.sT, shieldCd: d.sC, netT: d.nT, netCd: d.nC, netCharges: d.nq,
         ultCd: d.uC, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
-        lastAttack: d.la, lastHit: d.lh, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
+        lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
         autoNet: !!d.aN, autoRebuild: !!d.aR,
       });
       d.pc.forEach((v, k) => { n.parcels[k + 1] = v; });
@@ -397,12 +395,10 @@ const Lobby = {
     const me = Net.players.find((p) => p.id === Net.myId);
     if (!me || !me.race || me.race === this.filledFor) return;
     this.filledFor = me.race;
-    const el = $('mpName'), rn = RACES.find((r) => r.id === me.race).name;
+    const el = $('mpName'), base = RACES.find((r) => r.id === me.race).name;
     if (el.value.trim() && !this.autoName) return;
-    if (Net.players.some((p) => p !== me && p.name === rn)) { // 默认名正好被别人用作自定义名
-      el.value = ''; this.autoName = false; el.placeholder = `「${rn}」已被占用，换一个吧`;
-      return;
-    }
+    // 和别人选了同一个国家：默认名自动加序号（卷王二、卷王三……）
+    const rn = DUP_SUFFIX.map((s) => base + s).find((nm) => !Net.players.some((p) => p !== me && p.name === nm)) || base;
     el.value = rn; this.autoName = true; el.placeholder = '给你的国家起个名字';
     if (me.name !== rn) this.sendName(rn);
   },
@@ -456,10 +452,9 @@ const Lobby = {
     document.body.classList.toggle('inroom', inRoom);
     const btn = $('startBtn');
     const mine = inRoom ? Net.players.find((p) => p.id === Net.myId) : null;
-    // 国家卡片：别人选了的标记出来；自己的高亮
-    const taken = new Set(Net.players.filter((p) => p !== mine && p.race).map((p) => p.race));
+    // 国家卡片：高亮自己选的；联机时可以和别人选同一个国家
     document.querySelectorAll('.race').forEach((d) => {
-      d.classList.toggle('taken', taken.has(d.dataset.id));
+      d.classList.remove('taken');
       if (inRoom) d.classList.toggle('sel', !!mine && mine.race === d.dataset.id);
     });
     if (!inRoom) {
@@ -477,7 +472,7 @@ const Lobby = {
         ${p.host ? '<span class="tag">房主</span>' : ''}${p.id === Net.myId ? '<span class="tag me">你</span>' : ''}</div>`;
     }).join('');
     const humans = Net.players.length;
-    const ai = clamp(Net.aiCount, humans > 1 ? 0 : 1, MAX_HUMANS - humans);
+    const ai = clamp(Net.aiCount, humans > 1 ? 0 : 1, MAX_NATIONS - humans);
     $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed);
     $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = Net.role !== 'host';
     if (Net.role === 'host') {

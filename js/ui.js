@@ -184,7 +184,7 @@ const UI = {
       const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100}%"></i></div>`;
       d.classList.toggle('dead', !n.alive);
       d.classList.toggle('sel', G.target === n.id);
-      d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}</div>
+      d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}${recentAttacker(n) ? `<span class="tag atk" title="${Math.floor(attackedAgo(n, p))} 秒前攻击过你">⚔</span>` : ''}</div>
         <div class="nl">${n.alive ? `👥 ${fmtPop(pop)} · 📦 ${stock(n)} · 🔬 ${n.techIdx}/${TECHS.length}` : '💀 已被核平'}</div>
         ${n.alive ? anger : ''}`;
     }
@@ -330,6 +330,7 @@ const UI = {
   nationInfo(t) {
     const p = G.player, human = G.mp && t.isPlayer;
     const tags = (human ? ' <span class="tag human">👤 玩家</span>' : '')
+      + (recentAttacker(t) ? ' <span class="tag atk">⚔ 攻击过你</span>' : '')
       + (t.name !== t.race.name ? ` <span class="dim small">${t.race.emoji}${t.race.name}</span>` : '')
       + (G.target === t.id ? ' <span class="tag tgt">🎯 当前目标</span>' : '');
     const head = `<div class="tn"><span class="nm" title="${t.name}">${t.name}</span>${tags}</div>

@@ -27,6 +27,7 @@ const CFG = {
   ANGER_MAX: 200,         // 怒气上限
   ANGER_COOL_AFTER: 30,   // 两国超过 30 秒没有互相攻击，怒气开始回落
   ANGER_HALF_LIFE: 60,    // 回落速度：约每 60 秒减半
+  ATTACKER_MARK: 120,     // 最近 2 分钟内攻击过你的国家，会在地图和列表上标出来
   AI_IDLE_FORCE: 60,      // AI 超过 60 秒没出手，必须打一轮
   SCORE_DAMAGE: 0.4,      // 终局排名：综合得分 = 人口 + 造成伤亡 × 0.4
 
@@ -158,7 +159,11 @@ const DIFFS = {
   normal: { name: '普通', prod: 1.0, aggro: 1.0,  react: 1.0, idle: 60,  ult: 1 },
   hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1 },
 };
-const ULT_FIRST = 90; // 开局 90 秒后大招才可用
+const ULT_FIRST = 90;
+const MAX_NATIONS = 8;   // 一局最多 8 个国家（真人 + AI）；国家可以重复选
+// 同一个国家出现多次时，后来者换一个国境线颜色
+const ALT_COLORS = ['#ff8c3a', '#7ee05a', '#f06cff', '#00b4ff', '#c8d2e0', '#b5ff3a', '#ffb0c8', '#c7a0ff'];
+const DUP_SUFFIX = ['', '二', '三', '四', '五', '六', '七', '八']; // 开局 90 秒后大招才可用
 
 const PERSONALITIES = {
   hot:     { name: '暴躁', react: [1, 2.5],   aggro: 1.6, start: 75 },

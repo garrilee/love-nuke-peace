@@ -414,3 +414,6 @@ body.compact #mpCodeTxt { font-size: 20px; }
 .tag.tgt { background: #ff5a4a; color: #fff; }
 .tcard.human { border-style: solid; border-color: rgba(255, 154, 90, 0.55); box-shadow: inset 0 0 14px rgba(255, 154, 90, 0.12); }
 body.compact #mapPop { width: min(260px, 86vw); }
+
+/* 最近 2 分钟攻击过你的国家 */
+.tag.atk { background: #c0180e; color: #fff; box-shadow: 0 0 6px rgba(255, 40, 20, 0.7); }

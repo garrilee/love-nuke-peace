@@ -9,17 +9,24 @@ const Bus = {
 
 let G = null;
 
-// mp：联机参数 { humans: [国家 id], ids: {国家 id: 玩家连接 id}, seed?, raceIds? }
-//   房主不传 seed/raceIds（随机生成）；客户端用房主发来的 seed + raceIds 生成一模一样的世界
+// 每个国家占一个“席位”：raceIds[i] 国家类型（可以重复），owners[i] 玩家连接 id（AI 为 null），names[i] 自定义国家名
+// mp（联机）：房主传 { players: [{race, id, name}], me }，由这里排好席位；
+//             客户端传房主发来的 { seed, raceIds, owners, names, me }，生成一模一样的世界
 function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
-  const humans = mp ? mp.humans : [playerRaceId];
-  let raceIds = mp && mp.raceIds, seed = mp && mp.seed;
+  let raceIds = mp && mp.raceIds, owners = mp && mp.owners, names = mp && mp.names, seed = mp && mp.seed;
   if (!raceIds) {
-    const others = shuffle(RACES.map((r) => r.id).filter((id) => !humans.includes(id))).slice(0, aiCount);
-    raceIds = shuffle([...humans, ...others]);
+    const humans = mp ? mp.players : [{ race: playerRaceId, id: 'local', name: '' }];
+    aiCount = clamp(aiCount, 0, MAX_NATIONS - humans.length);
+    // AI 先用没人选的国家，不够时再重复
+    const unused = shuffle(RACES.map((r) => r.id).filter((id) => !humans.some((h) => h.race === id)));
+    const ai = [];
+    const notHuman = RACES.filter((r) => !humans.some((h) => h.race === r.id));
+    for (let k = 0; k < aiCount; k++) ai.push(k < unused.length ? unused[k] : pick(notHuman.length ? notHuman : RACES).id);
+    const seats = shuffle([...humans.map((h) => ({ race: h.race, id: h.id, name: h.name || '' })), ...ai.map((race) => ({ race, id: null, name: '' }))]);
+    raceIds = seats.map((s) => s.race); owners = seats.map((s) => s.id); names = seats.map((s) => s.name);
     seed = (Math.random() * 1e9) | 0;
   }
-  const world = generateWorld(seed, raceIds, humans);
+  const world = generateWorld(seed, raceIds, owners.map((o) => o !== null && o !== undefined));
   setSeed(seed ^ 0x5bd1e995);
   const persKeys = shuffle(Object.keys(PERSONALITIES));
   const nations = world.nations;
@@ -45,15 +52,15 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
     });
     n.anger[i] = -1e9;
     n.mods = n.race.mods;
-    n.isPlayer = humans.includes(n.race.id); // 不依赖地图生成的标记，避免新旧脚本混用时没有真人
-    n.netId = mp && mp.ids ? mp.ids[n.race.id] : null;
-    const custom = mp && mp.names && cleanName(mp.names[n.race.id]);
+    n.isPlayer = owners[i] !== null && owners[i] !== undefined; // 不依赖地图生成的标记，避免新旧脚本混用时没有真人
+    n.netId = mp ? owners[i] : null;
+    const custom = mp && cleanName(names[i]);
     if (custom) n.name = custom; // 联机自定义国家名
   });
   G = {
     t: 0, speed: 1, world, nations, projectiles: [],
-    player: nations.find((n) => n.race.id === playerRaceId),
-    mp: !!mp, seed, raceIds,
+    player: mp ? nations.find((n) => n.netId === mp.me) : nations.find((n) => n.isPlayer),
+    mp: !!mp, seed, raceIds, owners, names,
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
@@ -518,6 +525,9 @@ function explode(tile, lv, att) {
 // 记录“谁最近一次打了谁”：b.hostileAt[a] = a 最近一次攻击 b 的时间。
 // b 对 a 的怒气，只在 a 停手一段时间后才回落（b 自己还在打 a 不影响它冷静下来）
 function markHostile(a, b) { b.hostileAt[a.id] = G.t; }
+// x 多少秒前攻击过 n（没攻击过返回 Infinity）
+const attackedAgo = (x, n) => (n && n.hostileAt && n.hostileAt[x.id] !== undefined ? G.t - n.hostileAt[x.id] : Infinity);
+const recentAttacker = (x) => x !== G.player && x.alive && attackedAgo(x, G.player) <= CFG.ATTACKER_MARK;
 function knockFacility(f, owner) {
   f.alive = false; f.missiles = 0; f.rebuild = 0;
   if (f.type === 'ufo') owner.ufoReady = 0;
