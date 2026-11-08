@@ -14,6 +14,7 @@ const Render = {
   nationPaths: [], nationCenters: [],
   hoverTile: null, time: 0,
   cityLightsEnabled: true,
+  labelCache: new Map(),
 
   init(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
@@ -117,6 +118,8 @@ const Render = {
     this.glowCache = new Map();   // 国界变了，发光层重画
     if (this.cityCache) for (const e of this.cityCache.values()) e.c.close();
     this.cityCache = new Map();
+    for (const e of this.labelCache.values()) e.c.close();
+    this.labelCache.clear();
     this.base = c;
     if (!this.scorch) {
       this.scorch = document.createElement('canvas');
@@ -255,6 +258,8 @@ const Render = {
     ctx.save();
     ctx.translate(this.w / 2 + sx, this.h / 2 + sy);
     const pz = z * (1 + FX.punch); // 爆炸时镜头猛地一推
+    // Reuse glyphs during the brief camera punch instead of rerasterizing every frame.
+    this.labelScale = this.dpr * z;
     ctx.scale(pz, pz);
     ctx.translate(-cam.x, -cam.y);
 
@@ -762,10 +767,10 @@ const Render = {
       // 悬浮的标牌：上下轻轻浮动
       const bob = Math.sin(T * 2.6 + n.id) * 3 * k;
       const text = me ? `★ ${n.name}` : '👤 玩家';
+      const font = `bold ${Math.round((me ? 15 : 11) * k * (me ? this.nameScale(n.name) : 1))}px "Microsoft YaHei", sans-serif`;
+      const label = this.labelImage('marker:' + n.id, text, font, '#1a0d00', 0, '', 'middle');
       ctx.save();
-      ctx.font = `bold ${Math.round((me ? 15 : 11) * k * (me ? this.nameScale(n.name) : 1))}px "Microsoft YaHei", sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const tw = ctx.measureText(text).width, bw = tw + 14 * k, bh = (me ? 24 : 18) * k;
+      const bw = label.width + 14 * k, bh = (me ? 24 : 18) * k;
       const by = y - H - bh / 2 + bob;
       ctx.shadowColor = col; ctx.shadowBlur = me ? 18 : 10;
       ctx.fillStyle = me ? 'rgba(255,200,90,0.95)' : rgba(n.color, 0.9);
@@ -774,8 +779,7 @@ const Render = {
       ctx.moveTo(x - 5 * k, by + bh / 2 - 1); ctx.lineTo(x + 5 * k, by + bh / 2 - 1); ctx.lineTo(x, by + bh / 2 + 7 * k); ctx.closePath(); ctx.fill();
       ctx.shadowBlur = 0;
       if (me) { ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1.2 * k; this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.stroke(); }
-      ctx.fillStyle = '#1a0d00';
-      ctx.fillText(text, x, by + 0.5 * k);
+      ctx.drawImage(label.c, x + label.x, by + 0.5 * k + label.y, label.w, label.h);
       ctx.restore();
     }
   },
@@ -792,52 +796,69 @@ const Render = {
     const ago = attackedAgo(n, G.player), k = 1 / Math.max(0.6, z);
     const fresh = ago < 8, alpha = fresh ? 0.75 + 0.25 * Math.sin(this.time * 12) : clamp(1 - (ago - 8) / (CFG.ATTACKER_MARK - 8) * 0.55, 0.45, 1);
     const text = '⚔ 最近攻击过你';
+    const font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
+    const label = this.labelImage('attacker', text, font, '#fff', 0, '', 'middle');
     ctx.save();
-    ctx.font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const w = ctx.measureText(text).width + 12 * k, h = 17 * k, y = c.y - 6 * k;
+    const w = label.width + 12 * k, h = 17 * k, y = c.y - 6 * k;
     ctx.globalAlpha = alpha;
     ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = fresh ? 16 : 8;
     ctx.fillStyle = 'rgba(150,12,8,0.9)';
     this.roundRect(ctx, c.x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
     ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,120,100,0.9)'; ctx.lineWidth = 1 * k; ctx.stroke();
-    ctx.fillStyle = '#fff'; ctx.fillText(text, c.x, y + 0.5 * k);
+    ctx.drawImage(label.c, c.x + label.x, y + 0.5 * k + label.y, label.w, label.h);
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
   },
 
+  // Keep one bitmap per label owner; state and scale changes replace it.
+  labelImage(key, text, font, color, blur = 0, shadow = '', baseline = 'alphabetic') {
+    const scale = this.labelScale;
+    let e = this.labelCache.get(key);
+    if (e && e.text === text && e.font === font && e.color === color && e.blur === blur && e.shadow === shadow && e.baseline === baseline && e.scale === scale) return e;
+    const measure = this.labelMeasure || (this.labelMeasure = new OffscreenCanvas(1, 1).getContext('2d'));
+    measure.font = font; measure.textAlign = 'center'; measure.textBaseline = baseline;
+    const m = measure.measureText(text), pad = (blur * 2 + 2) / scale;
+    const x = Math.floor((-m.actualBoundingBoxLeft - pad) * scale) / scale;
+    const y = Math.floor((-m.actualBoundingBoxAscent - pad) * scale) / scale;
+    const w = Math.ceil((m.actualBoundingBoxRight + pad - x) * scale);
+    const h = Math.ceil((m.actualBoundingBoxDescent + pad - y) * scale);
+    const canvas = new OffscreenCanvas(w, h), cx = canvas.getContext('2d');
+    cx.scale(scale, scale); cx.translate(-x, -y);
+    cx.font = font; cx.textAlign = 'center'; cx.textBaseline = baseline;
+    cx.fillStyle = color;
+    if (blur) { cx.shadowColor = shadow; cx.shadowBlur = blur; }
+    cx.fillText(text, 0, 0);
+    if (e) e.c.close();
+    e = { c: canvas.transferToImageBitmap(), x, y, w: w / scale, h: h / scale, width: m.width, text, font, color, blur, shadow, baseline, scale };
+    this.labelCache.set(key, e);
+    return e;
+  },
+
   drawLabels(ctx, z) {
-    ctx.textAlign = 'center';
     for (const n of G.nations) {
       const c = this.nationCenters[n.id];
       if (!c) continue;
-      ctx.font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (n === G.player && n.alive) continue; // 我方：名字写在首都上空的金色标牌里
+      const font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (recentAttacker(n)) this.drawAttackerBadge(ctx, n, c, z);
-      if (n.id === G.target && n.alive) { // 目标标签：红色
-        ctx.save();
-        ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 10;
-        ctx.fillStyle = '#ffb0a0';
-        ctx.fillText('🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
-        ctx.restore();
-        continue;
+      let text = n.race.emoji + ' ' + n.name + (n.alive ? '' : '（已核平）');
+      let color = rgba(n.alive ? n.color : '#888888', n.alive ? 0.35 : 0.3), blur = 0, shadow = '';
+      if (n.id === G.target && n.alive) {
+        text = '🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.race.emoji + ' ' + n.name;
+        color = '#ffb0a0'; blur = 10; shadow = '#ff3020';
+      } else if (G.mp && n.isPlayer && n.alive) {
+        text = '👤 ' + n.race.emoji + ' ' + n.name;
+        color = rgba(n.color, 0.95); blur = 8; shadow = n.color;
       }
-      if (G.mp && n.isPlayer && n.alive) { // 其他真人玩家：国家颜色的亮标签
-        ctx.save();
-        ctx.shadowColor = n.color; ctx.shadowBlur = 8;
-        ctx.fillStyle = rgba(n.color, 0.95);
-        ctx.fillText('👤 ' + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
-        ctx.restore();
-        continue;
-      }
-      ctx.fillStyle = rgba(n.alive ? n.color : '#888888', n.alive ? 0.35 : 0.3);
-      ctx.fillText(n.race.emoji + ' ' + n.name + (n.alive ? '' : '（已核平）'), c.x, c.y - 26);
+      const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
+      ctx.drawImage(label.c, c.x + label.x, c.y - 26 + label.y, label.w, label.h);
     }
     if (z > 0.95) {
-      ctx.font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
+      const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
       for (const c of G.world.cities) {
-        ctx.fillStyle = c.ruined ? 'rgba(255,120,100,0.7)' : 'rgba(255,240,210,0.75)';
-        ctx.fillText(c.name, c.tile.x, c.tile.y + 18);
+        const color = c.ruined ? 'rgba(255,120,100,0.7)' : 'rgba(255,240,210,0.75)';
+        const label = this.labelImage('city:' + c.id, c.name, font, color);
+        ctx.drawImage(label.c, c.tile.x + label.x, c.tile.y + 18 + label.y, label.w, label.h);
       }
     }
   },
