@@ -13,6 +13,7 @@ const Render = {
   base: null, scorch: null, BS: 2,
   nationPaths: [], nationCenters: [],
   hoverTile: null, time: 0,
+  cityLightsEnabled: true,
 
   init(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
@@ -397,7 +398,7 @@ const Render = {
     const S = FX.S;
     ctx.globalCompositeOperation = 'lighter';
     // 公路灯带：两端城市都亮着才亮（每条灯带预先画成一张图）
-    for (const L of this.links || []) {
+    if (this.cityLightsEnabled) for (const L of this.links || []) {
       const a = Math.min(this.cityLit(L.a), this.cityLit(L.b), 1) * 0.42;
       if (a < 0.03 || !L.img) continue;
       ctx.globalAlpha = a * (0.85 + 0.15 * Math.sin(T * 1.7 + L.a.id));
@@ -406,20 +407,22 @@ const Render = {
     for (const c of G.world.cities) {
       const b = this.cityLit(c);
       const x = c.tile.x, y = c.tile.y;
-      // 每盏灯记住开/关状态：熄灭的一瞬间闪一下白光再消失——轰炸后能清楚看到"一片片灭掉"
-      let lit = 0;
-      for (const L of c.lights) {
-        const on = L.rank <= b;
-        if (L.on === undefined) { L.on = on; L.chg = -99; }
-        if (L.on !== on) { L.on = on; L.chg = T; }
-        if (on) { lit++; continue; }
-        const since = T - L.chg;
-        if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
-      }
-      if (lit) { // 亮着的灯：整座城一张缓存图，整体轻微闪烁
-        const img = this.cityLights(c, b);
-        ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
-        ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
+      if (this.cityLightsEnabled) {
+        // 每盏灯记住开/关状态：熄灭的一瞬间闪一下白光再消失——轰炸后能清楚看到"一片片灭掉"
+        let lit = 0;
+        for (const L of c.lights) {
+          const on = L.rank <= b;
+          if (L.on === undefined) { L.on = on; L.chg = -99; }
+          if (L.on !== on) { L.on = on; L.chg = T; }
+          if (on) { lit++; continue; }
+          const since = T - L.chg;
+          if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
+        }
+        if (lit) { // 亮着的灯：整座城一张缓存图，整体轻微闪烁
+          const img = this.cityLights(c, b);
+          ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
+          ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
+        }
       }
       if (c.ruined) { // 废墟：中心一团摇曳的火光 + 零星余火
         const alive = G.nations[c.nation].alive;
@@ -435,6 +438,7 @@ const Render = {
         }
         continue;
       }
+      if (!this.cityLightsEnabled) continue;
       const core = CFG.HEX * (1.6 + Math.sqrt(b) * 1.2) * (c.isCapital ? 1.25 : 1);
       ctx.globalAlpha = 0.22 + 0.1 * b;
       ctx.drawImage(S.warm, x - core / 2, y - core / 2, core, core);

@@ -17,6 +17,7 @@ const UI = {
   pickedRace: null, uiTimer: 0, leaderTimer: 0, bannerTimer: 0, tickerItems: [],
 
   initStart(onStart) {
+    this.initDevPanel();
     const box = $('races');
     box.innerHTML = '';
     for (const r of RACES) {
@@ -50,6 +51,69 @@ const UI = {
     };
     $('startBtn').onclick = () => Lobby.start();
     Lobby.init();
+  },
+
+  initDevPanel() {
+    const panel = $('devPanel'), handle = $('devHandle'), toggle = $('devToggle'), lights = $('devHideLights');
+    let drag = null;
+    const place = (x, y) => {
+      const box = panel.getBoundingClientRect(), margin = 8;
+      panel.style.left = clamp(x, margin, Math.max(margin, window.innerWidth - box.width - margin)) + 'px';
+      panel.style.top = clamp(y, margin, Math.max(margin, window.innerHeight - box.height - margin)) + 'px';
+      panel.style.right = panel.style.bottom = 'auto';
+    };
+    const close = () => {
+      panel.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    };
+    toggle.onclick = () => {
+      if (!panel.classList.contains('hidden')) { close(); return; }
+      panel.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
+      const box = panel.getBoundingClientRect();
+      place(box.left, box.top);
+      lights.focus();
+    };
+    $('devClose').onclick = close;
+    lights.checked = !Render.cityLightsEnabled;
+    lights.onchange = () => { Render.cityLightsEnabled = !lights.checked; };
+    handle.onpointerdown = (e) => {
+      if (!e.isPrimary || e.button !== 0 || e.target.closest('button')) return;
+      const box = panel.getBoundingClientRect();
+      drag = { id: e.pointerId, x: e.clientX - box.left, y: e.clientY - box.top };
+      handle.setPointerCapture(e.pointerId);
+      handle.classList.add('dragging');
+      handle.focus();
+      e.preventDefault();
+    };
+    handle.onpointermove = (e) => {
+      if (drag && drag.id === e.pointerId) place(e.clientX - drag.x, e.clientY - drag.y);
+    };
+    const endDrag = (e) => {
+      if (!drag || drag.id !== e.pointerId) return;
+      drag = null;
+      handle.classList.remove('dragging');
+      if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+    };
+    handle.onpointerup = handle.onpointercancel = handle.onlostpointercapture = endDrag;
+    // Keep panel keyboard controls separate from the game's shortcuts.
+    panel.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.target === handle && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        const box = panel.getBoundingClientRect(), step = e.shiftKey ? 40 : 10;
+        place(box.left + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0),
+          box.top + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0));
+      }
+    };
+    toggle.onkeydown = (e) => e.stopPropagation();
+    window.addEventListener('resize', () => {
+      if (panel.classList.contains('hidden')) return;
+      const box = panel.getBoundingClientRect();
+      place(box.left, box.top);
+    });
   },
 
   initHUD() {

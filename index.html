@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#01040a">
 <title>热爱核平</title>
-<link rel="stylesheet" href="style.css?v=20261108-mp24">
+<link rel="stylesheet" href="style.css?v=20261108-dev-panel">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -179,6 +179,20 @@
 <!-- ============ END ============ -->
 <div id="end" class="hidden"><div class="end-inner"></div></div>
 
+<!-- ============ DEV PANEL ============ -->
+<button id="devToggle" type="button" title="打开 Dev Panel" aria-label="打开 Dev Panel" aria-controls="devPanel" aria-expanded="false">⚙</button>
+<section id="devPanel" class="panel hidden" role="dialog" aria-labelledby="devTitle">
+  <div id="devHandle" tabindex="0" title="按住拖动，或用方向键移动">
+    <strong id="devTitle">Dev Panel</strong>
+    <span class="dim small">拖动标题栏</span>
+    <button id="devClose" type="button" title="关闭" aria-label="关闭 Dev Panel">×</button>
+  </div>
+  <div class="dev-body">
+    <label class="dev-option"><input id="devHideLights" type="checkbox">关闭城市灯带和公路灯光</label>
+    <div class="hint">勾选后即时生效，取消勾选恢复灯光。</div>
+  </div>
+</section>
+
 <script src="js/config.js?v=20261108-mp24"></script>
 <script src="js/util.js?v=20261108-mp24"></script>
 <script src="js/audio.js?v=20261108-mp24"></script>
@@ -186,8 +200,8 @@
 <script src="js/sim.js?v=20261108-mp24"></script>
 <script src="js/ai.js?v=20261108-mp24"></script>
 <script src="js/fx.js?v=20261108-mp24"></script>
-<script src="js/render.js?v=20261108-mp24"></script>
-<script src="js/ui.js?v=20261108-mp24"></script>
+<script src="js/render.js?v=20261108-dev-panel"></script>
+<script src="js/ui.js?v=20261108-dev-panel"></script>
 <script src="js/net.js?v=20261108-mp24"></script>
 <script src="js/main.js?v=20261108-mp24"></script>
 </body>
