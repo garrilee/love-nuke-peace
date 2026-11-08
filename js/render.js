@@ -115,6 +115,7 @@ const Render = {
     x.restore();
     this.buildLinks();
     this.glowCache = new Map();   // 国界变了，发光层重画
+    if (this.cityCache) for (const e of this.cityCache.values()) e.c.close();
     this.cityCache = new Map();
     this.base = c;
     if (!this.scorch) {
@@ -128,8 +129,7 @@ const Render = {
     const pad = 4, K = 2;
     const xs = dots.map((d) => d.x), ys = dots.map((d) => d.y);
     const x0 = Math.min(...xs) - pad, y0 = Math.min(...ys) - pad, x1 = Math.max(...xs) + pad, y1 = Math.max(...ys) + pad;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil((x1 - x0) * K); c.height = Math.ceil((y1 - y0) * K);
+    const c = new OffscreenCanvas(Math.ceil((x1 - x0) * K), Math.ceil((y1 - y0) * K));
     const x = c.getContext('2d');
     x.globalCompositeOperation = 'lighter'; x.scale(K, K);
     for (const d of dots) {
@@ -137,17 +137,16 @@ const Render = {
       x.globalAlpha = 0.65 + 0.35 * Math.sin(d.ph);
       x.drawImage(FX.S.warm, d.x - x0 - s / 2, d.y - y0 - s / 2, s, s);
     }
-    return { c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    // Immutable light textures avoid repeatedly snapshotting canvas sources.
+    return { c: c.transferToImageBitmap(), x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   },
   // 一座城当前亮着的灯，画成一张小图（按亮灯数量缓存）
-  cityLights(c, b) {
-    const n = c.lights.reduce((k, L) => k + (L.rank <= b ? 1 : 0), 0);
+  cityLights(c, b, n) {
     let e = this.cityCache.get(c.id);
     if (e && e.n === n) return e;
-    const r = CFG.HEX * 1.8, K = 3, cv = (e && e.c) || document.createElement('canvas');
-    cv.width = cv.height = Math.ceil(r * 2 * K);
+    const r = CFG.HEX * 1.8, K = 3, size = Math.ceil(r * 2 * K);
+    const cv = new OffscreenCanvas(size, size);
     const x = cv.getContext('2d');
-    x.clearRect(0, 0, cv.width, cv.height);
     x.globalCompositeOperation = 'lighter';
     x.scale(K, K);
     for (const L of c.lights) {
@@ -156,7 +155,8 @@ const Render = {
       x.globalAlpha = 0.6 + 0.3 * Math.abs(Math.sin(L.ph)); // 每盏灯亮度略有不同
       x.drawImage(FX.S.warm, r + L.x - s / 2, r + L.y - s / 2, s, s);
     }
-    e = { c: cv, r, n };
+    if (e) e.c.close();
+    e = { c: cv.transferToImageBitmap(), r, n };
     this.cityCache.set(c.id, e);
     return e;
   },
@@ -164,6 +164,7 @@ const Render = {
   buildLinks() {
     const W = G.world, seen = new Set();
     const hash = (k) => { const v = Math.sin(k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+    if (this.links) for (const L of this.links) if (L.img) L.img.c.close();
     this.links = [];
     for (const n of G.nations) {
       const cs = W.cities.filter((c) => c.nation === n.id);
@@ -419,7 +420,7 @@ const Render = {
           if (since < 0.7) { const k = 1 - since / 0.7; ctx.globalAlpha = k * k; const s = 6 * L.s * (1 + since); ctx.drawImage(S.white, x + L.x - s / 2, y + L.y - s / 2, s, s); }
         }
         if (lit) { // 亮着的灯：整座城一张缓存图，整体轻微闪烁
-          const img = this.cityLights(c, b);
+          const img = this.cityLights(c, b, lit);
           ctx.globalAlpha = 0.9 + 0.1 * Math.sin(T * 2.3 + c.id);
           ctx.drawImage(img.c, x - img.r, y - img.r, img.r * 2, img.r * 2);
         }
