@@ -352,3 +352,47 @@ body.compact .howto.touch { display: block; }
 body.compact #startBtn, body.compact #againBtn { font-size: 17px; padding: 9px 26px; letter-spacing: 2px; }
 body.compact .endstats { grid-template-columns: repeat(2, 1fr); gap: 6px; }
 body.compact .endstats b { font-size: 18px; }
+
+/* ===== 联机大厅 ===== */
+.mp { margin: 4px auto 6px; max-width: 720px; }
+.mp-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.mp-title { color: var(--accent); letter-spacing: 2px; }
+#mpCode { width: 96px; text-transform: uppercase; text-align: center; letter-spacing: 3px; font: 15px Consolas, monospace;
+  background: #0a1626; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; user-select: text; }
+#mpCodeTxt { font-size: 24px; letter-spacing: 6px; color: var(--gold); text-shadow: 0 0 10px rgba(255, 200, 100, 0.6); }
+#mpPlayers { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0 4px; }
+.mp-pl { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 16px; border: 1px solid var(--c); background: rgba(255,255,255,0.04); }
+.mp-pl b { color: var(--c); }
+.mp-pl.me { box-shadow: 0 0 12px var(--c); }
+.tag.me { background: var(--gold); }
+.tag.human { background: #ff9a5a; }
+.mp-name { margin-top: 8px; }
+#mpName { width: 140px; background: #0a1626; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; user-select: text; }
+.mp-pl .small { margin-left: -2px; }
+#mpErr { color: #ff8a7a; min-height: 16px; margin-top: 4px; }
+.race.taken { opacity: 0.35; filter: grayscale(0.7); cursor: not-allowed; }
+.race.taken::after { content: '已被选'; float: right; font-size: 11px; color: #ff9a8a; }
+body.mp #speed { display: none; }
+.mprank { max-width: 520px; margin: 0 auto 12px; text-align: left; }
+.mprank > div { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-left: 3px solid var(--c); margin-bottom: 4px; background: rgba(255,255,255,0.04); border-radius: 4px; }
+.mprank > div.me { background: rgba(255, 210, 122, 0.12); }
+.mprank > div > span:first-child { width: 18px; color: var(--dim); }
+.mprank b { color: var(--c); }
+.mprank i { margin-left: auto; font-style: normal; color: var(--gold); }
+body.compact #mpCodeTxt { font-size: 20px; }
+
+/* ===== 地图浮窗：点击其他国家 ===== */
+#mapPop { position: fixed; z-index: 16; width: 250px; padding: 10px 12px 12px; border-color: var(--c); box-shadow: 0 0 22px rgba(0,0,0,0.6), 0 0 14px var(--c);
+  background: rgba(6, 14, 26, 0.95); animation: popIn .14s ease-out; }
+@keyframes popIn { from { transform: scale(0.92); opacity: 0; } }
+#mapPopBody { display: flex; gap: 10px; align-items: center; padding-right: 14px; }
+#mapPopBody .temo { font-size: 30px; }
+#mapPopBody .tbody { flex: 1; min-width: 0; }
+#mapPop .tn { font-weight: bold; font-size: 15px; color: var(--c); text-shadow: 0 0 6px var(--c); }
+#mapPopX { position: absolute; top: 2px; right: 4px; padding: 0 6px; background: none; border: none; color: var(--dim); font-size: 16px; }
+#mapPopGo { width: 100%; margin-top: 10px; padding: 8px; font-size: 15px; font-weight: 900; letter-spacing: 2px; color: #fff;
+  background: linear-gradient(180deg, rgba(220,60,30,0.9), rgba(140,20,10,0.9)); border-color: #ff7b5b; box-shadow: 0 0 14px rgba(255,80,40,0.5); }
+#mapPopGo:disabled { opacity: 0.6; background: rgba(255, 60, 40, 0.18); box-shadow: none; }
+.tag.tgt { background: #ff5a4a; color: #fff; }
+.tcard.human { border-style: solid; border-color: rgba(255, 154, 90, 0.55); box-shadow: inset 0 0 14px rgba(255, 154, 90, 0.12); }
+body.compact #mapPop { width: min(260px, 86vw); }

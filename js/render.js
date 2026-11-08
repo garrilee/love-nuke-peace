@@ -295,6 +295,7 @@ const Render = {
     FX.drawAir(ctx);
     FX.drawCinePillar(ctx, z);
     this.drawLabels(ctx, z);
+    this.drawMarkers(ctx, z, T);
     FX.drawTexts(ctx, z);
 
     if (this.hoverTile) {
@@ -643,25 +644,78 @@ const Render = {
     ctx.globalCompositeOperation = 'lighter';
   },
 
+  // 首都上空的标识：自己的国家是金色的「你」+ 光柱 + 地面波纹；联机时其他真人玩家是国家颜色的「玩家」小旗
+  drawMarkers(ctx, z, T) {
+    const k = 1 / Math.max(0.5, z);   // 标识大小基本不随缩放变化
+    for (const n of G.nations) {
+      if (!n.alive) continue;
+      const me = n === G.player, human = G.mp && n.isPlayer;
+      if (!me && !human) continue;
+      const cap = (n.cities.find((c) => c.isCapital) || n.cities[0]).tile;
+      const x = cap.x, y = cap.y, col = me ? '#ffd27a' : n.color;
+      const H = (me ? 64 : 46) * k;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      // 地面波纹
+      const ph = (T * 0.7 + n.id * 0.37) % 1;
+      for (let i = 0; i < 2; i++) {
+        const f = (ph + i * 0.5) % 1, r = (7 + f * (me ? 26 : 18)) * k;
+        ctx.strokeStyle = rgba(col, (1 - f) * (me ? 0.9 : 0.6));
+        ctx.lineWidth = (me ? 2 : 1.4) * k;
+        ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+      }
+      // 光柱
+      const g = ctx.createLinearGradient(0, y - H, 0, y);
+      g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, me ? 0.65 : 0.4));
+      ctx.fillStyle = g;
+      ctx.fillRect(x - (me ? 2 : 1.2) * k, y - H, (me ? 4 : 2.4) * k, H);
+      ctx.restore();
+      // 悬浮的标牌：上下轻轻浮动
+      const bob = Math.sin(T * 2.6 + n.id) * 3 * k;
+      const text = me ? `★ ${n.name}` : '👤 玩家';
+      ctx.save();
+      ctx.font = `bold ${Math.round((me ? 15 : 11) * k)}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(text).width, bw = tw + 14 * k, bh = (me ? 24 : 18) * k;
+      const by = y - H - bh / 2 + bob;
+      ctx.shadowColor = col; ctx.shadowBlur = me ? 18 : 10;
+      ctx.fillStyle = me ? 'rgba(255,200,90,0.95)' : rgba(n.color, 0.9);
+      this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.fill();
+      ctx.beginPath(); // 指向首都的小三角
+      ctx.moveTo(x - 5 * k, by + bh / 2 - 1); ctx.lineTo(x + 5 * k, by + bh / 2 - 1); ctx.lineTo(x, by + bh / 2 + 7 * k); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0;
+      if (me) { ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1.2 * k; this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.stroke(); }
+      ctx.fillStyle = '#1a0d00';
+      ctx.fillText(text, x, by + 0.5 * k);
+      ctx.restore();
+    }
+  },
+  roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  },
+
   drawLabels(ctx, z) {
     ctx.textAlign = 'center';
     for (const n of G.nations) {
       const c = this.nationCenters[n.id];
       if (!c) continue;
       ctx.font = `bold ${Math.round(16 / Math.max(0.8, z))}px "Microsoft YaHei", sans-serif`;
-      if (n.isPlayer && n.alive) { // 我方标签：醒目的金色
-        ctx.save();
-        ctx.shadowColor = '#ffb030'; ctx.shadowBlur = 10;
-        ctx.fillStyle = '#ffe2a0';
-        ctx.fillText('★ ' + n.race.emoji + ' ' + n.name + '（我方）', c.x, c.y - 26);
-        ctx.restore();
-        continue;
-      }
+      if (n === G.player && n.alive) continue; // 我方：名字写在首都上空的金色标牌里
       if (n.id === G.target && n.alive) { // 目标标签：红色
         ctx.save();
         ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 10;
         ctx.fillStyle = '#ffb0a0';
-        ctx.fillText('🎯 ' + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
+        ctx.fillText('🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
+        ctx.restore();
+        continue;
+      }
+      if (G.mp && n.isPlayer && n.alive) { // 其他真人玩家：国家颜色的亮标签
+        ctx.save();
+        ctx.shadowColor = n.color; ctx.shadowBlur = 8;
+        ctx.fillStyle = rgba(n.color, 0.95);
+        ctx.fillText('👤 ' + n.race.emoji + ' ' + n.name, c.x, c.y - 26);
         ctx.restore();
         continue;
       }

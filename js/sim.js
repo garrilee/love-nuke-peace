@@ -9,11 +9,17 @@ const Bus = {
 
 let G = null;
 
-function newGame(playerRaceId, aiCount, diff = 'normal') {
-  const others = shuffle(RACES.map((r) => r.id).filter((id) => id !== playerRaceId)).slice(0, aiCount);
-  const raceIds = shuffle([playerRaceId, ...others]);
-  const seed = (Math.random() * 1e9) | 0;
-  const world = generateWorld(seed, raceIds, playerRaceId);
+// mp：联机参数 { humans: [国家 id], ids: {国家 id: 玩家连接 id}, seed?, raceIds? }
+//   房主不传 seed/raceIds（随机生成）；客户端用房主发来的 seed + raceIds 生成一模一样的世界
+function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
+  const humans = mp ? mp.humans : [playerRaceId];
+  let raceIds = mp && mp.raceIds, seed = mp && mp.seed;
+  if (!raceIds) {
+    const others = shuffle(RACES.map((r) => r.id).filter((id) => !humans.includes(id))).slice(0, aiCount);
+    raceIds = shuffle([...humans, ...others]);
+    seed = (Math.random() * 1e9) | 0;
+  }
+  const world = generateWorld(seed, raceIds, humans);
   setSeed(seed ^ 0x5bd1e995);
   const persKeys = shuffle(Object.keys(PERSONALITIES));
   const nations = world.nations;
@@ -39,10 +45,15 @@ function newGame(playerRaceId, aiCount, diff = 'normal') {
     });
     n.anger[i] = -1e9;
     n.mods = n.race.mods;
+    n.isPlayer = humans.includes(n.race.id); // 不依赖地图生成的标记，避免新旧脚本混用时没有真人
+    n.netId = mp && mp.ids ? mp.ids[n.race.id] : null;
+    const custom = mp && mp.names && cleanName(mp.names[n.race.id]);
+    if (custom) n.name = custom; // 联机自定义国家名
   });
   G = {
     t: 0, speed: 1, world, nations, projectiles: [],
-    player: nations.find((n) => n.isPlayer),
+    player: nations.find((n) => n.race.id === playerRaceId),
+    mp: !!mp, seed, raceIds,
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
@@ -97,8 +108,11 @@ function simStep(dt) {
   stepTiles(dt);
   stepEvents();
   for (const n of G.nations) if (n.alive && !n.isPlayer) aiStep(n, dt);
-  if (G.player.alive && G.player.autoNet) autoNet(G.player);
-  if (G.player.alive && G.player.autoRebuild) autoRebuild(G.player);
+  for (const n of G.nations) {
+    if (!n.alive || !n.isPlayer) continue;
+    if (n.autoNet) autoNet(n);
+    if (n.autoRebuild) autoRebuild(n);
+  }
   checkEnd();
 }
 
@@ -111,8 +125,7 @@ function stepNation(n, dt) {
     if (n.techPts >= tech.cost) {
       n.techPts -= tech.cost; n.techIdx++;
       Bus.emit('tech', { n, tech });
-      if (n.isPlayer) news(`你解锁了【${tech.name}】：${tech.desc}`);
-      else if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·东风】，全世界的投送员都瑟瑟发抖`);
+      if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·东风】，全世界的投送员都瑟瑟发抖`);
     }
   } else {
     n.energy += prod * n.alloc.tech * 0.5 * dt;
@@ -723,6 +736,13 @@ function randomEvent() {
 
 function checkEnd() {
   const alive = G.nations.filter((n) => n.alive);
+  if (G.mp) { // 联机：有人阵亡不结束，最后剩一个国家、真人全部阵亡或时间到才结束；胜负由各自客户端判定
+    if (!alive.length) return endGame('earth');
+    if (alive.length === 1) return endGame('last');
+    if (G.t > 5 && !alive.some((n) => n.isPlayer)) return endGame('humansDead');
+    if (G.t >= CFG.GAME_END) return endGame('time');
+    return;
+  }
   if (!alive.length) return endGame('earth');
   if (!G.player.alive) return endGame(alive.length === 1 ? 'lose' : 'lose');
   if (alive.length === 1) return endGame('win');

@@ -17,6 +17,7 @@ const UI = {
     for (const r of RACES) {
       const d = document.createElement('div');
       d.className = 'race';
+      d.dataset.id = r.id;
       d.style.setProperty('--c', r.color);
       d.innerHTML = `<div class="emo">${r.emoji}</div><div class="rn">${r.name}</div>
         <div class="rt">✔ ${r.trait}</div><div class="rw">✘ ${r.weak}</div>
@@ -24,21 +25,26 @@ const UI = {
         <div class="rq">“${r.lines.launch}”</div>`;
       if (Store.get('race') === r.id) { this.pickedRace = r.id; d.classList.add('sel'); $('startBtn').disabled = false; }
       d.onclick = () => {
+        if (d.classList.contains('taken')) return;
         this.pickedRace = r.id;
         box.querySelectorAll('.race').forEach((x) => x.classList.remove('sel'));
         d.classList.add('sel');
         $('startBtn').disabled = false;
+        Lobby.pick(r.id);
+        Lobby.render();
       };
       box.appendChild(d);
     }
     $('aiCount').value = String(Store.get('aiCount', 3));
     $('aiDiff').value = Store.get('diff', 'normal');
     $('tutorial').checked = !Store.get('tutorialDone', false);
-    $('startBtn').onclick = () => {
-      const cnt = +$('aiCount').value, diff = $('aiDiff').value;
+    this.startSolo = () => {
+      const cnt = Math.max(1, +$('aiCount').value), diff = $('aiDiff').value;
       Store.set('race', this.pickedRace); Store.set('aiCount', cnt); Store.set('diff', diff);
       onStart(this.pickedRace, cnt, diff, $('tutorial').checked);
     };
+    $('startBtn').onclick = () => Lobby.start();
+    Lobby.init();
   },
 
   initHUD() {
@@ -61,8 +67,8 @@ const UI = {
     });
     this.syncSliders();
     // 技能
-    $('sk-shield').onclick = () => useShield(G.player);
-    $('sk-net').onclick = () => useNet(G.player);
+    $('sk-shield').onclick = () => Act.do({ a: 'shield' });
+    $('sk-net').onclick = () => Act.do({ a: 'net' });
     const U = G.player.race.ult;
     $('ic-ult').textContent = U.icon; $('nm-ult').textContent = U.name;
     $('sk-ult').title = `国家大招 (Q)：${U.name}。${U.desc}。冷却 ${U.cd} 秒，开局 ${ULT_FIRST} 秒后可用。`;
@@ -72,11 +78,14 @@ const UI = {
     $('tip').classList.add('hidden'); $('countdown').classList.add('hidden');
     document.body.classList.remove('midnight');
     $('sk-autonet').checked = true;
-    $('sk-autonet').onchange = (e) => { G.player.autoNet = e.target.checked; };
+    $('sk-autonet').onchange = (e) => Act.do({ a: 'toggle', k: 'autoNet', v: e.target.checked });
     $('sk-autorebuild').checked = true;
-    $('sk-autorebuild').onchange = (e) => { G.player.autoRebuild = e.target.checked; };
+    $('sk-autorebuild').onchange = (e) => Act.do({ a: 'toggle', k: 'autoRebuild', v: e.target.checked });
     // 打击：选目标 + 两行开火按钮（长按蓄力 / 梭哈）
     $('pickTarget').onclick = () => this.openChooser();
+    this.popId = -1; $('mapPop').classList.add('hidden');
+    $('mapPopGo').onclick = () => { const id = this.popId; this.closeMapPop(); setTarget(id); };
+    $('mapPopX').onclick = () => this.closeMapPop();
     for (const ammo of ['nuke', 'conv']) {
       Fire.bindFire($('fire-' + ammo), ammo);
       Fire.bindAllIn($('allin-' + ammo), ammo);
@@ -94,6 +103,7 @@ const UI = {
     const sum = others.reduce((s, k) => s + a[k], 0);
     a[key] = v;
     others.forEach((k) => { a[k] = sum > 0.0001 ? (a[k] / sum) * rest : rest / 2; });
+    Act.do({ a: 'alloc', v: { ...a } });
     this.syncSliders();
   },
   syncSliders() {
@@ -140,10 +150,10 @@ const UI = {
     box.innerHTML = '<div class="sect-title">世界各国</div>';
     for (const n of G.nations) {
       const d = document.createElement('div');
-      d.className = 'nation' + (n.isPlayer ? ' me' : '');
+      d.className = 'nation' + (n === G.player ? ' me' : '');
       d.id = 'nat-' + n.id;
       d.style.setProperty('--c', n.color);
-      d.onclick = () => { if (!n.isPlayer && n.alive) setTarget(n.id); };
+      d.onclick = () => { if (n !== G.player && n.alive) setTarget(n.id); };
       box.appendChild(d);
     }
   },
@@ -170,10 +180,10 @@ const UI = {
     for (const n of G.nations) {
       const d = $('nat-' + n.id);
       const pop = totalPop(n);
-      const anger = n.isPlayer ? '' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100}%"></i></div>`;
+      const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100}%"></i></div>`;
       d.classList.toggle('dead', !n.alive);
       d.classList.toggle('sel', G.target === n.id);
-      d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n.isPlayer ? '<span class="tag">你</span>' : ''}</div>
+      d.innerHTML = `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}</div>
         <div class="nl">${n.alive ? `👥 ${fmtPop(pop)} · 📦 ${stock(n)} · 🔬 ${n.techIdx}/${TECHS.length}` : '💀 已被核平'}</div>
         ${n.alive ? anger : ''}`;
     }
@@ -222,6 +232,7 @@ const UI = {
     if (!building && !(ruined + deadFac)) rs += '国土完好';
     $('rebuildStatus').textContent = rs;
     if (!$('chooser').classList.contains('hidden')) this.renderChooser();
+    if (this.popOpen()) this.renderMapPop();
 
     this.updateRates(false);
     this.refreshStrike();
@@ -285,7 +296,7 @@ const UI = {
     $('chooser').classList.add('hidden');
     G.selTarget = -1;
   },
-  chooserTargets() { return G.nations.filter((x) => x.alive && !x.isPlayer); },
+  chooserTargets() { return G.nations.filter((x) => x.alive && x !== G.player); },
   renderChooser() {
     const p = G.player;
     $('chooserInfo').textContent = '选定后，地图上方会显示目标，按住开火按钮即可打击。';
@@ -307,13 +318,58 @@ const UI = {
     }
     list.querySelectorAll('.tcard').forEach((d) => {
       const t = G.nations[+d.dataset.id];
-      const anger = clamp(t.anger[p.id] / CFG.ANGER_MAX, 0, 1);
-      d.querySelector('.tbody').innerHTML = `<div class="tn">${t.name}</div>
-        <div class="dim">👥 ${fmtPop(totalPop(t))} · 📦 ${stock(t)} · 🔬 ${t.techIdx}/${TECHS.length}</div>
-        <div class="anger" title="对你的怒气"><i style="width:${anger * 100}%"></i></div>
-        <div class="dim small">${anger > 0.6 ? '😡 对你非常愤怒' : anger > 0.3 ? '😠 对你不太友好' : '😐 暂时没盯上你'}</div>`;
+      d.classList.toggle('human', G.mp && t.isPlayer);
+      const html = this.nationInfo(t);
+      const body = d.querySelector('.tbody');
+      if (body.innerHTML !== html) body.innerHTML = html;
     });
   },
+  // 一个国家的简要情报：选目标窗口和地图浮窗共用
+  nationInfo(t) {
+    const p = G.player, human = G.mp && t.isPlayer;
+    const tags = (human ? ' <span class="tag human">👤 玩家</span>' : '')
+      + (t.name !== t.race.name ? ` <span class="dim small">${t.race.emoji}${t.race.name}</span>` : '')
+      + (G.target === t.id ? ' <span class="tag tgt">🎯 当前目标</span>' : '');
+    const head = `<div class="tn">${t.name}${tags}</div>
+      <div class="dim">👥 ${fmtPop(totalPop(t))} · 📦 ${stock(t)} · 🔬 ${t.techIdx}/${TECHS.length}</div>`;
+    if (human) return head + '<div class="dim small">🧠 真人玩家：没有怒气条，下一步全看心情</div>';
+    const anger = clamp(t.anger[p.id] / CFG.ANGER_MAX, 0, 1);
+    return head + `<div class="anger" title="对你的怒气"><i style="width:${anger * 100}%"></i></div>
+      <div class="dim small">${anger > 0.6 ? '😡 对你非常愤怒' : anger > 0.3 ? '😠 对你不太友好' : '😐 暂时没盯上你'}</div>`;
+  },
+
+  // ---------- 地图浮窗：点击其他国家，弹出情报 + 「开始打击」 ----------
+  openMapPop(n, sx, sy) {
+    if (!n || !n.alive || n === G.player || !G.player.alive) return this.closeMapPop();
+    this.popId = n.id;
+    const el = $('mapPop');
+    el.style.setProperty('--c', n.color);
+    el.classList.remove('hidden');
+    this.renderMapPop();
+    // 放在点击位置旁边，不超出屏幕
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = clamp(sx + 14, 8, window.innerWidth - w - 8) + 'px';
+    el.style.top = clamp(sy - h / 2, 52, window.innerHeight - h - 30) + 'px';
+    G.selTarget = n.id; // 地图上高亮这个国家
+    SFX.click();
+  },
+  renderMapPop() {
+    const n = G.nations[this.popId];
+    if (!n || !n.alive || !G.player.alive) return this.closeMapPop();
+    const html = `<div class="temo">${n.race.emoji}</div><div class="tbody">${this.nationInfo(n)}</div>`;
+    if ($('mapPopBody').innerHTML !== html) $('mapPopBody').innerHTML = html;
+    const isT = G.target === n.id, go = $('mapPopGo');
+    go.disabled = isT;
+    const label = isT ? '✔ 已是打击目标' : '🎯 开始打击';
+    if (go.textContent !== label) go.textContent = label;
+  },
+  closeMapPop() {
+    if (this.popId === undefined || this.popId < 0) return;
+    if (G && G.selTarget === this.popId) G.selTarget = -1;
+    this.popId = -1;
+    $('mapPop').classList.add('hidden');
+  },
+  popOpen() { return this.popId >= 0; },
 
   refreshIncoming() {
     const inc = incomingFor(G.player);
@@ -426,11 +482,11 @@ const UI = {
     if (tile.city) {
       const c = tile.city;
       lines.push(`🏙 ${c.name}${c.isCapital ? '（首都）' : ''} · 👥 ${fmtPop(c.pop)}`);
-      if (c.ruined) lines.push(c.rebuild > 0 ? `🏗 重建中 ${c.rebuild.toFixed(0)}s` : `<span class="red">废墟</span>${owner && owner.isPlayer ? ' · 点击重建（⚡' + COSTS.rebuild + '）' : ''}`);
+      if (c.ruined) lines.push(c.rebuild > 0 ? `🏗 重建中 ${c.rebuild.toFixed(0)}s` : `<span class="red">废墟</span>${owner && owner === G.player ? ' · 点击重建（⚡' + COSTS.rebuild + '）' : ''}`);
     }
     if (tile.fac) {
       const f = tile.fac, info = FACILITY_INFO[f.type];
-      const mine = owner && owner.isPlayer;
+      const mine = owner && owner === G.player;
       lines.push(`${info.icon} ${info.name} ${f.alive ? (f.type === 'pad' && mine ? '· 火箭 ' + f.missiles : '') : f.rebuild > 0 ? '· 修复中' : '<span class="red">· 宕机</span>' + (mine ? ' · 点击修复（💰' + COSTS.facility + '）' : '')}`);
     }
     if (tile.rad > 0.03) lines.push(`🌫 灰尘浓度 ${(tile.rad * 100).toFixed(0)}%`);
@@ -444,8 +500,12 @@ const UI = {
     const p = G.player;
     const alive = G.nations.filter((n) => n.alive);
     const survivor = alive[0];
+    const ranked = G.nations.slice().sort((a, b) => (b.alive - a.alive) || (finalScore(b) - finalScore(a)));
+    // 联机：同一个结局，每个人看到的胜负不同
+    if (G.mp && kind !== 'disconnected' && kind !== 'earth') kind = !p.alive ? 'lose' : kind === 'last' ? 'win' : ranked[0] === p ? 'survive' : 'loseRank';
     let title, sub;
-    if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
+    if (kind === 'disconnected') { title = '📴 连接中断'; sub = '和房主的连接断开了，这局游戏没法继续。'; }
+    else if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
     else if (kind === 'survive') { title = '🏳 积分胜利'; sub = '时间到，你的综合得分（人口 + 战绩）最高。'; }
     else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
     else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
@@ -466,10 +526,11 @@ const UI = {
         <div>大招次数 <b>${s.ult}</b></div>
         <div>综合得分 <b>${Math.round(finalScore(p))}</b></div>
       </div>
-      <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
+      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? Math.round(finalScore(n)) + ' 分' : '💀'}</i></div>`).join('')}</div>` : ''}
+      <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       <button id="againBtn">再核平一次</button>`;
     $('end').classList.remove('hidden');
     if (G.tutorial) Store.set('tutorialDone', true);
-    $('againBtn').onclick = () => location.reload();
+    $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
   },
 };

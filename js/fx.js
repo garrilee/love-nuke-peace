@@ -67,7 +67,7 @@ const FX = {
   // 常规导弹爆炸：小火球、小冲击环、碎块和黑烟，没有蘑菇云
   onConvExplode({ tile, att }) {
     const x = tile.x + rnd(-3, 3), y = tile.y + rnd(-3, 3), R = HEX_W * 0.9;
-    const near = att.isPlayer || tile.owner === (G.player && G.player.id);
+    const near = att === G.player || tile.owner === (G.player && G.player.id);
     if (near) this.flash = Math.max(this.flash, 0.06);
     SFX.blast(near);
     Render.addScorch(x, y, R * 0.6, 0);
@@ -123,7 +123,7 @@ const FX = {
   onExplode({ tile, lv, att }) {
     const P = PARCELS[lv], s = P.fx, x = tile.x, y = tile.y;
     const R = (P.r + 0.7) * HEX_W;
-    const near = att.isPlayer || tile.owner === (G.player && G.player.id);
+    const near = att === G.player || tile.owner === (G.player && G.player.id);
     // 闪光 + 震屏 + 镜头冲击 + 屏幕染色
     this.flash = Math.max(this.flash, Math.min(0.95, 0.25 + s * 0.16) * (near ? 1 : 0.6));
     this.tint = Math.max(this.tint, Math.min(0.45, 0.1 + s * 0.08) * (near ? 1 : 0.5));

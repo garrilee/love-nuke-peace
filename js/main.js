@@ -3,12 +3,12 @@
 
 let lastFrame = 0, simAcc = 0, running = false;
 
-function setSpeed(s) { if (G) G.speed = s; }
+function setSpeed(s) { if (G && !G.mp) G.speed = s; }
 
 // ---------- 目标 ----------
 function setTarget(id) {
   const t = G.nations[id];
-  if (!t || !t.alive || t.isPlayer) return;
+  if (!t || !t.alive || t === G.player) return;
   G.target = id;
   SFX.click();
   UI.refreshStrike();
@@ -24,7 +24,8 @@ function playerFire(ammo, count) {
     UI.banner(`💥 装填中，${count} 枚导弹将在装填完成后发射`);
     return 0;
   }
-  const sent = ammo === 'conv' ? launchConv(p, tgt, 0, count) : launch(p, tgt, 0, G.legs, count);
+  let sent = Act.do({ a: 'fire', ammo, count, tgt: tgt.id });
+  if (sent === null) sent = Math.min(count, fireMax(ammo)); // 联机客户端：命令已发给房主，按预计数量提示
   if (sent) UI.banner(ammo === 'conv' ? `💥 发射 ${sent} 枚常规导弹 → ${tgt.race.emoji}${tgt.name}` : `☢ 已投送 ${sent} 个核包裹 → ${tgt.race.emoji}${tgt.name}`);
   UI.refreshStrike();
   return sent;
@@ -34,7 +35,35 @@ function playerUlt() {
   const p = G.player, tgt = G.nations[G.target];
   if (!p.alive || p.ultCd > 0) return false;
   if (ultNeedsTarget(p) && !(tgt && tgt.alive)) { UI.banner('🎯 先选择大招目标（Tab 或点击地图上的敌国）'); return false; }
-  return useUlt(p, tgt && tgt.alive ? tgt : null);
+  return Act.do({ a: 'ult', tgt: tgt && tgt.alive ? tgt.id : -1 });
+}
+
+// ---------- 玩家操作：单机/房主直接执行；联机客户端发给房主执行 ----------
+const Act = {
+  do(cmd) {
+    if (Net.role === 'client') { Net.send({ type: 'cmd', cmd }); if (cmd.a === 'alloc') Net.allocHold = performance.now() + 1500; return null; }
+    return execCmd(G.player, cmd);
+  },
+};
+function execCmd(n, c) {
+  if (!n || !n.alive || !c) return 0;
+  const tgt = G.nations[c.tgt];
+  switch (c.a) {
+    case 'fire': return tgt ? (c.ammo === 'conv' ? launchConv(n, tgt, 0, c.count | 0) : launch(n, tgt, 0, G.legs, c.count | 0)) : 0;
+    case 'shield': return useShield(n);
+    case 'net': return useNet(n);
+    case 'ult': return useUlt(n, tgt && tgt.alive ? tgt : null);
+    case 'rebuildAll': return rebuildAll(n);
+    case 'rebuildCity': { const ct = G.world.cities[c.id]; return ct && ct.nation === n.id ? rebuildCity(n, ct) : false; }
+    case 'rebuildFac': { const f = G.world.facilities[c.id]; return f && f.nation === n.id ? rebuildFac(n, f) : false; }
+    case 'alloc': {
+      const v = c.v || {}, t = +v.tech || 0, k = +v.nuke || 0, d = +v.def || 0, s = t + k + d;
+      if (s > 0 && t >= 0 && k >= 0 && d >= 0) n.alloc = { tech: t / s, nuke: k / s, def: d / s };
+      return 1;
+    }
+    case 'toggle': if (c.k === 'autoNet' || c.k === 'autoRebuild') n[c.k] = !!c.v; return 1;
+  }
+  return 0;
 }
 const fireMax = (ammo) => (ammo === 'conv' ? G.player.conv : deliverable(G.player, G.legs));
 
@@ -119,13 +148,14 @@ const Fire = {
 };
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
 
-function startGame(raceId, aiCount, diff = 'normal', tutorial = true) {
+function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null) {
   SFX.init();
   SFX.setMuted(Store.get('muted', false));
   FX.reset();
   Render.resetScorch();
-  newGame(raceId, aiCount, diff);
+  newGame(raceId, aiCount, diff, mp);
   G.tutorial = tutorial;
+  document.body.classList.toggle('mp', G.mp);
   Render.buildBase();
   UI.initHUD();
   Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
@@ -136,20 +166,27 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true) {
   running = true;
 }
 
+// 推进模拟（单机和房主）：dt 为真实时间
+function simAdvance(real) {
+  let spd = G.mp ? 1 : G.speed;
+  // 有包裹飞向你时锁定 1×
+  if (spd > 1 && G.player.alive && incomingFor(G.player).length) spd = 1;
+  simAcc += G.over ? 0 : real * spd;
+  while (simAcc >= CFG.SIM_DT) { simStep(CFG.SIM_DT); simAcc -= CFG.SIM_DT; }
+  G.interp = simAcc; // 供渲染插值，飞弹在两次逻辑步之间也能平滑移动
+}
+
 function frame(ts) {
   const real = clamp((ts - lastFrame) / 1000 || 0, 0, 0.1);
   lastFrame = ts;
   if (running && G) {
-    let spd = G.speed;
-    // 有包裹飞向你时锁定 1×
-    if (spd > 1 && G.player.alive && incomingFor(G.player).length) spd = 1;
-    const slow = FX.slowmo > 0 ? 0.3 : 1;
+    // 联机时不能暂停/加速，也不放慢镜头（慢镜头会拖慢所有人的世界）
+    const slow = !G.mp && FX.slowmo > 0 ? 0.3 : 1;
     if (FX.slowmo > 0) FX.slowmo -= real;
-    const simDt = G.over ? 0 : real * spd * slow;
-    simAcc += simDt;
-    while (simAcc >= CFG.SIM_DT) { simStep(CFG.SIM_DT); simAcc -= CFG.SIM_DT; }
-    G.interp = simAcc; // 供渲染插值，飞弹在两次逻辑步之间也能平滑移动
-    FX.update(G.speed === 0 ? 0 : real * slow);
+    if (Net.role === 'client') Net.clientAdvance(real);
+    else { simAdvance(real * slow); if (Net.role === 'host') Net.hostTick(real); }
+    Net.lastFrameAt = performance.now();
+    FX.update(!G.mp && G.speed === 0 ? 0 : real * slow);
     Fire.tick();
     UI.tick(real);
   }
@@ -159,30 +196,32 @@ function frame(ts) {
 
 // ---------- 事件 ----------
 Bus.on('news', (t) => { if (running) UI.addFeed(t); });
-Bus.on('leader', ({ n, text }) => UI.leader(n, text));
+Bus.on('leader', ({ n, text, to }) => { if (to === undefined || to === G.player.id) UI.leader(n, text); });
 Bus.on('banner', (t) => UI.banner(t));
 Bus.on('midnight', () => SFX.bell());
 Bus.on('intel', (x) => {
-  if (!x.isPlayer) return;
+  if (x !== G.player) return;
   UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻');
   UI.tip('intel', `🕵 你被情报<b>点名</b>：你${x.intelWhy}。接下来 ${CFG.INTEL_FOCUS} 秒你是各国的首要目标，准备好护盾。`, { cd: 30 });
 });
 // 被 AI 盯上：告诉玩家原因（每个国家 40 秒内只提示一次）
-Bus.on('targeted', ({ n, why }) => UI.tip('tg' + n.id, `🎯 <b style="color:${n.color}">${n.race.emoji}${n.name}</b> 盯上了你：${why}`, { cd: 40, life: 5 }));
+Bus.on('targeted', ({ n, tgt, why }) => tgt === G.player && UI.tip('tg' + n.id, `🎯 <b style="color:${n.color}">${n.race.emoji}${n.name}</b> 盯上了你：${why}`, { cd: 40, life: 5 }));
 Bus.on('ult', ({ n, tgt }) => {
   const U = n.race.ult;
-  if (n.isPlayer) UI.banner(`${U.icon} ${U.name}！`);
-  else if (tgt && tgt.isPlayer) { UI.banner(`${U.icon} ${n.name} 对你发动【${U.name}】`); UI.leader(n, n.race.lines.launch); }
+  if (n === G.player) UI.banner(`${U.icon} ${U.name}！`);
+  else if (tgt && tgt === G.player) { UI.banner(`${U.icon} ${n.name} 对你发动【${U.name}】`); UI.leader(n, n.race.lines.launch); }
   else if (n.race.id === 'mushroom') UI.tip('ultdust' + n.id, `🌪 ${n.race.emoji}${n.name} 发动【扬沙】：你的人口暂时停止增长`, { cd: 60, life: 5 });
 });
 Bus.on('eliminated', (n) => {
   Render.buildBase();
   if (G.selTarget === n.id) G.selTarget = -1;
+  if (UI.popId === n.id) UI.closeMapPop();
   if (G.target === n.id) {
     G.target = -1;
     Fire.release(false); Fire.endAllIn();
     if (n !== G.player) UI.banner(`🎯 目标 ${n.name} 已被核平，请选择新目标`);
   }
+  if (n === G.player && G.mp) setTimeout(() => UI.banner('💀 你已被核平，正在观战'), 1500);
   UI.leader(n, n.race.lines.dead);
 });
 Bus.on('gameover', (kind) => {
@@ -190,8 +229,9 @@ Bus.on('gameover', (kind) => {
   setTimeout(() => UI.showEnd(kind), 2500);
 });
 Bus.on('tech', ({ n, tech }) => {
-  if (!n.isPlayer) return;
+  if (n !== G.player) return;
   UI.banner(`🔬 解锁：${tech.name}`);
+  UI.addFeed(`你解锁了【${tech.name}】：${tech.desc}`);
 });
 
 // ---------- 输入 ----------
@@ -215,6 +255,7 @@ function setupInput() {
     if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
     try { cv.setPointerCapture(e.pointerId); } catch (_) {}
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size > 1) UI.closeMapPop();
     if (pts.size === 1) { down = { x: e.clientX, y: e.clientY, cx: Render.cam.x, cy: Render.cam.y }; dragging = false; }
     else if (pts.size === 2) { const pi = pinchInfo(); pinch = { d: pi.d, zoom: Render.cam.zoom }; dragging = true; down = null; }
     $('leftcol').classList.remove('open');
@@ -235,6 +276,7 @@ function setupInput() {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (Math.abs(dx) + Math.abs(dy) > (e.pointerType === 'mouse' ? 5 : 10)) dragging = true;
       if (dragging) {
+        UI.closeMapPop();
         Render.cam.x = clamp(down.cx - dx / Render.cam.zoom, 0, WORLD_W);
         Render.cam.y = clamp(down.cy - dy / Render.cam.zoom, 0, WORLD_H);
       }
@@ -252,8 +294,8 @@ function setupInput() {
     if (pts.size === 0) {
       if (down && !dragging && G && e.type === 'pointerup') {
         const t = Render.tileAt(e.clientX, e.clientY);
-        onMapClick(t);
-        if (e.pointerType !== 'mouse') { // 触屏：轻点后显示 2.5 秒地块信息
+        const popped = onMapClick(t, e.clientX, e.clientY);
+        if (e.pointerType !== 'mouse' && !popped) { // 触屏：轻点后显示 2.5 秒地块信息（弹出国家浮窗时不显示）
           Render.hoverTile = t; UI.tooltip(t, e.clientX, e.clientY);
           clearTimeout(tipTimer); tipTimer = setTimeout(() => { UI.tooltip(null); Render.hoverTile = null; }, 2500);
         }
@@ -266,6 +308,7 @@ function setupInput() {
   cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { UI.tooltip(null); Render.hoverTile = null; } });
   cv.addEventListener('wheel', (e) => {
     e.preventDefault();
+    UI.closeMapPop();
     zoomAt(e.clientX, e.clientY, Render.cam.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
   cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -274,7 +317,7 @@ function setupInput() {
     if (!running || !G || G.over) return;
     if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
     const k = e.key.toLowerCase();
-    if (e.code === 'Space') { e.preventDefault(); G.speed = G.speed === 0 ? (G.prevSpeed || 1) : (G.prevSpeed = G.speed, 0); }
+    if (e.code === 'Space') { e.preventDefault(); if (!G.mp) G.speed = G.speed === 0 ? (G.prevSpeed || 1) : (G.prevSpeed = G.speed, 0); }
     else if (e.key === 'Tab') { e.preventDefault(); if (chooserOpen()) UI.closeChooser(); else UI.openChooser(); }
     else if (k === 'f' || k === 'c') { // 按住 F / C 蓄力；Shift 梭哈
       if (e.repeat) return;
@@ -282,17 +325,17 @@ function setupInput() {
       if (e.shiftKey) playerFire(ammo, fireMax(ammo));
       else Fire.begin(ammo);
     }
-    else if (k === 'escape') { if (Fire.charging) Fire.release(false); else UI.closeChooser(); }
+    else if (k === 'escape') { if (Fire.charging) Fire.release(false); else if (UI.popOpen()) UI.closeMapPop(); else UI.closeChooser(); }
     else if (chooserOpen() && k >= '1' && k <= '9') {
       const t = UI.chooserTargets()[+k - 1];
       if (t) { setTarget(t.id); UI.closeChooser(); }
     }
-    else if (k === 'b') useShield(G.player);
+    else if (k === 'b') Act.do({ a: 'shield' });
     else if (k === 'q') playerUlt();
-    else if (k === 'n') useNet(G.player);
-    else if (k === 'r') rebuildAll(G.player);
-    else if (k === '=' || k === '+') G.speed = Math.min(3, G.speed + 1);
-    else if (k === '-') G.speed = Math.max(0, G.speed - 1);
+    else if (k === 'n') Act.do({ a: 'net' });
+    else if (k === 'r') Act.do({ a: 'rebuildAll' });
+    else if (!G.mp && (k === '=' || k === '+')) G.speed = Math.min(3, G.speed + 1);
+    else if (!G.mp && k === '-') G.speed = Math.max(0, G.speed - 1);
   });
   window.addEventListener('keyup', (e) => {
     const k = e.key.toLowerCase();
@@ -302,15 +345,19 @@ function setupInput() {
   window.addEventListener('blur', () => { Fire.release(false); Fire.endAllIn(); });
 }
 
-function onMapClick(tile) {
-  if (!tile) return;
+// 返回 true 表示弹出了国家浮窗
+function onMapClick(tile, sx, sy) {
+  UI.closeMapPop();
+  if (!tile) return false;
   const p = G.player;
   if (tile.owner === p.id) {
-    if (tile.city && tile.city.ruined) { if (rebuildCity(p, tile.city)) SFX.click(); return; }
-    if (tile.fac && !tile.fac.alive) { if (rebuildFac(p, tile.fac)) SFX.click(); return; }
-    return;
+    if (tile.city && tile.city.ruined) { if (Act.do({ a: 'rebuildCity', id: tile.city.id }) !== false) SFX.click(); return false; }
+    if (tile.fac && !tile.fac.alive) { if (Act.do({ a: 'rebuildFac', id: tile.fac.id }) !== false) SFX.click(); return false; }
+    return false;
   }
-  if (tile.owner >= 0 && G.nations[tile.owner].alive) setTarget(tile.owner); // 点击敌国直接设为目标
+  // 点击其他国家：弹出情报浮窗，点「开始打击」才设为目标；不能打自己
+  if (tile.owner >= 0 && G.nations[tile.owner].alive) { UI.openMapPop(G.nations[tile.owner], sx, sy); return UI.popOpen(); }
+  return false;
 }
 
 // ---------- 启动 ----------

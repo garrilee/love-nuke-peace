@@ -1,7 +1,8 @@
 // ===================== 地图生成：大陆、国家、城市、设施 =====================
 'use strict';
 
-function generateWorld(seed, raceIds, playerRaceId) {
+function generateWorld(seed, raceIds, humanRaceIds) {
+  const humans = [].concat(humanRaceIds);
   setSeed(seed);
   const fbm = makeNoise(seed * 7 + 1);
   const fbm2 = makeNoise(seed * 13 + 5);
@@ -110,7 +111,7 @@ function generateWorld(seed, raceIds, playerRaceId) {
     }
     const popMul = race.mods.pop || 1;
     const nation = {
-      id: i, race, name: race.name, color: race.color, isPlayer: race.id === playerRaceId,
+      id: i, race, name: race.name, color: race.color, isPlayer: humans.includes(race.id),
       cities: [], facilities: [],
     };
     placed.forEach((t, k) => {

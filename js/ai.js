@@ -20,8 +20,8 @@ function whyTarget(n, tgt, kind) {
 }
 function hitPlayer(n, tgt, kind, line = true) {
   if (!tgt || !tgt.isPlayer) return;
-  if (line) Bus.emit('leader', { n, text: n.race.lines[kind === 'revenge' ? 'hit' : 'launch'] });
-  Bus.emit('targeted', { n, why: whyTarget(n, tgt, kind) });
+  if (line) Bus.emit('leader', { n, text: n.race.lines[kind === 'revenge' ? 'hit' : 'launch'], to: tgt.id });
+  Bus.emit('targeted', { n, tgt, why: whyTarget(n, tgt, kind) });
 }
 // AI 用大招：每个国家的大招在合适的时机放
 function aiUlt(n, tgt, when) {
