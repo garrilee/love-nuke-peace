@@ -38,7 +38,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
       techPts: 0, techIdx: 0,
       bank: 0, energy: 40,
       parcels: { 1: CFG.START_PARCELS, 2: 0, 3: 0, 4: 0, 5: 0 },
-      ufoReady: 2, ufoReturn: [],
+      ufoReady: Math.max(2, Math.min(CFG.MAX_UFO, CFG.START_PARCELS)), ufoReturn: [], // 开局飞机数和开局核包裹数一致，5 个都能一起投出去
       conv: 3, convCd: 0,
       heat: CFG.HEAT_START, lastAttack: -999, intelUntil: -1, intelCd: -1, hostileAt: {},
       subs: [],
