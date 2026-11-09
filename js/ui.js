@@ -4,6 +4,8 @@
 const $ = (id) => document.getElementById(id);
 // 只在内容真的变了才写 DOM：HUD 每 0.15 秒刷新一次，没变的部分不再重新渲染
 // （不能拿 el.innerHTML 来比较：浏览器会把 HTML 重新格式化，导致每次都"不一样"）
+// 小摩托的图标：纸飞机（没有现成的纸飞机 emoji，用一个小 SVG）
+const PAPER = '<svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg>';
 const setHTML = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
 const setText = (el, t) => { t = String(t); if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setStyle = (el, prop, v) => { const k = '_s_' + prop; if (el[k] !== v) { el[k] = v; el.style[prop] = v; } };
@@ -154,11 +156,9 @@ const UI = {
     $('pickTarget').onclick = () => this.openChooser();
     this.popId = -1; $('mapPop').classList.add('hidden');
     $('mapPopGo').onclick = () => { const id = this.popId; this.closeMapPop(); setTarget(id); };
+    for (const ammo of ['nuke', 'conv', 'drone']) Fire.bindFire($('pfire-' + ammo), ammo, () => this.popId);
     $('mapPopX').onclick = () => this.closeMapPop();
-    for (const ammo of ['nuke', 'conv']) {
-      Fire.bindFire($('fire-' + ammo), ammo);
-      Fire.bindAllIn($('allin-' + ammo), ammo);
-    }
+    for (const ammo of ['nuke', 'conv', 'drone']) Fire.bindFire($('fire-' + ammo), ammo);
     this.seenInc = new Set();
     $('chooser').onclick = (e) => { if (e.target.id === 'chooser') this.closeChooser(); };
     this.buildNationList();
@@ -189,14 +189,14 @@ const UI = {
     const done = p.techIdx >= TECHS.length;
     const tech = prod * a.tech * (p.mods.tech || 1);
     const nuke = prod * a.nuke * CFG.NUKE_MUL * heatEff(p) * (G.midnight ? 3 : 1);
-    const def = prod * a.def + CFG.ENERGY_BASE + (done ? prod * a.tech * 0.5 : 0);
+    const def = prod * a.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1) + (done ? prod * a.tech : 0);
     const set = (k, html) => {
       const el = $('r-' + k);
       if (el._h === html) return;
       setHTML(el, html);
       if (changed) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
     };
-    set('tech', done ? '<span class="dim">已满</span>' : `+${tech.toFixed(1)}<small>点/秒</small>`);
+    set('tech', done ? '<span class="dim">已满 · 全部转为能量</span>' : `+${tech.toFixed(1)}<small>点/秒</small>`);
     set('nuke', `+${nuke.toFixed(1)}<small>预算/秒</small>`);
     set('def', `+${def.toFixed(1)}<small>能量/秒</small>`);
     const t = TECHS[p.techIdx];
@@ -233,11 +233,11 @@ const UI = {
     setText($('date'), fmtDate(G.t));
     const mob = this.mobile();
     const spdTxt = G.mp && Net.role !== 'host' ? ` · ${G.speed}×` : ''; // 联机玩家看到房主设定的速度
-    setText($('timer'), (mob ? fmtTime(G.t) : `${fmtTime(G.t)} / ${fmtTime(CFG.GAME_END)}`) + spdTxt);
+    setText($('timer'), fmtTime(G.t) + spdTxt);
     const mins = Math.max(0, Math.ceil(17 * (1 - G.t / CFG.MIDNIGHT)));
-    setHTML($('doom'), G.midnight ? '🕛 <b class="red">午夜狂欢</b>' : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`);
+    setHTML($('doom'), G.midnight ? `🕛 <b class="red">${mob ? '' : '午夜狂欢 · '}☢×${nukeMul().toFixed(2)}</b>` : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`);
     document.body.classList.toggle('midnight', G.midnight);
-    $('timer').classList.toggle('urgent', CFG.GAME_END - G.t < 60);
+    $('timer').classList.toggle('urgent', nukeMul() >= CFG.ESC_MAX);
     // 午夜前 10 秒倒计时
     const toMid = CFG.MIDNIGHT - G.t, cd = $('countdown');
     if (!G.midnight && toMid <= 10 && toMid > 0) {
@@ -334,26 +334,26 @@ const UI = {
     // 核包裹
     const D = deliverable(p, G.legs);
     setText($('ct-nuke'), stock(p));
-    setText($('all-nuke'), '×' + D);
-    setText($('sub-nuke'), !bestLevel(p) ? '尚未研发' : `可投送 ${D}` + (D < stock(p) ? '（等运载）' : ''));
-    // 常规导弹
+    setText($('sub-nuke'), !bestLevel(p) ? '尚未研发' : stock(p) ? '有库存就能发射' : '生产中');
+    // 导弹：库存上限 10，一次最多 5 枚
     setText($('ct-conv'), p.conv);
-    setText($('all-conv'), '×' + p.conv);
     setText($('sub-conv'), p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s`
-      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 ${p.convBuildT.toFixed(1)}s` : `每枚 💰${CONV.cost}`);
+      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 · 上限 ${CONV.stockCap}` : `一次最多 ${CONV.perLaunch} 枚`);
+    // 小摩托：库存上限 20，一次发射不限
+    setText($('ct-drone'), p.drones);
+    setText($('sub-drone'), p.drones < DRONE.stockCap && p.droneBuildT > 0 ? `生产中 · 上限 ${DRONE.stockCap}` : `上限 ${DRONE.stockCap} · 慢但难拦`);
 
     const ok = hasT && p.alive;
     const holding = (ammo) => !!(Fire.charging && Fire.charging.ammo === ammo); // 按住期间不禁用，保证松手能收到
     $('fire-nuke').disabled = (!ok || D <= 0) && !holding('nuke');
-    $('allin-nuke').disabled = !ok || D <= 0;
     $('fire-conv').disabled = (!ok || p.conv <= 0) && !holding('conv');
-    $('allin-conv').disabled = !ok || p.conv <= 0;
+    $('fire-drone').disabled = (!ok || p.drones <= 0) && !holding('drone');
     Fire.syncIdle();
 
     let st;
-    if (!hasT) st = '先选择打击目标';
-    else if (Fire.charging) st = `松开发射 <b class="gold">${Fire.charging.count}</b> ${Fire.charging.ammo === 'nuke' ? '个核包裹' : '枚常规导弹'}`;
-    else st = '单击发 1 个 · 按住蓄力 · 梭哈全发';
+    if (!hasT) st = '点击地图上的敌国，或按 Tab 选目标';
+    else if (Fire.charging) st = `松开发射 <b class="gold">${Fire.charging.count}</b> ${AMMO[Fire.charging.ammo].unit}${AMMO[Fire.charging.ammo].name}`;
+    else st = '单击发 1 个 · 按住蓄力 · 圆环满 = 全发';
     setHTML($('strikeTarget'), st);
   },
 
@@ -429,10 +429,14 @@ const UI = {
     if (!n || !n.alive || !G.player.alive) return this.closeMapPop();
     const html = `<div class="temo">${n.race.emoji}</div><div class="tbody">${this.nationInfo(n)}</div>`;
     setHTML($('mapPopBody'), html);
-    const isT = G.target === n.id, go = $('mapPopGo');
-    go.disabled = isT;
-    const label = isT ? '✔ 已是打击目标' : '🎯 开始打击';
-    setText(go, label);
+    const p = G.player, go = $('mapPopGo'), isT = G.target === n.id;
+    go.classList.toggle('hidden', isT);
+    const counts = { nuke: deliverable(p, G.legs), conv: p.conv, drone: p.drones };
+    for (const ammo of ['nuke', 'conv', 'drone']) {
+      setText($('pct-' + ammo), ammo === 'nuke' ? stock(p) : counts[ammo]);
+      const holding = Fire.charging && Fire.charging.ammo === ammo;
+      $('pfire-' + ammo).disabled = !p.alive || (counts[ammo] <= 0 && !holding);
+    }
   },
   closeMapPop() {
     if (this.popId === undefined || this.popId < 0) return;
@@ -443,23 +447,27 @@ const UI = {
   popOpen() { return this.popId >= 0; },
 
   refreshIncoming() {
-    const inc = incomingFor(G.player);
+    const all = incomingFor(G.player);
+    const inc = all.filter((x) => isThreat(x.p)), drones = all.filter((x) => !isThreat(x.p));
     const box = $('incoming');
     SFX.tension(inc.length > 0);
-    document.body.classList.toggle('inc-on', inc.length > 0); // 来袭面板显示时，提示卡让到下方
-    if (!inc.length) { if (!box.classList.contains('hidden')) box.classList.add('hidden'); return; }
+    document.body.classList.toggle('inc-on', all.length > 0); // 来袭面板显示时，提示卡让到下方
+    if (!all.length) { if (!box.classList.contains('hidden')) box.classList.add('hidden'); return; }
     box.classList.remove('hidden');
-    // 每一波新来袭只响一次短促警报
+    // 每一波新来袭（不含小摩托）只响一次短促警报
     let fresh = false;
     for (const { p } of inc) if (!this.seenInc.has(p.id)) { this.seenInc.add(p.id); fresh = true; }
     if (fresh) SFX.alert();
-    const rows = inc.slice(0, 7).map(({ p, left }) => {
+    const rows = inc.slice(0, drones.length ? 6 : 7).map(({ p, left }) => {
       const a = G.nations[p.att];
-      const tag = p.kind === 'conv' ? '<span class="lv conv">常规</span> 💥' : `<span class="lv lv${p.lv}">${p.lv}级</span> ${p.kind === 'ufo' ? '✈' : '🚀'}`;
+      const tag = p.kind === 'conv' ? '<span class="lv conv">导弹</span> 💥' : `<span class="lv lv${p.lv}">${p.lv}级</span> ${p.kind === 'ufo' ? '✈' : '🚀'}`;
       return `<div class="inc"><span style="color:${a.color}">${a.race.emoji}${a.name}</span> ${tag} <b class="mono">${left.toFixed(1)}s</b></div>`;
     }).join('');
-    setHTML(box, `<div class="sect-title red">⚠ 包裹来袭 ×${inc.length}</div>${rows}
-      <div class="hint">${inc.length > netMax(G.player) ? '<b class="gold">来袭太多！</b>B 开护盾' : 'N 拦截（少量来袭）'} · 或者……回敬一个</div>`);
+    // 小摩托合并成一行：一群一群慢慢飞，逐个列出来太占地方
+    const dRow = drones.length ? `<div class="inc drone">${PAPER} 小摩托 ×${drones.length} <span class="dim small">近防炮自动迎击</span><b class="mono">${drones[0].left.toFixed(0)}s</b></div>` : '';
+    const title = inc.length ? `⚠ 包裹来袭 ×${inc.length}` : `${PAPER} 小摩托来袭`;
+    setHTML(box, `<div class="sect-title red">${title}</div>${rows}${dRow}
+      <div class="hint">${inc.length > netMax(G.player) || drones.length >= 10 ? '<b class="gold">来袭太多！</b>B 开护盾' : inc.length ? 'N 拦截（少量来袭）' : '近防炮会自动打小摩托'} · 或者……回敬一个</div>`);
   },
 
   addFeed(text) {
@@ -504,12 +512,13 @@ const UI = {
     // 新手引导
     if (t > 1.5) this.tip('start', `👋 欢迎！${this.mobile() ? '左上角 📊 里的' : '左侧'}<b>国力分配</b>决定科技、核武、三防的产出。前期多投<b>科技</b>，尽快解锁核包裹。`, { tutorial: true, life: 9 });
     if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，<b>按住</b>发射键蓄力，松开发射。`, { tutorial: true, life: 9 });
-    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>核包裹按钮蓄力，匀速 +1，到想要的数量就松手；<b>梭哈</b>一次全发。', { tutorial: true });
+    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>发射按钮蓄力：前 5 个匀速，之后加速，圆环满就是全发。点地图上的敌国也能直接打。', { tutorial: true });
     if (incomingFor(p).length) this.tip('incoming', '⚠ 有东西飞过来了！少量来袭会<b>自动拦截</b>；来得多就开<b>护盾</b>（B）。', { tutorial: true });
     if (p.cities.some((c) => c.ruined)) this.tip('ruin', '🏚 城市变成废墟，产出减半。开着<b>自动重建</b>会消耗能量慢慢修好。', { tutorial: true });
     if (p.ultCd <= 0 && t >= ULT_FIRST) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, { tutorial: true, life: 9 });
     if (t > 30 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', '🏭 <b>军工热度</b>低时核武产出打折，持续投入约 100 秒才能升满。临时转产效率很低。', { tutorial: true });
-    if (t > 300) this.tip('score', '📊 时间到时按<b>综合得分 = 人口 + 造成伤亡 × 0.4</b> 排名，光苟着拿不了第一。', { tutorial: true });
+    if (t > 50) this.tip('drone', PAPER + ' <b>小摩托</b>生产快、飞得慢、拦截弹很难打中，适合拆敌国的投送站、消耗对方的防空。按住 D 或点小摩托按钮放飞。', { tutorial: true, life: 9 });
+    if (t > 300) this.tip('nolimit', '⏳ 没有时间限制，打到只剩一个国家。午夜后核弹威力会越来越大，苟是苟不住的。', { tutorial: true });
     if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×3，人口不再加速恢复。', { tutorial: true });
     // 局势提醒（始终开启，有冷却）
     const alive = G.nations.filter((x) => x.alive);
@@ -571,16 +580,15 @@ const UI = {
     const p = G.player;
     const alive = G.nations.filter((n) => n.alive);
     const survivor = alive[0];
-    const ranked = G.nations.slice().sort((a, b) => (b.alive - a.alive) || (finalScore(b) - finalScore(a)));
+    // 排名：活着的在前，其余按坚持的时间（倒下得越晚越靠前）
+    const ranked = G.nations.slice().sort((a, b) => (b.alive - a.alive) || ((b.diedAt || 0) - (a.diedAt || 0)) || (totalPop(b) - totalPop(a)));
     // 联机：同一个结局，每个人看到的胜负不同
-    if (G.mp && kind !== 'disconnected' && kind !== 'earth') kind = !p.alive ? 'lose' : kind === 'last' ? 'win' : ranked[0] === p ? 'survive' : 'loseRank';
+    if (G.mp && kind !== 'disconnected' && kind !== 'earth') kind = p.alive ? 'win' : 'lose';
     let title, sub;
     if (kind === 'disconnected') { title = '📴 连接中断'; sub = '和房主的连接断开了，这局游戏没法继续。'; }
     else if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
-    else if (kind === 'survive') { title = '🏳 积分胜利'; sub = '时间到，你的综合得分（人口 + 战绩）最高。'; }
     else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
     else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
-    else if (kind === 'loseRank') { title = '📉 积分落后'; sub = '时间到，别人的综合得分（人口 + 战绩）比你高。光苟着可不够。'; }
     else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${survivor.race.emoji}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
     const s = p.stats;
     const box = document.querySelector('#end .end-inner');
@@ -595,9 +603,12 @@ const UI = {
         <div>护盾挡下 <b>${s.blocked || 0}</b></div>
         <div>重建城市 <b>${s.rebuilt}</b></div>
         <div>大招次数 <b>${s.ult}</b></div>
-        <div>综合得分 <b>${Math.round(finalScore(p))}</b></div>
+        <div>放飞小摩托 <b>${s.dronesSent}</b></div>
+        <div>近防炮击落 <b>${s.ciwsKills}</b></div>
+        <div>空战击落 <b>${s.dogKills}</b></div>
+        <div>${p.alive ? '活到最后' : '坚持了'} <b>${fmtTime(p.alive ? G.t : p.diedAt || G.t)}</b></div>
       </div>
-      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? Math.round(finalScore(n)) + ' 分' : '💀'}</i></div>`).join('')}</div>` : ''}
+      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       <button id="againBtn">再核平一次</button>`;
     $('end').classList.remove('hidden');

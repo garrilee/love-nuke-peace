@@ -15,23 +15,25 @@ const cleanName = (s) => String(s || '').replace(/[<>&"'`\\]/g, '').replace(/\s+
 const r1 = (v) => Math.round(v * 10) / 10;
 const r2 = (v) => Math.round(v * 100) / 100;
 const SUB_STATES = ['dock', 'out', 'back'];
-const P_KINDS = ['rocket', 'ufo', 'conv'];
+const P_KINDS = ['rocket', 'ufo', 'conv', 'drone', 'guard'];
 
 // ---------- 飞弹的紧凑编码 ----------
 function encProj(p) {
-  const flags = (p.launched ? 1 : 0) | (p.locked ? 2 : 0) | (p.engaged ? 4 : 0) | (p.unstop ? 8 : 0) | (p.mirvLead ? 16 : 0);
+  const flags = (p.launched ? 1 : 0) | (p.locked ? 2 : 0) | (p.engaged ? 4 : 0) | (p.unstop ? 8 : 0) | (p.mirvLead ? 16 : 0) | (p.fade !== undefined ? 32 : 0);
   return [p.id, P_KINDS.indexOf(p.kind), p.lv, p.att, p.tgt, r1(p.fx), r1(p.fy), p.tile.idx, r1(p.tx), r1(p.ty),
     p.arcH === undefined ? -1 : Math.round(p.arcH * 1000) / 1000, r2(p.delay), r2(p.flight), r2(p.t), flags,
-    p.mirvOf === undefined ? -1 : p.mirvOf, p.bx === undefined ? 0 : r1(p.bx), p.by === undefined ? 0 : r1(p.by)];
+    p.mirvOf === undefined ? -1 : p.mirvOf, p.bx === undefined ? 0 : r1(p.bx), p.by === undefined ? 0 : r1(p.by), r2(p.wob || 0)];
 }
 function decProj(a, o = {}) {
   Object.assign(o, {
     id: a[0], kind: P_KINDS[a[1]], lv: a[2], att: a[3], tgt: a[4], fx: a[5], fy: a[6], tile: G.world.tiles[a[7]], tx: a[8], ty: a[9],
     delay: a[11], flight: a[12], t: a[13], launched: !!(a[14] & 1), locked: !!(a[14] & 2), engaged: !!(a[14] & 4),
-    unstop: !!(a[14] & 8), mirvLead: !!(a[14] & 16), done: false,
+    unstop: !!(a[14] & 8), mirvLead: !!(a[14] & 16), fade: (a[14] & 32) ? 0.3 : undefined, done: false,
   });
   if (a[10] >= 0) o.arcH = a[10]; else delete o.arcH;
-  if (a[15] >= 0) { o.mirvOf = a[15]; o.bx = a[16]; o.by = a[17]; } else delete o.mirvOf;
+  o.bx = a[16]; o.by = a[17]; // 分弹头的分离点 / 升空拦截的上一步位置
+  if (a[15] >= 0) o.mirvOf = a[15]; else delete o.mirvOf;
+  o.wob = a[18] || 0;
   return o;
 }
 // 客户端：按 id 找到本地已有的飞弹（保留渲染状态），没有就新建
@@ -54,6 +56,14 @@ const NET_EVENTS = {
   shieldBlock: projGoneEv,
   explode: { enc: (e) => [e.tile.idx, e.lv, e.att.id], dec: ([ti, lv, a]) => ({ tile: G.world.tiles[ti], lv, att: G.nations[a] }) },
   convExplode: { enc: (e) => [e.tile.idx, e.att.id], dec: ([ti, a]) => ({ tile: G.world.tiles[ti], att: G.nations[a] }) },
+  droneExplode: { enc: (e) => [e.tile.idx, e.att.id], dec: ([ti, a]) => ({ tile: G.world.tiles[ti], att: G.nations[a] }) },
+  dogfight: {
+    enc: (e) => [encProj(e.a), encProj(e.b), e.ka ? 1 : 0, e.kb ? 1 : 0],
+    dec: ([a, b, ka, kb]) => { const pa = projFor(a), pb = projFor(b); setTimeout(() => { if (ka) dropProj(pb); if (kb) dropProj(pa); }, 0); return { a: pa, b: pb, ka: !!ka, kb: !!kb }; },
+  },
+  scramble: { enc: encProj, dec: (a) => projFor(a) },
+  guardGone: { enc: encProj, dec: (a) => { const p = projFor(a); setTimeout(() => dropProj(p), 0); return p; } },
+  ciws: { enc: (e) => [e.n.id, encProj(e.p), e.hit ? 1 : 0], dec: ([i, a, hit]) => { const p = projFor(a); if (hit) setTimeout(() => dropProj(p), 0); return { n: G.nations[i], p, hit: !!hit }; } },
   cityHit: { enc: (e) => [e.city.id, r2(e.loss)], dec: ([ci, loss]) => ({ city: G.world.cities[ci], loss }) },
   facDown: { enc: (f) => f.id, dec: (i) => G.world.facilities[i] },
   ult: { enc: (e) => [e.n.id, e.tgt ? e.tgt.id : -1], dec: ([a, b]) => ({ n: G.nations[a], tgt: NO(b) }) },
@@ -62,7 +72,7 @@ const NET_EVENTS = {
     enc: (n) => n.id,
     dec: (i) => {
       const n = G.nations[i];
-      n.alive = false;
+      n.alive = false; n.diedAt = G.t;
       for (const c of n.cities) { c.pop = 0; c.ruined = true; }
       for (const f of n.facilities) f.alive = false;
       n.subs = []; n.ufoReady = 0;
@@ -239,6 +249,7 @@ const Net = {
       n: G.nations.map((n) => ({
         a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
+        dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aC: n.autoCiws ? 1 : 0, aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
         uC: r1(n.ultCd), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
@@ -330,6 +341,7 @@ const Net = {
         ultCd: d.uC, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
         autoNet: !!d.aN, autoRebuild: !!d.aR, rocketEra: !!d.re,
+        drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoCiws: !!d.aC, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,
       });
       d.pc.forEach((v, k) => { n.parcels[k + 1] = v; });
       n.subs = d.sb.map(([st, ti, rk]) => ({ state: SUB_STATES[st], tile: W.tiles[ti], rockets: rk, timer: 0 }));

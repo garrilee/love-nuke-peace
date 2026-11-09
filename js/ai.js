@@ -45,6 +45,7 @@ function aiStep(n, dt) {
       const scale = n.pers === 'grudge' || n.pers === 'hot' ? 2 : n.pers === 'zen' ? 0 : 1;
       let sent = launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
       if (!sent) sent = launchConv(n, tgt, n.pers === 'zen' ? 0 : 1); // 没有核包裹就先用常规导弹还击
+      if (!sent && n.drones >= 3) sent = launchDrones(n, tgt, Math.ceil(n.drones * 0.6)); // 再不行就放无人机
       if (sent) hitPlayer(n, tgt, 'revenge');
     }
   }
@@ -62,7 +63,7 @@ function aiStep(n, dt) {
 
   // 大量来袭：刀盾先放大招（免费护盾 + 回敬）
   const inc = incomingFor(n);
-  if (inc.filter((x) => x.left < 4 && x.p.kind !== 'conv').length >= 2 && n.shieldT <= 0) aiUlt(n, null, 'danger');
+  if (inc.filter((x) => x.left < 4 && x.p.kind !== 'conv' && x.p.kind !== 'drone').length >= 2 && n.shieldT <= 0) aiUlt(n, null, 'danger');
   autoDefend(n);
 
   // 记仇值缓慢累积：看谁都不顺眼，最看不惯人多的
@@ -98,11 +99,19 @@ function aiStep(n, dt) {
     const p = G.midnight ? 0.6 : 0.12 * Math.max(0.5, aggro);
     if (ct && chance(p) && launchConv(n, ct, chance(0.3) ? 2 : 1)) hitPlayer(n, ct, 'conv', false);
   }
+  // 无人机骚扰：攒够一群就放出去，拆对手的发射点、消耗对手的防空；佛系不主动，记仇只打仇人
+  if (n.droneCd <= 0 && n.drones >= 8 && G.t > 45 && n.pers !== 'zen') {
+    let dt = tgt;
+    if (n.pers === 'grudge') dt = n.lastAttacker >= 0 && G.nations[n.lastAttacker].alive ? G.nations[n.lastAttacker] : null;
+    const p = G.midnight ? 0.5 : 0.2 * Math.max(0.5, aggro);
+    if (dt && chance(p) && launchDrones(n, dt, Math.ceil(n.drones * rnd(0.5, 1)))) hitPlayer(n, dt, 'drone', false);
+  }
   // 不许一直按兵不动：超过一段时间没出手、手里有弹药，就必须打一轮（佛系也一样，只是打得少）
   const myIdle = G.t - Math.max(n.lastAttack, 60);
   if (G.t > 90 && myIdle > G.diff.idle) {
     let sent = D > 0 ? launch(n, tgt, n.pers === 'zen' ? 0 : 1, { pad: true, sea: true, ufo: true }) : 0;
     if (!sent && n.convCd <= 0) sent = launchConv(n, tgt, 1);
+    if (!sent && n.drones >= 3) sent = launchDrones(n, tgt, Math.ceil(n.drones / 2));
     if (sent) { hitPlayer(n, tgt, 'idle'); return; }
   }
   if (D <= 0 || G.t - n.lastStrike < 8) return;

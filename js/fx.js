@@ -2,7 +2,7 @@
 'use strict';
 
 const FX = {
-  parts: [], rings: [], balls: [], texts: [], glows: [], columns: [], capGlows: [], rays: [], groundFlash: [], fires: [], cine: null, midFlash: 0,
+  tracers: [], parts: [], rings: [], balls: [], texts: [], glows: [], columns: [], capGlows: [], rays: [], groundFlash: [], fires: [], cine: null, midFlash: 0,
   flash: 0, flashColor: '255,255,255', whiteout: 0, shake: 0, shakeHold: 0, slowmo: 0, punch: 0, tint: 0,
   sprites: {},
 
@@ -54,6 +54,14 @@ const FX = {
     Bus.on('cityHit', (e) => this.text(e.city.tile.x, e.city.tile.y - 10, '-' + fmtPop(e.loss), '#ff6b5b', 1));
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));
     Bus.on('ult', (e) => this.onUlt(e));
+    Bus.on('droneExplode', (e) => this.onDroneExplode(e));
+    Bus.on('ciws', (e) => this.onCiws(e));
+    Bus.on('dogfight', (e) => this.onDogfight(e));
+    Bus.on('scramble', (g) => this.part({ x: g.fx, y: g.fy, life: 0.35, size: 4, grow: 6, sprite: this.S.cyan }));
+    Bus.on('guardGone', (g) => { // 拦截的小摩托在空中自毁：一小团火花
+      this.part({ x: g.fx, y: g.fy, life: 0.3, size: 4, grow: 6, sprite: this.S.cyan });
+      for (let i = 0; i < 4; i++) { const a = Math.random() * Math.PI * 2; this.part({ x: g.fx, y: g.fy, vx: Math.cos(a) * 18, vy: Math.sin(a) * 18 + 8, life: 0.4, size: 1, sprite: this.S.orange, grav: 50, drag: 2 }); }
+    });
     Bus.on('midnight', () => { this.midFlash = 1; });
   },
   // 爆炸光芒：一根从中心向外变淡的光束，预先画好，绘制时旋转贴上
@@ -66,7 +74,7 @@ const FX = {
     x.beginPath(); x.moveTo(0, 8); x.lineTo(128, 0); x.lineTo(128, 16); x.closePath(); x.fill();
     return c;
   },
-  reset() { this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
+  reset() { this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
   part(o) {
@@ -112,7 +120,8 @@ const FX = {
 
   // 护盾挡下常规导弹：空中一圈青色涟漪 + 火花
   onShieldBlock(p) {
-    const x = p.tx, y = p.ty - 22;
+    const q = p.kind === 'drone' ? Render.projPos(p) : null;
+    const x = q ? q.x : p.tx, y = q ? q.y : p.ty - 22;
     this.rings.push({ x, y, R: HEX_W * 1.6, age: 0, life: 0.6, w: 2, shield: true });
     this.part({ x, y, life: 0.35, size: 14, grow: 18, sprite: this.S.cyan });
     for (let i = 0; i < 10; i++) {
@@ -123,7 +132,56 @@ const FX = {
     if (this.involvesPlayer(p)) SFX.intercept();
   },
 
+  // 无人机落地：小火球 + 几颗火星，没有蘑菇云
+  onDroneExplode({ tile, att }) {
+    const x = tile.x + rnd(-4, 4), y = tile.y + rnd(-3, 3);
+    this.balls.push({ x, y, R: HEX_W * 0.28, age: 0, life: 0.6 });
+    this.rings.push({ x, y, R: HEX_W * 0.8, age: 0, life: 0.35, w: 1, fast: true });
+    for (let i = 0; i < 6; i++) {
+      const a = Math.random() * Math.PI * 2, v = 20 + Math.random() * 30;
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6 - 15, life: 0.4 + Math.random() * 0.4, size: 1.2 + Math.random(), sprite: this.S.orange, grav: 50, drag: 1.5 });
+    }
+    if (G.world.isLand(tile)) Render.addScorch(x, y, HEX_W * 0.25, 0);
+    const near = att === G.player || tile.owner === (G.player && G.player.id);
+    if (near) SFX.blast(false);
+  },
+  // 近防炮：从最近的城市/设施朝无人机打出一串曳光弹，打中时空中一团火花
+  onCiws({ n, p, hit }) {
+    const q = Render.projPos(p);
+    let src = null, bd = Infinity;
+    for (const c of n.cities) { if (c.ruined) continue; const d = Math.hypot(c.tile.x - q.x, c.tile.y - q.y); if (d < bd) { bd = d; src = c.tile; } }
+    for (const f of n.facilities) { if (!f.alive) continue; const d = Math.hypot(f.tile.x - q.x, f.tile.y - q.y); if (d < bd) { bd = d; src = f.tile; } }
+    if (!src) return;
+    this.tracers.push({ x1: src.x, y1: src.y - 2, x2: q.x + (hit ? 0 : (Math.random() - 0.5) * 10), y2: q.y + (hit ? 0 : (Math.random() - 0.5) * 8), age: 0, life: 0.22 });
+    this.part({ x: src.x, y: src.y - 2, life: 0.12, size: 3, sprite: this.S.warm });
+    if (hit) {
+      this.part({ x: q.x, y: q.y, life: 0.25, size: 7, grow: 10, sprite: this.S.white });
+      for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2, v = 15 + Math.random() * 30;
+        this.part({ x: q.x, y: q.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.3 + Math.random() * 0.4, size: 1 + Math.random(), sprite: this.S.orange, grav: 40, drag: 2 });
+      }
+    }
+    if (n === G.player) SFX.ciws && SFX.ciws(hit);
+  },
+
+  // 空战：两架小摩托互射短曳光，被击落的冒一团火花
+  onDogfight({ a, b, ka, kb }) {
+    const A = Render.projPos(a), B = Render.projPos(b);
+    const shot = (from, to, hit) => {
+      this.tracers.push({ x1: from.x, y1: from.y, x2: to.x + (hit ? 0 : (Math.random() - 0.5) * 8), y2: to.y + (hit ? 0 : (Math.random() - 0.5) * 6), age: 0, life: 0.18 });
+      if (!hit) return;
+      this.part({ x: to.x, y: to.y, life: 0.25, size: 6, grow: 8, sprite: this.S.white });
+      for (let i = 0; i < 7; i++) {
+        const ang = Math.random() * Math.PI * 2, v = 15 + Math.random() * 25;
+        this.part({ x: to.x, y: to.y, vx: Math.cos(ang) * v, vy: Math.sin(ang) * v + 10, life: 0.3 + Math.random() * 0.4, size: 1 + Math.random(), sprite: this.S.orange, grav: 60, drag: 2 });
+      }
+    };
+    shot(A, B, ka); shot(B, A, kb);
+    if (G.player && (a.att === G.player.id || b.att === G.player.id)) SFX.ciws && SFX.ciws(ka || kb);
+  },
+
   onLaunch(p) {
+    if (p.kind === 'drone') { this.part({ x: p.fx, y: p.fy, life: 0.3, size: 3, grow: 4, sprite: this.S.cyan }); return; }
     if (p.kind === 'conv') {
       this.part({ x: p.fx, y: p.fy, life: 0.3, size: 8, grow: 12, sprite: this.S.warm });
       return;
@@ -397,6 +455,8 @@ const FX = {
     this.punch = Math.max(0, this.punch - dt * 0.12);
     this.tint = Math.max(0, this.tint - dt * 0.35);
     this.midFlash = Math.max(0, this.midFlash - dt * 0.5);
+    for (const t of this.tracers) t.age += dt;
+    this.tracers = this.tracers.filter((t) => t.age < t.life);
     if (this.cine) { this.cine.age += dt; if ((this.cine.boom >= 0 && this.cine.age - this.cine.boom > 0.6) || this.cine.age > 6) this.cine = null; }
     for (const f of this.fires) f.age += dt;
     this.fires = this.fires.filter((f) => f.age < f.life);
@@ -451,8 +511,19 @@ const FX = {
   },
 
   drawAir(ctx) {
-    // 冲击波
+    // 近防炮曳光弹：一串短亮线
     ctx.globalCompositeOperation = 'lighter';
+    if (this.tracers.length) {
+      ctx.lineWidth = 1;
+      for (const t of this.tracers) {
+        const k = t.age / t.life, a = 1 - k;
+        ctx.strokeStyle = `rgba(255,235,150,${0.9 * a})`;
+        ctx.setLineDash([3, 4]); ctx.lineDashOffset = -t.age * 120;
+        ctx.beginPath(); ctx.moveTo(t.x1, t.y1); ctx.lineTo(lerp(t.x1, t.x2, Math.min(1, k * 3)), lerp(t.y1, t.y2, Math.min(1, k * 3))); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+    // 冲击波
     for (const r of this.rings) {
       if (r.age < 0) continue;
       const k = r.age / r.life, rad = r.R * (1 - Math.pow(1 - k, r.fast ? 3 : 2.2));

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#01040a">
 <title>热爱核平</title>
-<link rel="stylesheet" href="style.css?v=20261108-dev-panel">
+<link rel="stylesheet" href="style.css?v=20261111-feel">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -23,7 +23,7 @@
       <button data-speed="2">2×</button>
       <button data-speed="3">3×</button>
     </div>
-    <div id="timer" class="mono">00:00 / 15:00</div>
+    <div id="timer" class="mono">00:00</div>
     <div id="doom" title="末日时钟：距离午夜还有多少分钟">🕐 距午夜 <b>17</b> 分</div>
     <button id="mute" title="静音">🔊</button>
   </div>
@@ -72,24 +72,24 @@
         <span class="tlabel">打击目标</span>
         <span class="tname" id="targetName">未选择 · 点击选择</span><kbd>Tab</kbd></button>
 
-      <!-- 核包裹 -->
-      <div class="firerow" id="row-nuke">
+      <!-- 三种武器：图标 + 库存 + 圆形发射按钮（按住蓄力：前 5 个匀速，之后加速，约 3 秒到上限）-->
+      <div class="firerow " id="row-nuke">
         <div class="ammoinfo"><span class="ic">☢</span><span class="lb">核包裹</span><span class="stock mono" id="ct-nuke">0</span><span class="sub" id="sub-nuke"></span></div>
-        <button class="fire" id="fire-nuke" title="单击发射 1 个；按住蓄力，松开发射（F）">
+        <button class="fire" id="fire-nuke" title="单击发射 1 个；按住蓄力，松开发射（F；Shift+F 一次全发）">
           <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
           <span class="num" id="num-nuke">1</span><span class="cap">按住蓄力</span><kbd>F</kbd></button>
-        <button class="allin" id="allin-nuke" title="按住 0.4 秒：一次发射全部可用核包裹（Shift+F）">
-          <i class="fill"></i><span>梭哈</span><span class="sub" id="all-nuke">×0</span><kbd>⇧F</kbd></button>
       </div>
-
-      <!-- 常规导弹 -->
       <div class="firerow conv" id="row-conv">
-        <div class="ammoinfo"><span class="ic">💥</span><span class="lb">常规导弹</span><span class="stock mono" id="ct-conv">0</span><span class="sub" id="sub-conv"></span></div>
-        <button class="fire" id="fire-conv" title="单击发射 1 枚；按住蓄力，松开发射（C）">
+        <div class="ammoinfo"><span class="ic">💥</span><span class="lb">导弹</span><span class="stock mono" id="ct-conv">0</span><span class="sub" id="sub-conv"></span></div>
+        <button class="fire" id="fire-conv" title="单击发射 1 个；按住蓄力，松开发射（C；Shift+C 一次全发）">
           <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
           <span class="num" id="num-conv">1</span><span class="cap">按住蓄力</span><kbd>C</kbd></button>
-        <button class="allin" id="allin-conv" title="按住 0.4 秒：一次发射全部常规导弹（Shift+C）">
-          <i class="fill"></i><span>梭哈</span><span class="sub" id="all-conv">×0</span><kbd>⇧C</kbd></button>
+      </div>
+      <div class="firerow drone" id="row-drone">
+        <div class="ammoinfo"><span class="ic"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg></span><span class="lb">小摩托</span><span class="stock mono" id="ct-drone">0</span><span class="sub" id="sub-drone"></span></div>
+        <button class="fire" id="fire-drone" title="单击发射 1 个；按住蓄力，松开发射（D；Shift+D 一次全发）">
+          <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+          <span class="num" id="num-drone">1</span><span class="cap">按住蓄力</span><kbd>D</kbd></button>
       </div>
 
       <div id="strikeTarget" class="status"></div>
@@ -119,7 +119,21 @@
 <div id="mapPop" class="panel hidden">
   <button id="mapPopX" title="关闭 (Esc)">×</button>
   <div id="mapPopBody"></div>
-  <button id="mapPopGo">🎯 开始打击</button>
+  <div class="popfire">
+    <div class="pf"><span class="pfl">☢ <b id="pct-nuke">0</b></span>
+      <button class="fire mini" id="pfire-nuke" title="核包裹：单击发 1 个，按住蓄力，松开发射">
+        <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+        <span class="num">1</span></button></div>
+    <div class="pf"><span class="pfl">💥 <b id="pct-conv">0</b></span>
+      <button class="fire mini" id="pfire-conv" title="导弹：单击发 1 个，按住蓄力，松开发射">
+        <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+        <span class="num">1</span></button></div>
+    <div class="pf"><span class="pfl"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg> <b id="pct-drone">0</b></span>
+      <button class="fire mini" id="pfire-drone" title="小摩托：单击发 1 个，按住蓄力，松开发射">
+        <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
+        <span class="num">1</span></button></div>
+  </div>
+  <button id="mapPopGo">只设为目标，不发射</button>
 </div>
 <div id="tip" class="hidden"><div class="tipbody" id="tipBody"></div><button id="tipX" title="关闭">×</button></div>
 <div id="countdown" class="hidden"></div>
@@ -168,10 +182,10 @@
       <div id="mpErr" class="small"></div>
     </div>
     <button id="startBtn" disabled>按下按钮，开始核平</button>
-    <div class="howto touch">单指拖动地图 · 双指缩放 · 点击敌国设为目标 · 按住发射键蓄力，松开发射 · 左上角 📊 查看国情与国力分配</div>
+    <div class="howto touch">单指拖动地图 · 双指缩放 · 点击敌国直接打击 · 按住发射键蓄力，松开发射 · 左上角 📊 查看国情与国力分配</div>
     <div class="howto">
-      空格 暂停 · 滚轮缩放 · 拖拽平移 · Tab 或点击敌国选目标 · 按住 F 蓄力发射核包裹 · 按住 C 蓄力发射常规导弹 · Shift+F / Shift+C 梭哈<br>
-      包裹来袭时：少量用 N 拦截，大量用 B 护盾 · R 重建 · Q 国家大招。单局约 15 分钟，最后活下来的就是“和平”。
+      空格 暂停 · 滚轮缩放 · 拖拽平移 · 点击敌国弹出打击窗口 · 按住 F / C / D 蓄力发射核包裹 / 导弹 / 小摩托 · Shift+键 一次全发<br>
+      少量来袭用 N 拦截，大量用 B 护盾，近防炮自动打小摩托 · R 重建 · Q 国家大招。没有时间限制，最后活下来的就是“和平”。
     </div>
   </div>
 </div>
@@ -193,16 +207,16 @@
   </div>
 </section>
 
-<script src="js/config.js?v=20261108-mp24"></script>
-<script src="js/util.js?v=20261108-mp24"></script>
-<script src="js/audio.js?v=20261108-mp24"></script>
-<script src="js/map.js?v=20261108-mp24"></script>
-<script src="js/sim.js?v=20261109-rockets4"></script>
-<script src="js/ai.js?v=20261108-mp24"></script>
-<script src="js/fx.js?v=20261108-visible-effects"></script>
-<script src="js/render.js?v=20261108-plane-trails"></script>
-<script src="js/ui.js?v=20261109-linear3"></script>
-<script src="js/net.js?v=20261109-rockets3"></script>
-<script src="js/main.js?v=20261109-linear4"></script>
+<script src="js/config.js?v=20261111-bal"></script>
+<script src="js/util.js?v=20261111-feel"></script>
+<script src="js/audio.js?v=20261111-feel"></script>
+<script src="js/map.js?v=20261111-feel"></script>
+<script src="js/sim.js?v=20261111-feel"></script>
+<script src="js/ai.js?v=20261111-feel"></script>
+<script src="js/fx.js?v=20261111-feel"></script>
+<script src="js/render.js?v=20261111-feel"></script>
+<script src="js/ui.js?v=20261111-feel"></script>
+<script src="js/net.js?v=20261111-feel"></script>
+<script src="js/main.js?v=20261111-feel"></script>
 </body>
 </html>

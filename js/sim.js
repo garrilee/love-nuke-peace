@@ -39,7 +39,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
       bank: 0, energy: 40,
       parcels: { 1: CFG.START_PARCELS, 2: 0, 3: 0, 4: 0, 5: 0 },
       ufoReady: Math.max(2, Math.min(CFG.MAX_UFO, CFG.START_PARCELS)), ufoReturn: [], // 开局飞机数和开局核包裹数一致，5 个都能一起投出去
-      conv: 3, convCd: 0,
+      conv: 3, convCd: 0, drones: DRONE.keepMin, droneCd: 0, droneBuildT: 0, ciwsT: 0, autoCiws: true, autoScramble: true, scrambleT: 0,
       heat: CFG.HEAT_START, lastAttack: -999, intelUntil: -1, intelCd: -1, hostileAt: {},
       subs: [],
       anger: nations.map(() => rnd(5, 20)),
@@ -48,7 +48,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
       aiNext: rnd(1, 3),
       autoNet: true, autoRebuild: true,
       ultCd: ULT_FIRST, overtimeT: 0, harpoonT: 0, hackT: 0,
-      stats: { ult: 0, sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
+      stats: { dronesSent: 0, ciwsKills: 0, dogKills: 0, ult: 0, sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
     });
     n.anger[i] = -1e9;
     n.mods = n.race.mods;
@@ -101,7 +101,7 @@ function production(n) {
   let p = 0;
   for (const c of n.cities) p += c.pop * (c.ruined ? CFG.RUIN_PROD : 1);
   return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n)
-    * (n.overtimeT > 0 ? 1.6 : 1)              // 卷王大招：加班
+    * (n.overtimeT > 0 ? 1.7 : 1)              // 卷王大招：加班
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }
 const sendCount = (D, scale) => (D <= 0 ? 0 : scale === 0 ? 1 : scale === 1 ? Math.ceil(D / 2) : D);
@@ -112,6 +112,8 @@ function simStep(dt) {
   G.t += dt;
   for (const n of G.nations) if (n.alive) stepNation(n, dt);
   stepProjectiles(dt);
+  stepAir(dt);
+  for (const n of G.nations) if (n.alive) { stepCiws(n, dt); scramble(n, dt); }
   stepTiles(dt);
   stepEvents();
   for (const n of G.nations) if (n.alive && !n.isPlayer) aiStep(n, dt);
@@ -135,14 +137,14 @@ function stepNation(n, dt) {
       if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·东风】，全世界的投送员都瑟瑟发抖`);
     }
   } else {
-    n.energy += prod * n.alloc.tech * 0.5 * dt;
+    n.energy += prod * n.alloc.tech * dt; // 科技全部研发完：科技那部分国力全额转成能量
   }
   // 军工热度：向“当前核武分配对应的目标热度”缓慢靠拢；升温慢、降温快
   const heatTarget = clamp(n.alloc.nuke / CFG.HEAT_FULL_AT, 0, 1);
   const heatRate = (heatTarget > n.heat ? 1 / CFG.HEAT_UP : 1 / CFG.HEAT_DOWN) * dt;
   n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
   n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * (G.midnight ? 3 : 1) * dt);
-  n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE) * dt);
+  n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
   autoBuild(n);
 
   // 人口
@@ -195,6 +197,7 @@ function stepNation(n, dt) {
   n.netT = Math.max(0, n.netT - dt); n.netCd = Math.max(0, n.netCd - dt);
   n.convCd = Math.max(0, n.convCd - dt);
   n.convBuildT = Math.max(0, (n.convBuildT || 0) - dt);
+  n.droneCd = Math.max(0, n.droneCd - dt); n.droneBuildT = Math.max(0, n.droneBuildT - dt);
   n.ultCd = Math.max(0, n.ultCd - dt);
   // 进入火箭时代：投送站装好 3 枚火箭，或者研发出投送站 45 秒后
   if (!n.rocketEra && has(n, 'pad')) {
@@ -214,12 +217,12 @@ function pickSeaTile(from) {
 function autoBuild(n) {
   // 常规导弹：先保底几枚（核武未解锁时也能用）
   const buildConv = () => { if (n.convBuildT > 0 || n.bank < CONV.cost) return false; n.bank -= CONV.cost; n.conv++; n.convBuildT = CONV.buildTime; return true; };
-  if (n.conv < CONV.keepMin) buildConv();
+  const buildDrone = () => { if (n.droneBuildT > 0 || n.bank < DRONE.cost || n.drones >= DRONE.stockCap) return false; n.bank -= DRONE.cost; n.drones++; n.droneBuildT = DRONE.buildTime; return true; };
+  // 导弹、无人机都是独立生产线：没到上限就按节奏一直造（导弹每 4 秒一枚，上限 10；无人机每 3 秒一架，上限 20）
+  if (n.conv < CONV.stockCap) buildConv();
+  buildDrone();
   const lv = bestLevel(n);
-  if (!lv) {
-    if (n.conv < CONV.stockCap) buildConv();
-    return;
-  }
+  if (!lv) return;
   for (let guard = 0; guard < 6; guard++) {
     const st = stock(n);
     const slots = slotCapacity(n, { pad: true, sea: true, ufo: true });
@@ -238,11 +241,11 @@ function autoBuild(n) {
     else if (has(n, 'sea') && seaBase && n.subs.length < CFG.MAX_SEA) { item = 'sea'; cost = COSTS.sea * (n.mods.sea || 1); }
     else if (ufoBase && ufoTotal < CFG.MAX_UFO && !has(n, 'pad')) { item = 'ufo'; cost = COSTS.ufo; } // 有投送站后不再造飞机
     else if (!n.isPlayer && dead) { item = 'fac'; cost = COSTS.facility; }
-    else if (n.conv < CONV.stockCap && n.convBuildT <= 0) { item = 'conv'; cost = CONV.cost; }
     else if (st < 30) { item = 'parcel'; cost = pc; }
     if (!item || n.bank < cost) return;
     n.bank -= cost;
     if (item === 'conv') { n.conv++; n.convBuildT = CONV.buildTime; }
+    else if (item === 'drone') { n.drones++; n.droneBuildT = DRONE.buildTime; }
     else if (item === 'parcel') n.parcels[buyLv]++;
     else if (item === 'rocket') pad.missiles++;
     else if (item === 'sea') n.subs.push({ state: 'dock', timer: 3, rockets: 0, tile: seaBase.tile });
@@ -289,7 +292,14 @@ function jitter(tile) {
   return { x: tile.x + rnd(-0.35, 0.35) * HEX_W, y: tile.y + rnd(-0.3, 0.3) * HEX_W };
 }
 function slotCapacity(n, legs) { return collectSlots(n, legs).reduce((s, x) => s + x.cap, 0); }
-function deliverable(n, legs) { return bestLevel(n) ? Math.min(stock(n), slotCapacity(n, legs)) : 0; }
+// 核包裹有库存就能发射：装好火箭的投送站、潜航器优先用（分弹头、更快），不够的部分直接从投送站/机场补发
+function deliverable(n, legs) { return bestLevel(n) && launchSites(n).length ? stock(n) : 0; }
+function launchSites(n) {
+  if (has(n, 'pad')) { const pads = facOf(n, 'pad').filter((f) => f.alive); if (pads.length) return pads.map((f) => ({ kind: 'rocket', tile: f.tile, flight: () => rnd(7, 10) })); }
+  const air = facOf(n, 'ufo').filter((f) => f.alive);
+  if (air.length) return air.map((f) => ({ kind: 'ufo', tile: f.tile, flight: () => rnd(10, 14) }));
+  return n.cities.filter((c) => !c.ruined && c.pop > 0).map((c) => ({ kind: 'rocket', tile: c.tile, flight: () => rnd(7, 10) }));
+}
 
 function pickTargetTile(tgt) {
   const cities = tgt.cities.filter((c) => c.pop > 0.2);
@@ -314,6 +324,15 @@ function launch(att, tgt, scale, legs, count) {
   let N = count ? Math.min(count, D) : sendCount(D, scale);
   // 火箭（投送站 + 潜航器）优先，飞机补充；同一档里轮流从不同发射点出发——天女散花
   const slots = spreadOrder(collectSlots(att, legs));
+  // 现成的运载不够：从投送站（或机场、城市）补发，不消耗运载工具
+  const realCap = slots.reduce((k, s) => k + s.cap, 0);
+  if (realCap < N) {
+    const sites = shuffle(launchSites(att));
+    for (let i = 0; i < N - realCap && sites.length; i++) {
+      const site = sites[i % sites.length];
+      slots.push({ kind: site.kind, src: site, cap: 1, tile: site.tile, flight: site.flight(), free: true });
+    }
+  }
   // 先给每枚火箭装 1 个包裹，让尽量多的发射点同时升空；发射点不够时才往同一枚火箭里加装（分装包裹）
   const carried = new Map(), leaders = new Map();
   let sent = 0, order = 0;
@@ -355,6 +374,7 @@ function launch(att, tgt, scale, legs, count) {
     }
   }
   for (const s of carried.keys()) {
+    if (s.free) continue; // 补发的不消耗运载工具
     if (s.kind === 'ufo') { att.ufoReady--; att.ufoReturn.push(G.t + s.flight * 2); }
     else if (s.sub) s.src.rockets--;
     else s.src.missiles--;
@@ -371,10 +391,10 @@ function launch(att, tgt, scale, legs, count) {
 }
 
 // ---------- 常规导弹 ----------
-const convSalvo = (n, scale) => Math.min(n.conv, CONV.salvo[scale]);
+const convSalvo = (n, scale) => Math.min(n.conv, CONV.salvo[scale], CONV.perLaunch);
 function launchConv(att, tgt, scale, count) {
   if (!att.alive || !tgt.alive || att === tgt || att.convCd > 0) return 0;
-  const N = count ? Math.min(count, att.conv) : convSalvo(att, scale);
+  const N = count ? Math.min(count, att.conv, CONV.perLaunch) : convSalvo(att, scale);
   if (N <= 0) return 0;
   // 从投送站或城市发射
   // 投送站、城市、出海的潜航器都能发射常规导弹，轮流使用不同发射点
@@ -421,6 +441,177 @@ function convExplode(tile, att) {
   for (const n of G.nations) if (n.alive && totalPop(n) < CFG.DEATH_POP) eliminate(n);
 }
 
+// ---------- 无人机 ----------
+// 70% 瞄准设施（投送站、机场、海底仓），其余打城市
+function pickDroneTile(tgt) {
+  const facs = tgt.facilities.filter((f) => f.alive);
+  if (facs.length && chance(DRONE.facBias)) return pick(facs).tile;
+  return pickTargetTile(tgt);
+}
+function launchDrones(att, tgt, count) {
+  if (!att.alive || !tgt || !tgt.alive || att === tgt || att.droneCd > 0) return 0;
+  const N = Math.min(count | 0, att.drones);
+  if (N <= 0) return 0;
+  // 从机场、投送站和城市成群起飞
+  const origins = shuffle([
+    ...att.facilities.filter((f) => f.alive && f.type !== 'sea').map((f) => f.tile),
+    ...att.cities.filter((c) => !c.ruined && c.pop > 0).map((c) => c.tile),
+  ]);
+  if (!origins.length) return 0;
+  for (let i = 0; i < N; i++) {
+    const from = jitter(origins[i % origins.length]), to = pickDroneTile(tgt);
+    G.projectiles.push({
+      id: G.pid++, kind: 'drone', lv: 0, att: att.id, tgt: tgt.id,
+      fx: from.x, fy: from.y, tile: to, tx: to.x + rnd(-4, 4), ty: to.y + rnd(-3, 3),
+      wob: rnd(0, 6.28), delay: i * 0.12 + rnd(0, 0.4), flight: rnd(...DRONE.flight), t: 0, launched: false, done: false,
+    });
+  }
+  att.drones -= N; att.droneCd = DRONE.cd; att.lastAttack = G.t;
+  att.stats.dronesSent += N;
+  tgt.anger[att.id] += 2;
+  markHostile(att, tgt);
+  Bus.emit('launchOrder', { att, tgt, sent: N, drone: true });
+  return N;
+}
+function droneExplode(tile, att) {
+  const losses = new Map();
+  if (tile.fac && tile.fac.alive) {
+    const f = tile.fac, owner = G.nations[f.nation];
+    if (chance(DRONE.facChance)) knockFacility(f, owner);
+  }
+  if (tile.city && tile.city.pop > 0) {
+    const c = tile.city, owner = G.nations[c.nation], loss = c.pop * DRONE.cityDmg;
+    c.pop -= loss;
+    losses.set(owner.id, loss);
+    Bus.emit('cityHit', { city: c, loss });
+  }
+  applyLosses(losses, att, 0.3);
+  Bus.emit('droneExplode', { tile, att });
+  for (const n of G.nations) if (n.alive && totalPop(n) < CFG.DEATH_POP) eliminate(n);
+}
+
+// ---------- 近防炮：自动打飞进本国领土的无人机 ----------
+// 和护盾共用能量，但能量低于开一次护盾所需时自动停火，护盾永远开得出来
+function stepCiws(n, dt) {
+  n.ciwsT = Math.max(0, n.ciwsT - dt);
+  if (n.ciwsT > 0 || (n.isPlayer && !n.autoCiws) || n.hackT > 0) return;
+  if (n.energy - CIWS.cost < COSTS.shield) return;
+  let best = null, bestLeft = Infinity;
+  for (const p of G.projectiles) {
+    if (p.kind !== 'drone' || p.tgt !== n.id || !p.launched || p.done || !nearHome(p, n)) continue;
+    const left = p.delay + p.flight - p.t;
+    if (left < bestLeft) { bestLeft = left; best = p; }
+  }
+  if (!best) return;
+  n.energy -= CIWS.cost; n.ciwsT = CIWS.interval;
+  const hit = chance(CIWS.hit * (n.mods.ciws || 1));
+  Bus.emit('ciws', { n, p: best, hit });
+  if (hit) { best.done = true; n.stats.ciwsKills++; }
+}
+// ---------- 空战：小摩托互打 + 升空拦截 ----------
+// 空中位置：来袭的小摩托沿直线飞（和画面一致，忽略轻微摆动）；升空拦截的小摩托记录自己的坐标
+function airPos(p) {
+  if (p.kind === 'guard') return { x: p.fx, y: p.fy };
+  const u = clamp((p.t - p.delay) / p.flight, 0, 1);
+  return { x: lerp(p.fx, p.tx, u), y: lerp(p.fy, p.ty, u) };
+}
+function stepAir(dt) {
+  const fighters = [];
+  for (const p of G.projectiles) {
+    if (p.done) continue;
+    if (p.kind === 'guard') { moveGuard(p, dt); if (!p.done && p.fade === undefined) fighters.push(p); }
+    else if (p.kind === 'drone' && p.launched) fighters.push(p);
+  }
+  if (fighters.length < 2) return;
+  // 按交战距离分格，只和相邻格子里的比较
+  const R = DOG.range, cells = new Map();
+  for (const p of fighters) {
+    p.fightT = Math.max(0, (p.fightT || 0) - dt);
+    const q = airPos(p); p._x = q.x; p._y = q.y;
+    const key = Math.floor(q.x / R) * 4096 + Math.floor(q.y / R);
+    if (!cells.has(key)) cells.set(key, []);
+    cells.get(key).push(p);
+  }
+  for (const p of fighters) {
+    if (p.done || p.fightT > 0) continue;
+    const cx = Math.floor(p._x / R), cy = Math.floor(p._y / R);
+    let foe = null, bd = R;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      for (const o of cells.get((cx + dx) * 4096 + cy + dy) || []) {
+        if (o === p || o.done || o.att === p.att || o.fightT > 0) continue;
+        // 升空拦截的小摩托只和自己盯住的那一架交战，不被路过的小摩托打断
+        if (p.kind === 'guard' && o.id !== p.prey) continue;
+        if (o.kind === 'guard' && p.id !== o.prey) continue;
+        const d = Math.hypot(o._x - p._x, o._y - p._y);
+        if (d < bd) { bd = d; foe = o; }
+      }
+    }
+    if (!foe) continue;
+    const ka = chance(DOG.hit), kb = chance(DOG.hit);
+    p.fightT = foe.fightT = DOG.interval;
+    if (ka) { foe.done = true; G.nations[p.att].stats.dogKills++; }
+    if (kb) { p.done = true; G.nations[foe.att].stats.dogKills++; }
+    Bus.emit('dogfight', { a: p, b: foe, ka, kb });
+  }
+}
+// 升空拦截：敌方小摩托飞进本国领土，库存里的小摩托自动起飞，同时最多 4 架，每架盯一个目标
+function scramble(n, dt) {
+  n.scrambleT = Math.max(0, n.scrambleT - dt);
+  if (n.scrambleT > 0 || (n.isPlayer && !n.autoScramble) || n.drones <= 0 || n.hackT > 0) return;
+  n.scrambleT = 0.3; // 没有目标时每 0.3 秒看一眼
+  let active = 0;
+  const hunted = new Set();
+  for (const p of G.projectiles) if (p.kind === 'guard' && !p.done && p.fade === undefined) { if (p.att === n.id) active++; hunted.add(p.prey); }
+  for (const p of G.projectiles) {
+    if (active >= GUARD.max || n.drones <= 0) break;
+    if (p.kind !== 'drone' || p.tgt !== n.id || !p.launched || p.done || hunted.has(p.id) || !nearHome(p, n)) continue;
+    if (p.delay + p.flight - p.t < 4) continue; // 来不及拦了就不起飞，免得白白消耗
+    if (launchGuard(n, p)) { n.scrambleT = GUARD.every; break; } // 起飞有节奏，每次只起飞 1 架
+  }
+}
+function launchGuard(n, prey) {
+  // 从机场起飞（有一段明显的出击、迎击、返航航线）；机场被炸了才用离敌机最近的城市或设施
+  const q = airPos(prey), air = facOf(n, 'ufo').find((f) => f.alive);
+  let home = air ? air.tile : null, bd = Infinity;
+  const consider = (tile) => { const d = Math.hypot(tile.x - q.x, tile.y - q.y); if (d < bd) { bd = d; home = tile; } };
+  if (!home) {
+    for (const f of n.facilities) if (f.alive) consider(f.tile);
+    for (const c of n.cities) if (!c.ruined && c.pop > 0) consider(c.tile);
+  }
+  if (!home) return false;
+  n.drones--;
+  const g = { id: G.pid++, kind: 'guard', lv: 0, att: n.id, tgt: -1, prey: prey.id, tile: home,
+    fx: home.x, fy: home.y, bx: home.x, by: home.y, tx: home.x, ty: home.y,
+    delay: 0, flight: 1, t: 0, launched: true, done: false, wob: rnd(0, 6.28) };
+  G.projectiles.push(g);
+  Bus.emit('scramble', g);
+  return true;
+}
+function moveGuard(g, dt) {
+  const n = G.nations[g.att];
+  if (!n.alive) { g.done = true; return; }
+  g.bx = g.fx; g.by = g.fy; // 上一步的位置（画面插值用）
+  if (g.fade !== undefined) { // 自毁中：顺着原方向滑行一小段，淡出后消失
+    g.fade -= dt;
+    g.fx += Math.cos(g.dir || 0) * GUARD.speed * 0.5 * dt; g.fy += Math.sin(g.dir || 0) * GUARD.speed * 0.5 * dt;
+    if (g.fade <= 0) { g.done = true; Bus.emit('guardGone', g); }
+    return;
+  }
+  let prey = G.projectiles.find((p) => p.id === g.prey && !p.done);
+  if (!prey) { // 目标被别的打下了 / 已经落地：找下一架还没人盯的
+    const busy = new Set(G.projectiles.filter((o) => o.kind === 'guard' && !o.done && o.fade === undefined && o !== g).map((o) => o.prey));
+    prey = G.projectiles.find((p) => p.kind === 'drone' && p.tgt === n.id && p.launched && !p.done && !busy.has(p.id) && nearHome(p, n) && p.delay + p.flight - p.t > 1.5);
+    if (prey) g.prey = prey.id;
+  }
+  // 没有目标，或者追得离起飞点太远：在空中自毁（起飞就已经消耗，不返航）
+  if (!prey || hexDist(pixelToHex(g.fx, g.fy), g.tile) > GUARD.leash) { g.fade = 0.6; return; }
+  const to = airPos(prey), dx = to.x - g.fx, dy = to.y - g.fy, d = Math.hypot(dx, dy), step = GUARD.speed * dt;
+  if (d > 0) { const k = Math.min(1, step / d); g.fx += dx * k; g.fy += dy * k; g.dir = Math.atan2(dy, dx); }
+}
+
+// 来袭里除去无人机的威胁（警报、红色边框、单机锁 1× 速度用）
+const isThreat = (p) => p.kind !== 'drone';
+
 function takeParcel(n) {
   for (let lv = 5; lv >= 1; lv--) if (n.parcels[lv] > 0) { n.parcels[lv]--; return lv; }
   return 0;
@@ -429,11 +620,15 @@ function takeParcel(n) {
 function stepProjectiles(dt) {
   for (const n of G.nations) if (n.alive) assignLocks(n);
   for (const p of G.projectiles) {
-    if (p.done) continue;
+    if (p.done || p.kind === 'guard') continue; // 升空拦截的小摩托单独移动（stepAir）
     p.t += dt;
     if (!p.launched && p.t >= p.delay) { p.launched = true; Bus.emit('launch', p); }
     if (!p.launched) continue;
     const u = (p.t - p.delay) / p.flight;
+    if (p.kind === 'drone' && u > 0.5) { // 无人机飞进开着护盾的国土，直接被护盾摧毁
+      const tg = G.nations[p.tgt];
+      if (tg.alive && tg.shieldT > 0 && nearHome(p, tg)) { p.done = true; tg.stats.blocked = (tg.stats.blocked || 0) + 1; Bus.emit('shieldBlock', p); continue; }
+    }
     // 锁定后约 1 秒迎击（快落地时立刻迎击），让玩家看得到锁定波纹
     if (p.locked && !p.engaged && (G.t - p.lockSimT >= CFG.LOCK_TO_HIT || u >= 0.95)) { p.engaged = true; engage(p); if (p.done) continue; }
     if (u >= 1) { p.done = true; arrive(p); }
@@ -452,15 +647,19 @@ function nearHome(p, n) {
 }
 function assignLocks(n) {
   const active = n.netT > 0 && n.netCharges > 0;
-  let locked = 0;
+  let locked = 0, bigInbound = false;
   const free = [];
   for (const p of G.projectiles) {
     if (p.tgt !== n.id || !p.launched || p.done || p.engaged || p.unstop) continue;
     if (!active) { p.locked = false; continue; }
+    if (p.kind !== 'drone') bigInbound = true;
     if (p.locked) locked++; else if (nearHome(p, n)) free.push(p);
   }
   if (!active || !free.length) return;
-  free.sort((a, b) => (a.delay + a.flight - a.t) - (b.delay + b.flight - b.t));
+  // 优先级：核弹 > 导弹 > 无人机；有更大的威胁正在飞来时，拦截弹不去打无人机
+  const rank = (p) => (p.kind === 'drone' ? 2 : p.kind === 'conv' ? 1 : 0);
+  free.sort((a, b) => rank(a) - rank(b) || (a.delay + a.flight - a.t) - (b.delay + b.flight - b.t));
+  if (bigInbound) for (let i = free.length - 1; i >= 0; i--) if (free[i].kind === 'drone') free.splice(i, 1);
   for (const p of free) {
     if (locked >= n.netCharges) break;
     p.locked = true; p.lockSimT = G.t; locked++;
@@ -471,7 +670,7 @@ function engage(p) {
   const tgt = G.nations[p.tgt];
   if (!tgt.alive || tgt.netCharges <= 0) { p.locked = false; return; }
   tgt.netCharges--;
-  if (chance(netChance(tgt))) {
+  if (chance(netChance(tgt) * (p.kind === 'drone' ? DRONE.netMul : 1) * (G.nations[p.att].mods.evade || 1))) {
     tgt.stats.intercepted++;
     p.done = true;
     Bus.emit('intercept', p);
@@ -483,7 +682,7 @@ function engage(p) {
 // 自动拦截：只要有来袭、拦截弹没在工作，就自动开启
 function autoNet(n) {
   if (n.netT > 0 && n.netCharges > 0) return;
-  if (G.projectiles.some((p) => p.tgt === n.id && p.launched && !p.done && !p.engaged && !p.unstop)) useNet(n);
+  if (G.projectiles.some((p) => p.tgt === n.id && p.launched && !p.done && !p.engaged && !p.unstop && isThreat(p))) useNet(n);
 }
 
 function arrive(p) {
@@ -495,6 +694,7 @@ function arrive(p) {
     return;
   }
   if (p.kind === 'conv') { convExplode(p.tile, att); return; }
+  if (p.kind === 'drone') { droneExplode(p.tile, att); return; }
   if (!p.unstop && chance(PARCELS[p.lv].fizzle + (att.mods.fizzle || 0))) {
     Bus.emit('fizzle', p);
     if (chance(0.3)) news(`一个包裹被 ${tgt.name} 拒收了，投送员表示很委屈`);
@@ -514,8 +714,9 @@ function explode(tile, lv, att) {
     if (d > R) continue;
     if (t2.city && t2.city.pop > 0) {
       const c = t2.city, owner = G.nations[c.nation];
-      let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * (G.midnight ? 1.5 : 1));
+      let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * nukeMul());
       if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
+      frac *= owner.mods.nukeArmor || 1; // 吃土：皮糙肉厚
       const loss = c.pop * frac;
       c.pop -= loss;
       if (owner.shieldT <= 0 && ((d === 0 && lv >= 2) || c.pop < c.basePop * 0.35)) { c.ruined = true; c.rebuild = 0; }
@@ -534,6 +735,11 @@ function explode(tile, lv, att) {
 
 // 记录“谁最近一次打了谁”：b.hostileAt[a] = a 最近一次攻击 b 的时间。
 // b 对 a 的怒气，只在 a 停手一段时间后才回落（b 自己还在打 a 不影响它冷静下来）
+// 核弹威力倍率：午夜 ×1.5，之后每 3 分钟 +15%，最多 ×2.5
+function nukeMul() {
+  if (!G.midnight) return 1;
+  return Math.min(CFG.ESC_MAX, 1.5 + CFG.ESC_STEP * Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY));
+}
 function markHostile(a, b) { b.hostileAt[a.id] = G.t; }
 // x 多少秒前攻击过 n（没攻击过返回 Infinity）
 const attackedAgo = (x, n) => (n && n.hostileAt && n.hostileAt[x.id] !== undefined ? G.t - n.hostileAt[x.id] : Infinity);
@@ -561,6 +767,7 @@ function applyLosses(losses, att, angerMul) {
 
 function eliminate(n) {
   n.alive = false;
+  n.diedAt = G.t;
   for (const c of n.cities) { c.pop = 0; c.ruined = true; }
   for (const f of n.facilities) f.alive = false;
   n.subs = []; n.ufoReady = 0;
@@ -616,7 +823,7 @@ function useUlt(n, tgt) {
     tgt.bank -= loot; n.bank = Math.min(CFG.BANK_CAP, n.bank + loot);
     tgt.anger[n.id] += 15; markHostile(n, tgt); n.lastAttack = G.t;
   } else if (id === 'roach') {
-    for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.6); }
+    for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.35); }
     for (const f of n.facilities) if (!f.alive) { f.alive = true; f.rebuild = 0; Bus.emit('rebuilt', f); }
   }
   n.ultCd = U.cd; n.stats.ult++;
@@ -668,8 +875,9 @@ function autoDefend(n) {
   const inc = incomingFor(n);
   const soon = inc.filter((x) => x.left < 4);
   if (soon.length) {
-    const nukes = soon.filter((x) => x.p.kind !== 'conv').length;
-    const heavy = inc.length > netMax(n) || nukes >= 2;
+    const nukes = soon.filter((x) => x.p.kind !== 'conv' && x.p.kind !== 'drone').length;
+    const drones = soon.filter((x) => x.p.kind === 'drone').length;
+    const heavy = inc.filter((x) => isThreat(x.p)).length > netMax(n) || nukes >= 2 || drones >= 10;
     if (heavy && n.shieldT <= 0) useShield(n);
   }
   if (!n.isPlayer || n.autoNet) autoNet(n);
@@ -693,6 +901,15 @@ function stepEvents() {
     news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.5，人口不再加速恢复，所有仓库清仓甩卖！');
     Bus.emit('banner', '🕛 午夜狂欢');
     Bus.emit('midnight');
+    G.escLevel = 0;
+  }
+  if (G.midnight) { // 末日升级：午夜后每 3 分钟核弹威力再上升
+    const lvl = Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY);
+    if (lvl > (G.escLevel || 0) && nukeMul() > 1.5) {
+      G.escLevel = lvl;
+      news(`☢ 末日升级：核弹威力提升到 ×${nukeMul().toFixed(2)}，再拖下去谁都跑不掉`);
+      Bus.emit('banner', `☢ 核弹威力 ×${nukeMul().toFixed(2)}`);
+    }
   }
   if (G.t >= (G.nextIntel || 0)) { G.nextIntel = G.t + 5; checkIntel(); }
   if (G.t >= G.nextEvent) {
@@ -756,20 +973,16 @@ function randomEvent() {
 
 function checkEnd() {
   const alive = G.nations.filter((n) => n.alive);
-  if (G.mp) { // 联机：有人阵亡不结束，最后剩一个国家、真人全部阵亡或时间到才结束；胜负由各自客户端判定
+  // 没有时间限制：打到只剩一个国家才结束
+  if (G.mp) { // 联机：有人阵亡不结束（观战），最后剩一个国家或真人全部阵亡才结束；胜负由各自客户端判定
     if (!alive.length) return endGame('earth');
     if (alive.length === 1) return endGame('last');
     if (G.t > 5 && !alive.some((n) => n.isPlayer)) return endGame('humansDead');
-    if (G.t >= CFG.GAME_END) return endGame('time');
     return;
   }
   if (!alive.length) return endGame('earth');
-  if (!G.player.alive) return endGame(alive.length === 1 ? 'lose' : 'lose');
+  if (!G.player.alive) return endGame('lose');
   if (alive.length === 1) return endGame('win');
-  if (G.t >= CFG.GAME_END) {
-    const best = alive.slice().sort((a, b) => finalScore(b) - finalScore(a))[0];
-    return endGame(best.isPlayer ? 'survive' : 'loseRank');
-  }
 }
 // 终局综合得分：活着的人口 + 造成的伤亡（只苟着不打，得分不会高）
 function finalScore(n) { return totalPop(n) + n.stats.caused * CFG.SCORE_DAMAGE; }

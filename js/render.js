@@ -351,7 +351,7 @@ const Render = {
     // ---- 屏幕层 ----
     const w = this.w, h = this.h;
     ctx.drawImage(this.vignette('black'), 0, 0, w, h);
-    if (G.player.alive && incomingFor(G.player).length) {
+    if (G.player.alive && incomingFor(G.player).some((x) => isThreat(x.p))) {
       ctx.globalAlpha = 0.18 + 0.12 * Math.sin(T * 7);
       ctx.drawImage(this.vignette('red'), 0, 0, w, h);
       ctx.globalAlpha = 1;
@@ -548,7 +548,8 @@ const Render = {
   },
   projPos(p) {
     const u = this.renderU(p);
-    return p.kind === 'ufo' ? this.planePos(p, u) : this.arcPoint(p, u);
+    if (p.kind === 'guard') return { x: p.fx, y: p.fy };
+    return p.kind === 'ufo' ? this.planePos(p, u) : p.kind === 'drone' ? this.dronePos(p, u) : this.arcPoint(p, u);
   },
   // 被拦截弹锁定：目标周围一圈圈向外扩散的波纹 + 柔和呼吸的光点
   drawLock(ctx, p, z, T) {
@@ -612,11 +613,73 @@ const Render = {
           ctx.strokeStyle = `rgba(255,80,60,${0.5 + 0.4 * Math.sin(T * 14)})`; ctx.lineWidth = 1 / z;
           ctx.beginPath(); ctx.arc(p.tx, p.ty, 5 + left * 3, 0, Math.PI * 2); ctx.stroke();
         }
+      } else if (p.kind === 'drone') {
+        this.drawDrone(ctx, p, u, col, z);
+      } else if (p.kind === 'guard') {
+        this.drawGuard(ctx, p, col, z);
       } else {
         this.drawPlane(ctx, p, u, col, z);
       }
     }
     ctx.globalCompositeOperation = 'source-over';
+  },
+
+  // 无人机：贴地直飞，左右轻轻摆动
+  dronePos(p, u) {
+    const dx = p.tx - p.fx, dy = p.ty - p.fy, d = Math.hypot(dx, dy) || 1;
+    const off = Math.sin(u * Math.PI * 7 + (p.wob || 0)) * 2.5 * Math.sin(u * Math.PI);
+    return { x: p.fx + dx * u - (dy / d) * off, y: p.fy + dy * u + (dx / d) * off };
+  },
+  // 纸飞机（俯视）：两侧白色机翼、中间国家颜色的机身、几道折痕；尾部是平直的后缘，不是箭头的缺口。
+  // 飞的时候机翼轻轻扇动，像纸在飘
+  drawDrone(ctx, p, u, col, z) {
+    const pos = this.dronePos(p, u);
+    if (!this.visibleRect(pos.x - 14, pos.y - 14, 28, 28)) return;
+    const back = this.dronePos(p, Math.max(0, u - 0.035));
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = rgba(col, 0.3); ctx.lineWidth = 0.7 / Math.max(0.6, z);
+    ctx.beginPath(); ctx.moveTo(back.x, back.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+    this.drawPaperPlane(ctx, pos.x, pos.y, Math.atan2(pos.y - back.y, pos.x - back.x), col, z, p.wob);
+  },
+  // 升空拦截的小摩托：同样的纸飞机，外面一圈青色光环，表示在执行拦截
+  drawGuard(ctx, p, col, z) {
+    const k = clamp((G.interp || 0) / CFG.SIM_DT, 0, 1);
+    const x = lerp(p.bx, p.fx, k), y = lerp(p.by, p.fy, k);
+    if (!this.visibleRect(x - 14, y - 14, 28, 28)) return;
+    const ang = Math.hypot(p.fx - p.bx, p.fy - p.by) > 0.01 ? Math.atan2(p.fy - p.by, p.fx - p.bx) : (p._ang || 0);
+    p._ang = ang;
+    // 自毁：慢慢缩小变淡，不会突然消失
+    const land = p.fade !== undefined ? clamp(p.fade / 0.6, 0.1, 1) : 1;
+    ctx.globalCompositeOperation = 'lighter';
+    if (p.fade === undefined) { // 追击中：青色光环
+      ctx.strokeStyle = `rgba(120,235,255,${0.55 + 0.25 * Math.sin(this.time * 8 + p.id)})`; ctx.lineWidth = 0.9 / Math.max(0.6, z);
+      ctx.beginPath(); ctx.arc(x, y, 7 / Math.max(0.75, z) + 1.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.save(); ctx.globalAlpha = land;
+    this.drawPaperPlane(ctx, x, y, ang, col, z * (1 / (0.5 + 0.5 * land)), p.wob);
+    ctx.restore();
+  },
+  drawPaperPlane(ctx, x, y, ang, col, z, wob) {
+    const k = (1 / Math.max(0.75, z) + 0.3) * 1.05;
+    const flap = 1 + 0.12 * Math.sin(this.time * 5 + (wob || 0) * 3); // 机翼扇动
+    ctx.save();
+    ctx.translate(x, y); ctx.rotate(ang); ctx.scale(k, k);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineJoin = 'round';
+    const w = 5.6 * flap, b = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 0.45;
+    // 左翼（亮）、右翼（稍暗），中间机身用国家颜色
+    ctx.fillStyle = '#f2fbff';
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -w); ctx.lineTo(-5, -b); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#cfe3ee';
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, b); ctx.lineTo(-5, w); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -b); ctx.lineTo(-5, b); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // 中线折痕
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.4;
+    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, 0); ctx.stroke();
+    ctx.restore();
+    ctx.globalCompositeOperation = 'lighter';
   },
 
   // 火箭尾迹：包裹等级越高越华丽

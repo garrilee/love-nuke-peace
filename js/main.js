@@ -16,18 +16,25 @@ function setTarget(id) {
 }
 
 // ---------- 开火：按指定数量向当前目标发射 ----------
+const AMMO = {
+  nuke:  { name: '核包裹',   unit: '个', icon: '☢' },
+  conv:  { name: '常规导弹', unit: '枚', icon: '💥' },
+  drone: { name: '小摩托',   unit: '架', icon: '', base: 5 }, // 小摩托：单击就放飞 5 架，按住从 5 往上加，方便蜂群
+};
 function playerFire(ammo, count) {
   const p = G.player, tgt = G.nations[G.target];
   if (!tgt || !tgt.alive || !p.alive || count <= 0) return 0;
-  // 常规导弹还在装填：先记下，装填完自动发射（单击、蓄力、梭哈都适用）
-  if (ammo === 'conv' && p.convCd > 0) {
-    Fire.pendingConv = Math.max(Fire.pendingConv || 0, count);
-    UI.banner(`💥 装填中，${count} 枚导弹将在装填完成后发射`);
+  // 导弹装填中 / 小摩托起飞间隔中：先记下，好了自动发射
+  const cd = ammo === 'conv' ? p.convCd : ammo === 'drone' ? p.droneCd : 0;
+  if (cd > 0) {
+    Fire.pending[ammo] = Math.max(Fire.pending[ammo] || 0, count);
+    if (ammo === 'conv') UI.banner(`💥 装填中，${count} 枚导弹将在装填完成后发射`);
     return 0;
   }
   let sent = Act.do({ a: 'fire', ammo, count, tgt: tgt.id });
   if (sent === null) sent = Math.min(count, fireMax(ammo)); // 联机客户端：命令已发给房主，按预计数量提示
-  if (sent) UI.banner(ammo === 'conv' ? `💥 发射 ${sent} 枚常规导弹 → ${tgt.race.emoji}${tgt.name}` : `☢ 已投送 ${sent} 个核包裹 → ${tgt.race.emoji}${tgt.name}`);
+  const A = AMMO[ammo];
+  if (sent) UI.banner(`${A.icon ? A.icon + ' ' : ''}${ammo === 'nuke' ? '已投送' : ammo === 'drone' ? '放飞' : '发射'} ${sent} ${A.unit}${A.name} → ${tgt.race.emoji}${tgt.name}`);
   UI.refreshStrike();
   return sent;
 }
@@ -50,7 +57,11 @@ function execCmd(n, c) {
   if (!n || !n.alive || !c) return 0;
   const tgt = G.nations[c.tgt];
   switch (c.a) {
-    case 'fire': return tgt ? (c.ammo === 'conv' ? launchConv(n, tgt, 0, c.count | 0) : launch(n, tgt, 0, G.legs, c.count | 0)) : 0;
+    case 'fire':
+      if (!tgt) return 0;
+      if (c.ammo === 'conv') return launchConv(n, tgt, 0, c.count | 0);
+      if (c.ammo === 'drone') return launchDrones(n, tgt, c.count | 0);
+      return launch(n, tgt, 0, G.legs, c.count | 0);
     case 'shield': return useShield(n);
     case 'net': return useNet(n);
     case 'ult': return useUlt(n, tgt && tgt.alive ? tgt : null);
@@ -62,85 +73,99 @@ function execCmd(n, c) {
       if (s > 0 && t >= 0 && k >= 0 && d >= 0) n.alloc = { tech: t / s, nuke: k / s, def: d / s };
       return 1;
     }
-    case 'toggle': if (c.k === 'autoNet' || c.k === 'autoRebuild') n[c.k] = !!c.v; return 1;
+    case 'toggle': if (['autoNet', 'autoRebuild', 'autoCiws', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;
 }
-const fireMax = (ammo) => (ammo === 'conv' ? G.player.conv : deliverable(G.player, G.legs));
+// 一次最多能发多少：核包裹看运载，导弹一次最多 5 枚，小摩托不限
+const fireMax = (ammo) => {
+  const p = G.player;
+  if (ammo === 'conv') return Math.min(p.conv, CONV.perLaunch);
+  if (ammo === 'drone') return p.drones;
+  return deliverable(p, G.legs);
+};
 
-// ---------- 长按蓄力 / 梭哈 ----------
-// 单击发 1 个；按住超过 0.2 秒开始蓄力，之后匀速每 0.4 秒 +1，最多到可发射上限；松开发射
+// ---------- 长按蓄力 ----------
+// 单击发 1 个（小摩托 5 架）；按住 0.2 秒后开始蓄力：前 5 个匀速（每 0.3 秒 +1，方便精确控制），
+// 之后从当前速度平滑地继续加速，按住约 2.4 秒一定到上限；圆环过半变红。松开发射，Esc 取消
 const Fire = {
-  charging: null,   // { ammo, start, count }
-  allin: null,      // { ammo, start }
-  HOLD: 0.2,        // 按住多久才开始蓄力（短按 = 发 1 个）
-  STEP: 0.4,        // 之后每 0.4 秒 +1，匀速，方便控制数量
-  countAt(t) {      // t：按住的秒数
-    return t < this.HOLD ? 1 : 1 + Math.floor((t - this.HOLD) / this.STEP + 1e-6); // 1e-6：避免浮点误差少算一格
+  charging: null,   // { ammo, start, count, pid, tgt }
+  pending: {},      // 冷却中按下的数量，冷却结束自动发射
+  HOLD: 0.2, STEP: 0.3, LIN: 5, FULL: 2.4,
+  // v：连续的"已加的数量"（0 = 1 个），用来算数量和圆环。base：起始数量（小摩托为 5）
+  // 匀速段结束后，加速段从同样的速度接着往上加（速度连续，圆环不会顿一下再猛冲）
+  valueAt(t, max, base = 1) {
+    const v0 = Math.min(base, max) - 1;
+    if (t < this.HOLD || max <= 1) return v0;
+    const a = 1 / this.STEP, lin = Math.max(this.LIN, base) - 1;
+    const tl = this.HOLD + Math.max(0, lin - v0) / a;          // 匀速段结束的时刻
+    if (t <= tl || max - 1 <= lin) return Math.min(max - 1, v0 + (t - this.HOLD) * a);
+    const T = Math.max(0.2, this.FULL - tl), s = t - tl;
+    const b = Math.max(0, (max - 1 - lin - a * T) / (T * T));  // 让 FULL 秒时正好到上限
+    return Math.min(max - 1, lin + a * s + b * s * s);
   },
-  // 圆环：表示离"可发射上限"还有多远，匀速填满，填满时正好到上限
-  progressAt(t, max) {
-    if (max <= 1) return 1;
-    return clamp((t - this.HOLD) / this.STEP / (max - 1), 0, 1);
-  },
-  begin(ammo, pid = -1) {
-    if (this.charging || fireMax(ammo) <= 0 || !G.nations[G.target] || !G.nations[G.target].alive) {
-      if (!G.nations[G.target] || !G.nations[G.target].alive) UI.banner('🎯 先选择打击目标（Tab 或点击地图上的敌国）');
+  countAt(t, max, base) { return clamp(1 + Math.floor(this.valueAt(t, max, base) + 1e-6), 1, Math.max(1, max)); },
+  progressAt(t, max, base) { return max <= 1 ? 1 : clamp(this.valueAt(t, max, base) / (max - 1), 0, 1); },
+  base(ammo) { return AMMO[ammo].base || 1; },
+  btns(ammo) { return [$('fire-' + ammo), $('pfire-' + ammo)].filter(Boolean); },
+  begin(ammo, pid = -1, tgtId) {
+    const tid = tgtId !== undefined ? tgtId : G.target, t = G.nations[tid];
+    if (this.charging || fireMax(ammo) <= 0 || !t || !t.alive || t === G.player) {
+      if (!t || !t.alive) UI.banner('🎯 先选择打击目标（Tab 或点击地图上的敌国）');
       return;
     }
-    this.charging = { ammo, start: performance.now(), count: 1, pid };
-    $('fire-' + ammo).classList.add('charging');
+    // 按下时锁定上限：蓄力中生产线又造出新的，也不会让圆环往回跳
+    this.charging = { ammo, start: performance.now(), count: Math.min(this.base(ammo), fireMax(ammo)), pid, tgt: tid, max: fireMax(ammo) };
+    for (const b of this.btns(ammo)) b.classList.add('charging');
   },
   release(fire = true) {
     const c = this.charging;
     if (!c) return;
     // 松手时按实际按住的时长重新算数量（画面掉帧时也不会少算）
-    c.count = Math.max(1, Math.min(fireMax(c.ammo), this.countAt((performance.now() - c.start) / 1000)));
+    const max = Math.min(c.max, fireMax(c.ammo));
+    c.count = this.countAt((performance.now() - c.start) / 1000, max, this.base(c.ammo));
     this.charging = null;
-    $('fire-' + c.ammo).classList.remove('charging');
+    for (const b of this.btns(c.ammo)) b.classList.remove('charging', 'hot');
     this.syncIdle();
-    if (fire) playerFire(c.ammo, c.count);
-  },
-  beginAllIn(ammo) {
-    if (this.allin || fireMax(ammo) <= 0) return;
-    this.allin = { ammo, start: performance.now() };
-  },
-  endAllIn() {
-    if (!this.allin) return;
-    $('allin-' + this.allin.ammo).querySelector('.fill').style.height = '0';
-    this.allin = null;
+    if (!fire) return;
+    if (c.tgt !== G.target) setTarget(c.tgt); // 在地图浮窗里发射：同时设为打击目标
+    playerFire(c.ammo, c.count);
   },
   tick() {
-    const now = performance.now();
-    if (this.pendingConv && G.player.convCd <= 0) { const n = Math.min(this.pendingConv, G.player.conv); this.pendingConv = 0; playerFire('conv', n); }
-    if (this.charging) {
-      const c = this.charging, t = (now - c.start) / 1000;
-      const max = fireMax(c.ammo);
-      c.count = Math.max(1, Math.min(max, this.countAt(t)));
-      const full = c.count >= max;
-      this.ring(c.ammo, full ? 1 : this.progressAt(t, max), c.count);
+    const p = G.player;
+    for (const ammo of ['conv', 'drone']) {
+      const cd = ammo === 'conv' ? p.convCd : p.droneCd;
+      if (this.pending[ammo] && cd <= 0) { const n = Math.min(this.pending[ammo], fireMax(ammo)); this.pending[ammo] = 0; if (n > 0) playerFire(ammo, n); }
     }
-    if (this.allin) {
-      const a = this.allin, k = Math.min(1, (now - a.start) / 400);
-      $('allin-' + a.ammo).querySelector('.fill').style.height = k * 100 + '%';
-      if (k >= 1) { const ammo = a.ammo; this.endAllIn(); playerFire(ammo, fireMax(ammo)); }
+    if (this.charging) {
+      const c = this.charging, t = (performance.now() - c.start) / 1000, max = Math.min(c.max, fireMax(c.ammo));
+      c.count = this.countAt(t, max, this.base(c.ammo));
+      const frac = this.progressAt(t, max, this.base(c.ammo));
+      this.ring(c.ammo, frac, c.count);
+      for (const b of this.btns(c.ammo)) b.classList.toggle('hot', frac >= 0.5);
     }
   },
   ring(ammo, frac, num) {
-    const el = $('fire-' + ammo);
-    setStyle(el.querySelector('.prog'), 'strokeDashoffset', (170 * (1 - frac)).toFixed(1));
-    setText($('num-' + ammo), num);
+    for (const el of this.btns(ammo)) {
+      setStyle(el.querySelector('.prog'), 'strokeDashoffset', (170 * (1 - frac)).toFixed(1));
+      setText(el.querySelector('.num'), num);
+    }
   },
   syncIdle() {
-    for (const ammo of ['nuke', 'conv']) {
+    for (const ammo of ['nuke', 'conv', 'drone']) {
       if (this.charging && this.charging.ammo === ammo) continue;
-      this.ring(ammo, 0, fireMax(ammo) > 0 ? 1 : 0);
+      const m = fireMax(ammo);
+      this.ring(ammo, 0, m > 0 ? Math.min(this.base(ammo), m) : 0);
     }
   },
   // 松开一定发射：手机长按会触发系统菜单（contextmenu）、系统手势会取消触摸（pointercancel），
-  // 这些都不能当成"取消"；想取消请按 Esc
-  bindFire(btn, ammo) {
-    btn.onpointerdown = (e) => { if (e.button !== 0 || btn.disabled) return; try { btn.setPointerCapture(e.pointerId); } catch (_) {} this.begin(ammo, e.pointerId); };
+  // 这些都不能当成"取消"；想取消请按 Esc。getTgt：地图浮窗里的按钮打浮窗上的国家
+  bindFire(btn, ammo, getTgt) {
+    btn.onpointerdown = (e) => {
+      if (e.button !== 0 || btn.disabled) return;
+      try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+      this.begin(ammo, e.pointerId, getTgt ? getTgt() : undefined);
+    };
     btn.onpointerup = () => this.release(true);
     btn.onpointercancel = () => this.release(true);
     btn.oncontextmenu = (e) => e.preventDefault();
@@ -148,13 +173,6 @@ const Fire = {
   // 兜底：按钮在按住期间被禁用、或者松手时指针不在按钮上，都由窗口收到的 pointerup 来发射
   onWindowUp(e) {
     if (this.charging && this.charging.pid === e.pointerId) this.release(true);
-    if (this.allin) this.endAllIn();
-  },
-  bindAllIn(btn, ammo) {
-    btn.onpointerdown = (e) => { if (e.button !== 0 || btn.disabled) return; try { btn.setPointerCapture(e.pointerId); } catch (_) {} this.beginAllIn(ammo); };
-    btn.onpointerup = () => this.endAllIn();
-    btn.onpointercancel = () => this.endAllIn();
-    btn.oncontextmenu = (e) => e.preventDefault();
   },
 };
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
@@ -173,7 +191,7 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null)
   Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
   for (const t of G.newsQueue) UI.addFeed(t);
   G.target = -1;
-  Fire.charging = null; Fire.allin = null; Fire.pendingConv = 0;
+  Fire.charging = null; Fire.pending = {};
   SFX.music(true);
   running = true;
 }
@@ -182,7 +200,7 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null)
 function simAdvance(real) {
   let spd = G.speed;
   // 单机：有包裹飞向你时锁定 1×（联机时大家共用一个速度，不锁）
-  if (!G.mp && spd > 1 && G.player.alive && incomingFor(G.player).length) spd = 1;
+  if (!G.mp && spd > 1 && G.player.alive && incomingFor(G.player).some((x) => isThreat(x.p))) spd = 1;
   simAcc += G.over ? 0 : real * spd;
   while (simAcc >= CFG.SIM_DT) { simStep(CFG.SIM_DT); simAcc -= CFG.SIM_DT; }
   G.interp = simAcc; // 供渲染插值，飞弹在两次逻辑步之间也能平滑移动
@@ -215,6 +233,10 @@ Bus.on('news', (t) => { if (running) UI.addFeed(t); });
 Bus.on('leader', ({ n, text, to }) => { if (to === undefined || to === G.player.id) UI.leader(n, text); });
 Bus.on('banner', (t) => UI.banner(t));
 Bus.on('midnight', () => SFX.bell());
+Bus.on('dogfight', ({ a, b }) => {
+  if (a.att === G.player.id || b.att === G.player.id) UI.tip('dogfight', `${PAPER} <b>空战！</b>不同国家的小摩托在空中相遇会互相攻击；敌方小摩托飞进国土时，你库存里的小摩托会自动<b>升空拦截</b>（最多 2 架，起飞就消耗，追到底）。`, { tutorial: true, life: 9 });
+});
+Bus.on('ciws', ({ n, hit }) => { if (n === G.player && hit) UI.tip('ciws', '🔫 <b>近防炮</b>自动打下了一架小摩托。它和护盾共用能量，但能量不够开护盾时会自动停火。', { tutorial: true }); });
 Bus.on('intel', (x) => {
   if (x !== G.player) return;
   UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻');
@@ -234,7 +256,7 @@ Bus.on('eliminated', (n) => {
   if (UI.popId === n.id) UI.closeMapPop();
   if (G.target === n.id) {
     G.target = -1;
-    Fire.release(false); Fire.endAllIn();
+    Fire.release(false);
     if (n !== G.player) UI.banner(`🎯 目标 ${n.name} 已被核平，请选择新目标`);
   }
   if (n === G.player && G.mp) setTimeout(() => UI.banner('💀 你已被核平，正在观战'), 1500);
@@ -335,11 +357,12 @@ function setupInput() {
     const k = e.key.toLowerCase();
     if (e.code === 'Space') { e.preventDefault(); if (!G.mp) G.speed = G.speed === 0 ? (G.prevSpeed || 1) : (G.prevSpeed = G.speed, 0); }
     else if (e.key === 'Tab') { e.preventDefault(); if (chooserOpen()) UI.closeChooser(); else UI.openChooser(); }
-    else if (k === 'f' || k === 'c') { // 按住 F / C 蓄力；Shift 梭哈
+    else if (k === 'f' || k === 'c' || k === 'd') { // 按住 F / C / D 蓄力（核包裹 / 导弹 / 小摩托）；Shift 一次全发
       if (e.repeat) return;
-      const ammo = k === 'f' ? 'nuke' : 'conv';
-      if (e.shiftKey) playerFire(ammo, fireMax(ammo));
-      else Fire.begin(ammo);
+      const ammo = k === 'f' ? 'nuke' : k === 'c' ? 'conv' : 'drone';
+      const tid = UI.popOpen() ? UI.popId : undefined; // 地图浮窗开着：打浮窗上的国家
+      if (e.shiftKey) { if (tid !== undefined) setTarget(tid); playerFire(ammo, fireMax(ammo)); }
+      else Fire.begin(ammo, -1, tid);
     }
     else if (k === 'escape') { if (Fire.charging) Fire.release(false); else if (UI.popOpen()) UI.closeMapPop(); else UI.closeChooser(); }
     else if (chooserOpen() && k >= '1' && k <= '9') {
@@ -356,9 +379,9 @@ function setupInput() {
   window.addEventListener('keyup', (e) => {
     const k = e.key.toLowerCase();
     if (!Fire.charging) return;
-    if ((k === 'f' && Fire.charging.ammo === 'nuke') || (k === 'c' && Fire.charging.ammo === 'conv')) Fire.release(true);
+    if ({ f: 'nuke', c: 'conv', d: 'drone' }[k] === Fire.charging.ammo) Fire.release(true);
   });
-  window.addEventListener('blur', () => { Fire.release(false); Fire.endAllIn(); });
+  window.addEventListener('blur', () => Fire.release(false));
   window.addEventListener('pointerup', (e) => Fire.onWindowUp(e));
   window.addEventListener('pointercancel', (e) => Fire.onWindowUp(e));
 }

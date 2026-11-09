@@ -153,6 +153,12 @@ const SFX = {
     }
   },
   siren() {}, // 兼容旧调用
+  ciws(hit) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) this._noise(this.white, t + i * 0.04, 0.03, 'bandpass', 2400, 1800, 0.04, 0.001);
+    if (hit) this._noise(this.white, t + 0.12, 0.12, 'lowpass', 1600, 400, 0.08, 0.002);
+  },
   // 午夜倒计时：清脆的钟表滴答
   tick() {
     if (!this.ctx) return;
