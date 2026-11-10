@@ -67,3 +67,8 @@ python -m http.server 8765
 
 - Canvas 2D 渲染，发光效果用叠加混合实现；音效和背景音乐用 WebAudio 实时合成，没有任何音频文件。
 - 所有数值集中在 `js/config.js`，方便调整平衡。
+- 代码按职责分文件（普通脚本，按 `index.html` 里的顺序加载，不需要打包）：
+  - `js/sim/`：模拟。`core` 开局与工具，`step` 每步推进与生产，`strike` 核包裹/导弹/小摩托与命中，`defense` 近防炮/空战/拦截/护盾/大招/重建，`end` 胜负判定
+  - `js/render/`：渲染。`base` 地图与城市，`units` 飞行物，`labels` 国名与标牌
+  - `js/ui/`：界面。`base` 面板与通用，`strike` 发射按钮/选目标/地图浮窗，`tips` 提示卡，`end` 结算
+  - `ai.js` AI，`fx.js` 特效，`audio.js` 音效，`net.js` 联机，`main.js` 主循环与输入
