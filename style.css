@@ -126,16 +126,38 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
   background: radial-gradient(circle at 50% 40%, rgba(255,90,60,0.9), rgba(140,20,20,0.9)); border: 1px solid #ff6b5b; box-shadow: 0 0 16px rgba(255,60,40,0.5); touch-action: none; }
 .firerow.conv .fire { background: radial-gradient(circle at 50% 40%, rgba(255,170,70,0.9), rgba(150,70,10,0.9)); border-color: #ffab5b; box-shadow: 0 0 16px rgba(255,140,40,0.45); }
 .fire:hover:not(:disabled) { filter: brightness(1.15); }
-.fire.charging { transform: scale(1.06); box-shadow: 0 0 28px rgba(255,120,80,0.9); }
-.fire svg { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); transform: rotate(-90deg); pointer-events: none; }
+.fire > svg { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); transform: rotate(-90deg); pointer-events: none; }
 .fire .track { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 4; }
 .fire .prog { fill: none; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 170; stroke-dashoffset: 170; filter: drop-shadow(0 0 4px #fff); }
-.fire.charging .prog { transition: stroke-dashoffset .1s linear; } /* 帧率波动时圆环也平滑 */
-.fire .num { font-size: 26px; font-weight: 900; color: #fff; line-height: 1; text-shadow: 0 0 8px rgba(0,0,0,0.6); }
-.fire .cap { font-size: 9px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+.fire.cool .prog { stroke: #ffb347; filter: drop-shadow(0 0 4px #ff9020); }
+.fire .fic { font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px rgba(0,0,0,0.5)); pointer-events: none; }
+.fire .fic svg.paper { width: 32px; height: 32px; display: block; transform: translate(1px, 1.5px); } /* 纸飞机的重心偏左上，往回挪一点看起来才居中 */
+.fire .fic svg.msl { width: 34px; height: 34px; display: block; }
+svg.msl .hull { fill: #f1f3f6; stroke: rgba(60,30,10,0.55); stroke-width: 0.5; }
+svg.msl .nose { fill: #ff4d36; }
+svg.msl .band { fill: #ff4d36; }
+svg.msl .fin { fill: #c9ced6; stroke: rgba(60,30,10,0.5); stroke-width: 0.4; }
+svg.msl .flame { fill: #ffd54a; filter: drop-shadow(0 0 1.5px #ff8a00); }
+.ammoinfo .ic svg.msl { width: 24px; height: 24px; display: block; }
+body.compact .ammoinfo .ic svg.msl { width: 17px; height: 17px; }
+.popfire .pfl svg.msl { width: 13px; height: 13px; vertical-align: -2px; }
+.fire.mini .fic svg.msl { width: 26px; height: 26px; }
+.fire .q { position: absolute; top: -8px; right: -6px; font-size: 10px; font-weight: bold; color: #fff; background: rgba(200,90,20,0.95); border-radius: 8px; padding: 1px 5px; white-space: nowrap; pointer-events: none; }
+.fire .q:empty { display: none; }
+.fire .lv { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.65); border-radius: 7px; padding: 0 5px; white-space: nowrap; pointer-events: none; }
+.fire.tapped { animation: firetap .18s ease-out; }
+@keyframes firetap { 40% { transform: scale(0.88); } 100% { transform: scale(1); } }
+.fire .fly { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font-size: 15px; font-weight: 900; color: #fff; text-shadow: 0 0 6px #000, 0 0 10px rgba(255,120,60,0.9); pointer-events: none; white-space: nowrap; animation: firefly .8s ease-out forwards; }
+@keyframes firefly { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -34px); } }
+.lvl { align-self: center; height: 40px; padding: 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); color: #fff; font-weight: bold; font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.lvl:hover { background: rgba(255,255,255,0.16); }
+body.compact .lvl { height: 34px; font-size: 12px; border-radius: 8px; }
 .fire kbd { top: auto; bottom: -2px; right: 50%; transform: translateX(50%); }
 .fire:disabled { filter: grayscale(0.8); box-shadow: none; }
-.fire, .allin, .skill { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; } /* 手机长按不弹系统菜单 */
+/* 游戏界面：手机长按不弹系统菜单、不选中文字；按钮连点不会被当成双击放大 */
+body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+input, textarea { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
+button { touch-action: manipulation; }
 
 .allin { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; border-radius: 8px;
   font-weight: 900; letter-spacing: 1px; color: #fff; background: rgba(120, 20, 60, 0.6); border-color: #ff5aa0; touch-action: none; }
@@ -435,27 +457,26 @@ body.portrait #devToggle { bottom: calc(var(--dockH, 0px) + 34px + env(safe-area
 #devToggle:focus-visible, #devHandle:focus-visible, #devClose:focus-visible, .dev-option input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ===== 三种武器发射行 + 浮窗里的发射按钮 ===== */
-.firerow { grid-template-columns: 1fr 68px; margin-top: 8px; }
+.firerow { grid-template-columns: 1fr 48px 68px; margin-top: 8px; }
 .fire { height: 68px; }
 .firerow.drone .fire { background: radial-gradient(circle at 50% 40%, rgba(90,200,255,0.9), rgba(20,70,130,0.9)); border-color: #6fd0ff; box-shadow: 0 0 16px rgba(80,180,255,0.45); }
 .firerow.drone .ammoinfo .stock { text-shadow: 0 0 10px rgba(90, 200, 255, 0.6); }
-.fire.hot { box-shadow: 0 0 26px rgba(255, 40, 30, 0.95); }
-.fire.hot .prog { stroke: #ff5040; filter: drop-shadow(0 0 5px #ff3020); }
 .popfire { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
 .popfire .pf { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .popfire .pfl { font-size: 12px; color: var(--dim); }
 .popfire .pfl b { color: #fff; font-variant-numeric: tabular-nums; }
 .fire.mini { width: 54px; height: 54px; }
-.fire.mini .num { font-size: 18px; }
+.fire.mini .fic { font-size: 22px; }
+.fire.mini .fic svg.paper { width: 24px; height: 24px; }
 .popfire .pf:nth-child(2) .fire { background: radial-gradient(circle at 50% 40%, rgba(255,170,70,0.9), rgba(150,70,10,0.9)); border-color: #ffab5b; }
 .popfire .pf:nth-child(3) .fire { background: radial-gradient(circle at 50% 40%, rgba(90,200,255,0.9), rgba(20,70,130,0.9)); border-color: #6fd0ff; }
 #mapPopGo { margin-top: 8px; padding: 4px; font-size: 12px; font-weight: normal; letter-spacing: 0; color: var(--dim); background: none; border: none; box-shadow: none; text-decoration: underline; }
 #mapPopGo:hover { color: #fff; background: none; box-shadow: none; }
 .inc.drone { color: #9be8ff; }
 .inc.drone .small { margin-left: 4px; }
-body.compact .firerow { grid-template-columns: 1fr 50px; margin-top: 4px; }
-body.compact .fire { height: 50px; }
-body.compact:not(.portrait) .fire { height: 44px; }
+body.compact .firerow { grid-template-columns: 1fr 42px 58px; margin-top: 4px; }
+body.compact .fire { height: 58px; }
+body.compact:not(.portrait) .fire { height: 48px; }
 body.compact .toggles .switch { font-size: 9px; }
 
 /* 小摩托的纸飞机图标 */

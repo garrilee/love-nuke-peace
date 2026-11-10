@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#01040a">
 <title>热爱核平</title>
-<link rel="stylesheet" href="style.css?v=20261111-feel">
+<link rel="stylesheet" href="style.css?v=20261111-ring4">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -72,24 +72,27 @@
         <span class="tlabel">打击目标</span>
         <span class="tname" id="targetName">未选择 · 点击选择</span><kbd>Tab</kbd></button>
 
-      <!-- 三种武器：图标 + 库存 + 圆形发射按钮（按住蓄力：前 5 个匀速，之后加速，约 3 秒到上限）-->
+      <!-- 三种武器：图标 + 库存 + 档位键（每次发几个）+ 圆形发射按钮（单击发射，圆环 = 生产进度）-->
       <div class="firerow " id="row-nuke">
         <div class="ammoinfo"><span class="ic">☢</span><span class="lb">核包裹</span><span class="stock mono" id="ct-nuke">0</span><span class="sub" id="sub-nuke"></span></div>
-        <button class="fire" id="fire-nuke" title="单击发射 1 个；按住蓄力，松开发射（F；Shift+F 一次全发）">
+        <button class="lvl" id="lvl-nuke" title="每次发射的数量，点击切换">×1</button>
+        <button class="fire" id="fire-nuke" title="点击发射（F；Shift+F 全部发射）。圆环：下一个的生产 / 装填进度">
           <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-          <span class="num" id="num-nuke">1</span><span class="cap">按住蓄力</span><kbd>F</kbd></button>
+          <span class="fic">☢</span><kbd>F</kbd></button>
       </div>
       <div class="firerow conv" id="row-conv">
-        <div class="ammoinfo"><span class="ic">💥</span><span class="lb">导弹</span><span class="stock mono" id="ct-conv">0</span><span class="sub" id="sub-conv"></span></div>
-        <button class="fire" id="fire-conv" title="单击发射 1 个；按住蓄力，松开发射（C；Shift+C 一次全发）">
+        <div class="ammoinfo"><span class="ic"><svg class="msl" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><path class="flame" d="M10.6 19.2 12 23.6 13.4 19.2z"/><path class="fin" d="M10 14.5 6.8 18.6V20l3.2-1.6zM14 14.5l3.2 4.1V20L14 18.4z"/><path class="hull" d="M12 1.6c1.5 1.4 2 3.4 2 5.6v12H10v-12c0-2.2.5-4.2 2-5.6z"/><path class="nose" d="M12 1.6c1.5 1.4 2 3.4 2 5.6H10c0-2.2.5-4.2 2-5.6z"/><path class="band" d="M10 12.2h4v1.3h-4z"/></g></svg></span><span class="lb">导弹</span><span class="stock mono" id="ct-conv">0</span><span class="sub" id="sub-conv"></span></div>
+        <button class="lvl" id="lvl-conv" title="每次发射的数量，点击切换">×1</button>
+        <button class="fire" id="fire-conv" title="点击发射（C；Shift+C 全部发射）。圆环：下一个的生产 / 装填进度">
           <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-          <span class="num" id="num-conv">1</span><span class="cap">按住蓄力</span><kbd>C</kbd></button>
+          <span class="fic"><svg class="msl" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><path class="flame" d="M10.6 19.2 12 23.6 13.4 19.2z"/><path class="fin" d="M10 14.5 6.8 18.6V20l3.2-1.6zM14 14.5l3.2 4.1V20L14 18.4z"/><path class="hull" d="M12 1.6c1.5 1.4 2 3.4 2 5.6v12H10v-12c0-2.2.5-4.2 2-5.6z"/><path class="nose" d="M12 1.6c1.5 1.4 2 3.4 2 5.6H10c0-2.2.5-4.2 2-5.6z"/><path class="band" d="M10 12.2h4v1.3h-4z"/></g></svg></span><kbd>C</kbd></button>
       </div>
       <div class="firerow drone" id="row-drone">
-        <div class="ammoinfo"><span class="ic"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg></span><span class="lb">小摩托</span><span class="stock mono" id="ct-drone">0</span><span class="sub" id="sub-drone"></span></div>
-        <button class="fire" id="fire-drone" title="单击发射 1 个；按住蓄力，松开发射（D；Shift+D 一次全发）">
+        <div class="ammoinfo"><span class="ic"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg></span><span class="lb">小摩托</span><span class="stock mono" id="ct-drone">0</span><span class="sub" id="sub-drone"></span></div>
+        <button class="lvl" id="lvl-drone" title="每次发射的数量，点击切换">×1</button>
+        <button class="fire" id="fire-drone" title="点击发射（D；Shift+D 全部发射）。圆环：下一个的生产 / 装填进度">
           <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-          <span class="num" id="num-drone">1</span><span class="cap">按住蓄力</span><kbd>D</kbd></button>
+          <span class="fic"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg></span><kbd>D</kbd></button>
       </div>
 
       <div id="strikeTarget" class="status"></div>
@@ -99,10 +102,10 @@
       <div class="phead"><span class="sect-title">防 御</span><span class="mono small" id="energyTxt"></span></div>
       <div class="skillgrid">
         <button id="sk-shield" class="skill" title="护盾 (B)：全国领土防御 8 秒。常规导弹全部挡下，核包裹伤害 -85%，城市不会变废墟、设施不会宕机。⚡40，冷却 30 秒。适合应对大量来袭。">
-          <kbd>B</kbd><span class="ic">🛡</span><span class="nm">护盾</span><span class="st" id="st-shield"></span><i class="cdbar" id="cd-shield"></i></button>
+          <kbd>B</kbd><span class="nm">护盾</span><span class="st" id="st-shield"></span><i class="cdbar" id="cd-shield"></i></button>
         <button id="sk-ult" class="skill ult"><kbd>Q</kbd><span class="ic" id="ic-ult">✨</span><span class="ulttxt"><span class="nm" id="nm-ult">大招</span><span class="st" id="st-ult"></span></span><i class="cdbar" id="cd-ult"></i></button>
         <button id="sk-net" class="skill" title="拦截 (N)：12 秒内发射 3 枚拦截弹（升级后 6 枚），每枚自动迎击一个来袭目标，60%（升级后 75%）击毁。⚡18，冷却 28 秒。适合应对少量来袭。">
-          <kbd>N</kbd><span class="ic">🎆</span><span class="nm">拦截</span><span class="st" id="st-net"></span><i class="cdbar" id="cd-net"></i></button>
+          <kbd>N</kbd><span class="nm">拦截</span><span class="st" id="st-net"></span><i class="cdbar" id="cd-net"></i></button>
       </div>
       <div class="toggles">
         <label class="switch" title="只要有来袭、拦截不在冷却中，就自动开启拦截"><input type="checkbox" id="sk-autonet" checked><span class="knob"></span>自动拦截</label>
@@ -121,17 +124,17 @@
   <div id="mapPopBody"></div>
   <div class="popfire">
     <div class="pf"><span class="pfl">☢ <b id="pct-nuke">0</b></span>
-      <button class="fire mini" id="pfire-nuke" title="核包裹：单击发 1 个，按住蓄力，松开发射">
+      <button class="fire mini" id="pfire-nuke" title="核包裹：点击发射（数量按档位）">
         <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-        <span class="num">1</span></button></div>
-    <div class="pf"><span class="pfl">💥 <b id="pct-conv">0</b></span>
-      <button class="fire mini" id="pfire-conv" title="导弹：单击发 1 个，按住蓄力，松开发射">
+        <span class="fic">☢</span><span class="lv" id="plv-nuke">×1</span></button></div>
+    <div class="pf"><span class="pfl"><svg class="msl" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><path class="flame" d="M10.6 19.2 12 23.6 13.4 19.2z"/><path class="fin" d="M10 14.5 6.8 18.6V20l3.2-1.6zM14 14.5l3.2 4.1V20L14 18.4z"/><path class="hull" d="M12 1.6c1.5 1.4 2 3.4 2 5.6v12H10v-12c0-2.2.5-4.2 2-5.6z"/><path class="nose" d="M12 1.6c1.5 1.4 2 3.4 2 5.6H10c0-2.2.5-4.2 2-5.6z"/><path class="band" d="M10 12.2h4v1.3h-4z"/></g></svg> <b id="pct-conv">0</b></span>
+      <button class="fire mini" id="pfire-conv" title="导弹：点击发射（数量按档位）">
         <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-        <span class="num">1</span></button></div>
-    <div class="pf"><span class="pfl"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg> <b id="pct-drone">0</b></span>
-      <button class="fire mini" id="pfire-drone" title="小摩托：单击发 1 个，按住蓄力，松开发射">
+        <span class="fic"><svg class="msl" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><path class="flame" d="M10.6 19.2 12 23.6 13.4 19.2z"/><path class="fin" d="M10 14.5 6.8 18.6V20l3.2-1.6zM14 14.5l3.2 4.1V20L14 18.4z"/><path class="hull" d="M12 1.6c1.5 1.4 2 3.4 2 5.6v12H10v-12c0-2.2.5-4.2 2-5.6z"/><path class="nose" d="M12 1.6c1.5 1.4 2 3.4 2 5.6H10c0-2.2.5-4.2 2-5.6z"/><path class="band" d="M10 12.2h4v1.3h-4z"/></g></svg></span><span class="lv" id="plv-conv">×1</span></button></div>
+    <div class="pf"><span class="pfl"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg> <b id="pct-drone">0</b></span>
+      <button class="fire mini" id="pfire-drone" title="小摩托：点击发射（数量按档位）">
         <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="27"/><circle class="prog" cx="32" cy="32" r="27"/></svg>
-        <span class="num">1</span></button></div>
+        <span class="fic"><svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg></span><span class="lv" id="plv-drone">×1</span></button></div>
   </div>
   <button id="mapPopGo">只设为目标，不发射</button>
 </div>
@@ -182,9 +185,9 @@
       <div id="mpErr" class="small"></div>
     </div>
     <button id="startBtn" disabled>按下按钮，开始核平</button>
-    <div class="howto touch">单指拖动地图 · 双指缩放 · 点击敌国直接打击 · 按住发射键蓄力，松开发射 · 左上角 📊 查看国情与国力分配</div>
+    <div class="howto touch">单指拖动地图 · 双指缩放 · 点击敌国直接打击 · 点发射键发射，旁边的 ×N 切换每次数量 · 左上角 📊 查看国情与国力分配</div>
     <div class="howto">
-      空格 暂停 · 滚轮缩放 · 拖拽平移 · 点击敌国弹出打击窗口 · 按住 F / C / D 蓄力发射核包裹 / 导弹 / 小摩托 · Shift+键 一次全发<br>
+      空格 暂停 · 滚轮缩放 · 拖拽平移 · 点击敌国弹出打击窗口 · 按 F / C / D 发射核包裹 / 导弹 / 小摩托（数量按档位）· Shift+键 全部发射<br>
       少量来袭用 N 拦截，大量用 B 护盾，近防炮自动打小摩托 · R 重建 · Q 国家大招。没有时间限制，最后活下来的就是“和平”。
     </div>
   </div>
@@ -207,16 +210,16 @@
   </div>
 </section>
 
-<script src="js/config.js?v=20261111-bal"></script>
-<script src="js/util.js?v=20261111-feel"></script>
-<script src="js/audio.js?v=20261111-feel"></script>
-<script src="js/map.js?v=20261111-feel"></script>
-<script src="js/sim.js?v=20261111-feel"></script>
-<script src="js/ai.js?v=20261111-feel"></script>
-<script src="js/fx.js?v=20261111-feel"></script>
-<script src="js/render.js?v=20261111-feel"></script>
-<script src="js/ui.js?v=20261111-feel"></script>
-<script src="js/net.js?v=20261111-feel"></script>
-<script src="js/main.js?v=20261111-feel"></script>
+<script src="js/config.js?v=20261111-ring4"></script>
+<script src="js/util.js?v=20261111-ring4"></script>
+<script src="js/audio.js?v=20261111-ring4"></script>
+<script src="js/map.js?v=20261111-ring4"></script>
+<script src="js/sim.js?v=20261111-ring4"></script>
+<script src="js/ai.js?v=20261111-ring4"></script>
+<script src="js/fx.js?v=20261111-ring4"></script>
+<script src="js/render.js?v=20261111-ring4"></script>
+<script src="js/ui.js?v=20261111-ring4"></script>
+<script src="js/net.js?v=20261111-ring4"></script>
+<script src="js/main.js?v=20261111-ring4"></script>
 </body>
 </html>

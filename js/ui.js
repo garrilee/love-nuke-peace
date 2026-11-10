@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 // 只在内容真的变了才写 DOM：HUD 每 0.15 秒刷新一次，没变的部分不再重新渲染
 // （不能拿 el.innerHTML 来比较：浏览器会把 HTML 重新格式化，导致每次都"不一样"）
 // 小摩托的图标：纸飞机（没有现成的纸飞机 emoji，用一个小 SVG）
-const PAPER = '<svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M20.2 3.3 4.6 9 8.3 12.6z"/><path class="body" d="M20.2 3.3 8.3 12.6 10.9 15.3z"/><path class="wing2" d="M20.2 3.3 10.9 15.3 14.5 18.9z"/><path class="crease" d="M20.2 3.3 9.6 13.9"/></svg>';
+const PAPER = '<svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg>';
 const setHTML = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
 const setText = (el, t) => { t = String(t); if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setStyle = (el, prop, v) => { const k = '_s_' + prop; if (el[k] !== v) { el[k] = v; el.style[prop] = v; } };
@@ -152,13 +152,14 @@ const UI = {
     $('sk-autonet').onchange = (e) => Act.do({ a: 'toggle', k: 'autoNet', v: e.target.checked });
     $('sk-autorebuild').checked = true;
     $('sk-autorebuild').onchange = (e) => Act.do({ a: 'toggle', k: 'autoRebuild', v: e.target.checked });
-    // 打击：选目标 + 两行开火按钮（长按蓄力 / 梭哈）
+    // 打击：选目标 + 三行武器（档位键 + 单击发射）
     $('pickTarget').onclick = () => this.openChooser();
     this.popId = -1; $('mapPop').classList.add('hidden');
     $('mapPopGo').onclick = () => { const id = this.popId; this.closeMapPop(); setTarget(id); };
-    for (const ammo of ['nuke', 'conv', 'drone']) Fire.bindFire($('pfire-' + ammo), ammo, () => this.popId);
+    Fire.init();
+    for (const ammo of ['nuke', 'conv', 'drone']) Fire.bind($('pfire-' + ammo), ammo, () => this.popId);
     $('mapPopX').onclick = () => this.closeMapPop();
-    for (const ammo of ['nuke', 'conv', 'drone']) Fire.bindFire($('fire-' + ammo), ammo);
+    for (const ammo of ['nuke', 'conv', 'drone']) { Fire.bind($('fire-' + ammo), ammo); $('lvl-' + ammo).onclick = () => Fire.cycle(ammo); }
     this.seenInc = new Set();
     $('chooser').onclick = (e) => { if (e.target.id === 'chooser') this.closeChooser(); };
     this.buildNationList();
@@ -344,16 +345,12 @@ const UI = {
     setText($('sub-drone'), p.drones < DRONE.stockCap && p.droneBuildT > 0 ? `生产中 · 上限 ${DRONE.stockCap}` : `上限 ${DRONE.stockCap} · 慢但难拦`);
 
     const ok = hasT && p.alive;
-    const holding = (ammo) => !!(Fire.charging && Fire.charging.ammo === ammo); // 按住期间不禁用，保证松手能收到
-    $('fire-nuke').disabled = (!ok || D <= 0) && !holding('nuke');
-    $('fire-conv').disabled = (!ok || p.conv <= 0) && !holding('conv');
-    $('fire-drone').disabled = (!ok || p.drones <= 0) && !holding('drone');
+    for (const ammo of ['nuke', 'conv', 'drone']) $('fire-' + ammo).disabled = !ok || !Fire.canFire(ammo); // 没库存 / 冷却中：不能点
     Fire.syncIdle();
 
     let st;
     if (!hasT) st = '点击地图上的敌国，或按 Tab 选目标';
-    else if (Fire.charging) st = `松开发射 <b class="gold">${Fire.charging.count}</b> ${AMMO[Fire.charging.ammo].unit}${AMMO[Fire.charging.ammo].name}`;
-    else st = '单击发 1 个 · 按住蓄力 · 圆环满 = 全发';
+    else st = '点圆形按钮发射 · 左边 ×N 切换每次数量';
     setHTML($('strikeTarget'), st);
   },
 
@@ -370,7 +367,7 @@ const UI = {
   chooserTargets() { return G.nations.filter((x) => x.alive && x !== G.player); },
   renderChooser() {
     const p = G.player;
-    setText($('chooserInfo'), '选定后，地图上方会显示目标，按住开火按钮即可打击。');
+    setText($('chooserInfo'), '选定后，地图上方会显示目标，点开火按钮即可打击。');
     const list = $('chooserList');
     const targets = this.chooserTargets();
     const sig = targets.map((t) => t.id).join(',');
@@ -434,8 +431,7 @@ const UI = {
     const counts = { nuke: deliverable(p, G.legs), conv: p.conv, drone: p.drones };
     for (const ammo of ['nuke', 'conv', 'drone']) {
       setText($('pct-' + ammo), ammo === 'nuke' ? stock(p) : counts[ammo]);
-      const holding = Fire.charging && Fire.charging.ammo === ammo;
-      $('pfire-' + ammo).disabled = !p.alive || (counts[ammo] <= 0 && !holding);
+      $('pfire-' + ammo).disabled = !Fire.canFire(ammo);
     }
   },
   closeMapPop() {
@@ -511,13 +507,13 @@ const UI = {
     const t = G.t, U = p.race.ult;
     // 新手引导
     if (t > 1.5) this.tip('start', `👋 欢迎！${this.mobile() ? '左上角 📊 里的' : '左侧'}<b>国力分配</b>决定科技、核武、三防的产出。前期多投<b>科技</b>，尽快解锁核包裹。`, { tutorial: true, life: 9 });
-    if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，<b>按住</b>发射键蓄力，松开发射。`, { tutorial: true, life: 9 });
-    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后<b>按住</b>发射按钮蓄力：前 5 个匀速，之后加速，圆环满就是全发。点地图上的敌国也能直接打。', { tutorial: true });
+    if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，点发射键发射（一次 2 枚）。`, { tutorial: true, life: 9 });
+    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后点发射按钮投送；按钮左边的 <b>×1</b> 可以切换每次 1 / 3 / 5 / 全部。点地图上的敌国也能直接打。', { tutorial: true });
     if (incomingFor(p).length) this.tip('incoming', '⚠ 有东西飞过来了！少量来袭会<b>自动拦截</b>；来得多就开<b>护盾</b>（B）。', { tutorial: true });
     if (p.cities.some((c) => c.ruined)) this.tip('ruin', '🏚 城市变成废墟，产出减半。开着<b>自动重建</b>会消耗能量慢慢修好。', { tutorial: true });
     if (p.ultCd <= 0 && t >= ULT_FIRST) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, { tutorial: true, life: 9 });
     if (t > 30 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', '🏭 <b>军工热度</b>低时核武产出打折，持续投入约 100 秒才能升满。临时转产效率很低。', { tutorial: true });
-    if (t > 50) this.tip('drone', PAPER + ' <b>小摩托</b>生产快、飞得慢、拦截弹很难打中，适合拆敌国的投送站、消耗对方的防空。按住 D 或点小摩托按钮放飞。', { tutorial: true, life: 9 });
+    if (t > 50) this.tip('drone', PAPER + ' <b>小摩托</b>生产快、飞得慢、拦截弹很难打中，适合拆敌国的投送站、消耗对方的防空。按 D 或点小摩托按钮放飞（一次 5 架）。', { tutorial: true, life: 9 });
     if (t > 300) this.tip('nolimit', '⏳ 没有时间限制，打到只剩一个国家。午夜后核弹威力会越来越大，苟是苟不住的。', { tutorial: true });
     if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×3，人口不再加速恢复。', { tutorial: true });
     // 局势提醒（始终开启，有冷却）

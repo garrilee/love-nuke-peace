@@ -316,7 +316,7 @@ function pickTargetTile(tgt) {
   return own.length ? pick(own) : (cities[0] ? cities[0].tile : G.world.tiles[0]);
 }
 
-// count：指定发射数量（玩家长按蓄力）；不传则按 scale（AI 使用）
+// count：指定发射数量（玩家点击发射）；不传则按 scale（AI 使用）
 function launch(att, tgt, scale, legs, count) {
   if (!att.alive || !tgt.alive || att === tgt) return 0;
   const D = deliverable(att, legs);

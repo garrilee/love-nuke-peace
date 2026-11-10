@@ -844,7 +844,7 @@ const Render = {
       ctx.restore();
       // 悬浮的标牌：上下轻轻浮动
       const bob = Math.sin(T * 2.6 + n.id) * 3 * k;
-      const text = me ? `★ ${n.name}` : '👤 玩家';
+      const text = me ? `★ ${n.name}  👥${fmtPop(totalPop(n))} ☢${stock(n)}` : '👤 玩家'; // 我方：人口和核弹数直接写在标牌里
       const font = `bold ${Math.round((me ? 15 : 11) * k * (me ? this.nameScale(n.name) : 1))}px "Microsoft YaHei", sans-serif`;
       const label = this.labelImage('marker:' + n.id, text, font, '#1a0d00', 0, '', 'middle');
       ctx.save();
@@ -877,7 +877,7 @@ const Render = {
     const font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
     const label = this.labelImage('attacker', text, font, '#fff', 0, '', 'middle');
     ctx.save();
-    const w = label.width + 12 * k, h = 17 * k, y = c.y - 6 * k;
+    const w = label.width + 12 * k, h = 17 * k, y = c.y + 8 * k; // 在人口 / 核弹数下面
     ctx.globalAlpha = alpha;
     ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = fresh ? 16 : 8;
     ctx.fillStyle = 'rgba(150,12,8,0.9)';
@@ -930,6 +930,16 @@ const Render = {
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
       ctx.drawImage(label.c, c.x + label.x, c.y - 26 + label.y, label.w, label.h);
+    }
+    // 每个国家名字下方：人口和核弹库存（我方的写在首都上空的金色标牌里）
+    const sk = 1 / Math.max(0.8, z), sf = `bold ${Math.round(11 * sk)}px "Microsoft YaHei", sans-serif`;
+    for (const n of G.nations) {
+      const c = this.nationCenters[n.id];
+      if (!c || !n.alive || n === G.player) continue;
+      const me = false, tg = n.id === G.target;
+      const color = me ? 'rgba(255,215,130,0.95)' : tg ? 'rgba(255,190,170,0.95)' : 'rgba(235,240,255,0.8)';
+      const label = this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, color, 3, 'rgba(0,0,0,0.9)');
+      ctx.drawImage(label.c, c.x + label.x, (me ? c.y - 14 : c.y - 10) + label.y, label.w, label.h);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
