@@ -98,34 +98,43 @@ Object.assign(Render, {
     return e;
   },
 
+  // 国家色提亮（和白色混合），在深色底板上更醒目
+  tint(hex, f) {
+    const v = parseInt(hex.slice(1), 16), mix = (x) => Math.round(x + (255 - x) * f);
+    return `rgb(${mix(v >> 16)},${mix((v >> 8) & 255)},${mix(v & 255)})`;
+  },
+  // 敌国标签：名字 + 人口/核弹数，垫一块半透明深色底板，不和地图颜色混在一起
   drawLabels(ctx, z) {
+    const sk = 1 / Math.max(0.8, z), sf = `bold ${Math.round(11 * sk)}px "Microsoft YaHei", sans-serif`;
     for (const n of G.nations) {
       const c = this.nationCenters[n.id];
       if (!c) continue;
       if (n === G.player && n.alive) continue; // 我方：名字写在首都上空的金色标牌里
       const font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (recentAttacker(n)) this.drawAttackerBadge(ctx, n, c, z);
+      const tg = n.id === G.target && n.alive;
       let text = n.race.emoji + ' ' + n.name + (n.alive ? '' : '（已核平）');
-      let color = rgba(n.alive ? n.color : '#888888', n.alive ? 0.35 : 0.3), blur = 0, shadow = '';
-      if (n.id === G.target && n.alive) {
+      let color = n.alive ? this.tint(n.color, 0.35) : 'rgba(150,150,150,0.6)', blur = 3, shadow = 'rgba(0,0,0,0.95)';
+      if (tg) {
         text = '🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.race.emoji + ' ' + n.name;
-        color = '#ffb0a0'; blur = 10; shadow = '#ff3020';
+        color = '#ffd0c4'; blur = 8; shadow = '#ff3020';
       } else if (G.mp && n.isPlayer && n.alive) {
         text = '👤 ' + n.race.emoji + ' ' + n.name;
-        color = rgba(n.color, 0.95); blur = 8; shadow = n.color;
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
-      ctx.drawImage(label.c, c.x + label.x, c.y - 26 + label.y, label.w, label.h);
-    }
-    // 每个国家名字下方：人口和核弹库存（我方的写在首都上空的金色标牌里）
-    const sk = 1 / Math.max(0.8, z), sf = `bold ${Math.round(11 * sk)}px "Microsoft YaHei", sans-serif`;
-    for (const n of G.nations) {
-      const c = this.nationCenters[n.id];
-      if (!c || !n.alive || n === G.player) continue;
-      const me = false, tg = n.id === G.target;
-      const color = me ? 'rgba(255,215,130,0.95)' : tg ? 'rgba(255,190,170,0.95)' : 'rgba(235,240,255,0.8)';
-      const label = this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, color, 3, 'rgba(0,0,0,0.9)');
-      ctx.drawImage(label.c, c.x + label.x, (me ? c.y - 14 : c.y - 10) + label.y, label.w, label.h);
+      const stats = n.alive ? this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
+      // 底板：盖住名字和数据两行
+      const ny = c.y - 26, sy = c.y - 9;
+      const top = ny + label.y + 2, bot = stats ? sy + stats.y + stats.h - 2 : ny + label.y + label.h - 2;
+      const w = Math.max(label.width, stats ? stats.width : 0) + 16 * sk, h = bot - top + 4 * sk;
+      ctx.save();
+      ctx.fillStyle = n.alive ? 'rgba(6,10,18,0.62)' : 'rgba(6,10,18,0.4)';
+      this.roundRect(ctx, c.x - w / 2, top - 2 * sk, w, h, Math.min(8 * sk, h / 2)); ctx.fill();
+      ctx.strokeStyle = tg ? 'rgba(255,90,60,0.85)' : rgba(n.alive ? n.color : '#888888', 0.7);
+      ctx.lineWidth = (tg ? 1.6 : 1) * sk; ctx.stroke();
+      ctx.restore();
+      ctx.drawImage(label.c, c.x + label.x, ny + label.y, label.w, label.h);
+      if (stats) ctx.drawImage(stats.c, c.x + stats.x, sy + stats.y, stats.w, stats.h);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
