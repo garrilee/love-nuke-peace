@@ -62,12 +62,11 @@ const CFG = {
   MAX_SEA: 4,             // 每国最多潜航器数
   MAX_UFO: 6,
   RUIN_PROD: 0.5,
-  START_PARCELS: 5,       // 每个国家开局自带 5 个 1 级核包裹（研发出「普通件」后即可投送）
+  START_PARCELS: 5,       // 每个国家开局自带 5 个 1 级核包裹（开局就能投送，不用研发）
 };
 
 // 科技（按顺序解锁）
 const TECHS = [
-  { id: 'lv1',   name: '核平投送·普通件', cost: 30, desc: '解锁 1 级包裹，可用飞机投送。“三日达，不包邮。”' },
   { id: 'pad',   name: '地面投送站',       cost: 45,  desc: '投送站启用，火箭投送 7~10 秒送达。' },
   { id: 'multi', name: '分装包裹',         cost: 120, desc: '每枚火箭一次装 3 个包裹。' },
   { id: 'lv2',   name: '核平投送·次日达', cost: 60,  desc: '2 级包裹，爆炸圈更大。' },

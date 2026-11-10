@@ -242,7 +242,9 @@ function autoBuild(n) {
     else if (ufoBase && ufoTotal < CFG.MAX_UFO && !has(n, 'pad')) { item = 'ufo'; cost = COSTS.ufo; } // 有投送站后不再造飞机
     else if (!n.isPlayer && dead) { item = 'fac'; cost = COSTS.facility; }
     else if (st < 30) { item = 'parcel'; cost = pc; }
-    if (!item || n.bank < cost) return;
+    // 给导弹、小摩托生产线留出下一件的钱，它们才能准点开工（发射按钮的圆环也不会转满后卡住）
+    const reserve = (n.conv < CONV.stockCap && n.convBuildT < 1 ? CONV.cost : 0) + (n.drones < DRONE.stockCap && n.droneBuildT < 1 ? DRONE.cost : 0);
+    if (!item || n.bank - reserve < cost) return;
     n.bank -= cost;
     if (item === 'conv') { n.conv++; n.convBuildT = CONV.buildTime; }
     else if (item === 'drone') { n.drones++; n.droneBuildT = DRONE.buildTime; }
@@ -293,6 +295,7 @@ function jitter(tile) {
 }
 function slotCapacity(n, legs) { return collectSlots(n, legs).reduce((s, x) => s + x.cap, 0); }
 // 核包裹有库存就能发射：装好火箭的投送站、潜航器优先用（分弹头、更快），不够的部分直接从投送站/机场补发
+// 1 级包裹不用研发（科技树里已去掉「普通件」，has(n,'lv1') 恒为真），所有国家开局就能投送
 function deliverable(n, legs) { return bestLevel(n) && launchSites(n).length ? stock(n) : 0; }
 function launchSites(n) {
   if (has(n, 'pad')) { const pads = facOf(n, 'pad').filter((f) => f.alive); if (pads.length) return pads.map((f) => ({ kind: 'rocket', tile: f.tile, flight: () => rnd(7, 10) })); }
@@ -393,7 +396,7 @@ function launch(att, tgt, scale, legs, count) {
 // ---------- 常规导弹 ----------
 const convSalvo = (n, scale) => Math.min(n.conv, CONV.salvo[scale], CONV.perLaunch);
 function launchConv(att, tgt, scale, count) {
-  if (!att.alive || !tgt.alive || att === tgt || att.convCd > 0) return 0;
+  if (!att.alive || !tgt.alive || att === tgt || (att.convCd > 0 && !att.isPlayer)) return 0; // 人类玩家没有装填间隔：有库存就能发
   const N = count ? Math.min(count, att.conv, CONV.perLaunch) : convSalvo(att, scale);
   if (N <= 0) return 0;
   // 从投送站或城市发射
@@ -449,7 +452,7 @@ function pickDroneTile(tgt) {
   return pickTargetTile(tgt);
 }
 function launchDrones(att, tgt, count) {
-  if (!att.alive || !tgt || !tgt.alive || att === tgt || att.droneCd > 0) return 0;
+  if (!att.alive || !tgt || !tgt.alive || att === tgt || (att.droneCd > 0 && !att.isPlayer)) return 0;
   const N = Math.min(count | 0, att.drones);
   if (N <= 0) return 0;
   // 从机场、投送站和城市成群起飞

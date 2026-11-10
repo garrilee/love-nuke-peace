@@ -333,20 +333,16 @@ const UI = {
     setHTML(badge, bHtml);
 
     // 核包裹
-    const D = deliverable(p, G.legs);
     setText($('ct-nuke'), stock(p));
-    setText($('sub-nuke'), !bestLevel(p) ? '尚未研发' : stock(p) ? '有库存就能发射' : '生产中');
+    setText($('sub-nuke'), stock(p) ? '有库存就能发射' : '生产中');
     // 导弹：库存上限 10，一次最多 5 枚
     setText($('ct-conv'), p.conv);
-    setText($('sub-conv'), p.convCd > 0 ? `装填 ${p.convCd.toFixed(1)}s`
-      : p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 · 上限 ${CONV.stockCap}` : `一次最多 ${CONV.perLaunch} 枚`);
+    setText($('sub-conv'), p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 · 上限 ${CONV.stockCap}` : `一次最多 ${CONV.perLaunch} 枚`);
     // 小摩托：库存上限 20，一次发射不限
     setText($('ct-drone'), p.drones);
     setText($('sub-drone'), p.drones < DRONE.stockCap && p.droneBuildT > 0 ? `生产中 · 上限 ${DRONE.stockCap}` : `上限 ${DRONE.stockCap} · 慢但难拦`);
 
-    const ok = hasT && p.alive;
-    for (const ammo of ['nuke', 'conv', 'drone']) $('fire-' + ammo).disabled = !ok || !Fire.canFire(ammo); // 没库存 / 冷却中：不能点
-    Fire.syncIdle();
+    Fire.syncIdle(); // 按钮能不能点由 Fire.tick 每帧统一更新
 
     let st;
     if (!hasT) st = '点击地图上的敌国，或按 Tab 选目标';
@@ -428,11 +424,7 @@ const UI = {
     setHTML($('mapPopBody'), html);
     const p = G.player, go = $('mapPopGo'), isT = G.target === n.id;
     go.classList.toggle('hidden', isT);
-    const counts = { nuke: deliverable(p, G.legs), conv: p.conv, drone: p.drones };
-    for (const ammo of ['nuke', 'conv', 'drone']) {
-      setText($('pct-' + ammo), ammo === 'nuke' ? stock(p) : counts[ammo]);
-      $('pfire-' + ammo).disabled = !Fire.canFire(ammo);
-    }
+    for (const ammo of ['nuke', 'conv', 'drone']) setText($('pct-' + ammo), ammo === 'nuke' ? stock(p) : ammo === 'conv' ? p.conv : p.drones);
   },
   closeMapPop() {
     if (this.popId === undefined || this.popId < 0) return;
@@ -447,13 +439,13 @@ const UI = {
     const inc = all.filter((x) => isThreat(x.p)), drones = all.filter((x) => !isThreat(x.p));
     const box = $('incoming');
     SFX.tension(inc.length > 0);
-    document.body.classList.toggle('inc-on', all.length > 0); // 来袭面板显示时，提示卡让到下方
-    if (!all.length) { if (!box.classList.contains('hidden')) box.classList.add('hidden'); return; }
-    box.classList.remove('hidden');
-    // 每一波新来袭（不含小摩托）只响一次短促警报
+    // 地图上方的「包裹来袭」弹框已去掉，只保留警报声
+    if (!box.classList.contains('hidden')) box.classList.add('hidden');
+    document.body.classList.remove('inc-on');
     let fresh = false;
     for (const { p } of inc) if (!this.seenInc.has(p.id)) { this.seenInc.add(p.id); fresh = true; }
-    if (fresh) SFX.alert();
+    if (fresh) SFX.alert(); // 每一波新来袭（不含小摩托）只响一次短促警报
+    return;
     const rows = inc.slice(0, drones.length ? 6 : 7).map(({ p, left }) => {
       const a = G.nations[p.att];
       const tag = p.kind === 'conv' ? '<span class="lv conv">导弹</span> 💥' : `<span class="lv lv${p.lv}">${p.lv}级</span> ${p.kind === 'ufo' ? '✈' : '🚀'}`;

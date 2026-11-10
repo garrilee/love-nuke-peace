@@ -129,7 +129,6 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 .fire > svg { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); transform: rotate(-90deg); pointer-events: none; }
 .fire .track { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 4; }
 .fire .prog { fill: none; stroke: #fff; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 170; stroke-dashoffset: 170; filter: drop-shadow(0 0 4px #fff); }
-.fire.cool .prog { stroke: #ffb347; filter: drop-shadow(0 0 4px #ff9020); }
 .fire .fic { font-size: 30px; line-height: 1; filter: drop-shadow(0 0 6px rgba(0,0,0,0.5)); pointer-events: none; }
 .fire .fic svg.paper { width: 32px; height: 32px; display: block; transform: translate(1px, 1.5px); } /* 纸飞机的重心偏左上，往回挪一点看起来才居中 */
 .fire .fic svg.msl { width: 34px; height: 34px; display: block; }

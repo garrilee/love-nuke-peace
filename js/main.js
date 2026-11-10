@@ -24,9 +24,6 @@ const AMMO = {
 function playerFire(ammo, count) {
   const p = G.player, tgt = G.nations[G.target];
   if (!tgt || !tgt.alive || !p.alive || count <= 0) return 0;
-  // 导弹装填中 / 小摩托起飞间隔中：不能发（按钮是灰的），不排队
-  const cd = ammo === 'conv' ? p.convCd : ammo === 'drone' ? p.droneCd : 0;
-  if (cd > 0) return 0;
   let sent = Act.do({ a: 'fire', ammo, count, tgt: tgt.id });
   if (sent === null) sent = Math.min(count, fireMax(ammo)); // 联机客户端：命令已发给房主，按预计数量提示
   const A = AMMO[ammo];
@@ -87,7 +84,7 @@ const FIRE_LEVELS = { nuke: [1, 3, 5, 0], conv: [2, 5], drone: [5, 10, 0] };
 const Fire = {
   lvl: {},
   shown: {},        // 圆环当前画到的位置（平滑跟随）
-  mode: {},         // 圆环当前显示的是生产进度还是冷却
+  nk: {},           // 核包裹圆环：上次库存 +1 的时间、平均间隔
   init() {
     for (const ammo in FIRE_LEVELS) this.lvl[ammo] = clamp(Store.get('fireLvl-' + ammo, 0) | 0, 0, FIRE_LEVELS[ammo].length - 1);
   },
@@ -100,10 +97,10 @@ const Fire = {
     this.syncIdle();
     UI.refreshStrike();
   },
-  cooling(ammo) { const p = G.player; return ammo === 'conv' ? p.convCd > 0 : ammo === 'drone' ? p.droneCd > 0 : false; },
-  // 能不能点：有库存就能点（不够档位的数量就有几个发几个）；冷却中不行
+  // 按钮规则只有一条：有库存就能点（不够档位的数量就有几个发几个，没有装填间隔）。
+  // 没选目标时也能点，点了提示先选目标
   canFire(ammo) {
-    return G.player.alive && !this.cooling(ammo) && fireMax(ammo) >= 1;
+    return G.player.alive && fireMax(ammo) >= 1;
   },
   btns(ammo) { return [$('fire-' + ammo), $('pfire-' + ammo)].filter(Boolean); },
   // 点一下发射：all = 全部（Shift）；tgtId：地图浮窗里的按钮打浮窗上的国家（同时设为目标）
@@ -127,41 +124,46 @@ const Fire = {
       setTimeout(() => f.remove(), 800);
     }
   },
-  // 圆环：下一个的生产进度（转满一圈库存 +1）；导弹装填 / 小摩托起飞间隔中显示冷却
+  // 圆环：下一个的生产进度（转满一圈库存 +1）
   // 逻辑每 0.1 秒才走一步，这里用 G.interp 补上两步之间流逝的时间，圆环每帧都在动
   progress(ammo) {
     const p = G.player, dt = G.speed > 0 ? (G.interp || 0) : 0;
     const timer = (left, total) => clamp(1 - (left - dt) / total, 0, 1);
     if (ammo === 'conv') {
-      if (p.convCd > 0) return [timer(p.convCd, CONV.cd), 'cool']; // 冷却也是顺时针转满，不倒着转
-      return [p.conv >= CONV.stockCap || p.convBuildT <= 0 ? 1 : timer(p.convBuildT, CONV.buildTime), 'build'];
+      return p.conv >= CONV.stockCap || !(p.convBuildT > 0) ? 1 : timer(p.convBuildT, CONV.buildTime); // 开局时计时还没有值：按满圈处理
     }
     if (ammo === 'drone') {
-      if (p.droneCd > 0) return [timer(p.droneCd, DRONE.cd), 'cool'];
-      return [p.drones >= DRONE.stockCap || p.droneBuildT <= 0 ? 1 : timer(p.droneBuildT, DRONE.buildTime), 'build'];
+      return p.drones >= DRONE.stockCap || !(p.droneBuildT > 0) ? 1 : timer(p.droneBuildT, DRONE.buildTime);
     }
-    const lv = bestLevel(p);
-    if (!lv) return [0, 'build'];
-    return [stock(p) >= 30 ? 1 : clamp(p.bank / PARCELS[Math.min(lv, 4)].cost, 0, 1), 'build'];
+    // 核包裹：预算还要分给火箭、潜航器，攒钱进度会忽多忽少。改按"距离上次库存 +1 过了多久 ÷ 平均间隔"来转，
+    // 一直匀速往前走，库存 +1 时重新开始
+    if (!bestLevel(p)) return 0; // 还没研发：不生产
+    const st = stock(p), now = G.t + dt, k = this.nk;
+    if (k.t === undefined || now < k.t) { k.t = now; k.st = st; }
+    if (st > k.st && now - k.t > 0.05) { // 库存增加（同一步买了好几个只算一次）
+      const gap = now - k.t;
+      k.ema = k.ema ? clamp(k.ema * 0.6 + gap * 0.4, 1.5, 30) : clamp(gap, 1.5, 30);
+      k.t = now;
+    }
+    k.st = st;
+    if (st >= 30) return 1;
+    const x = (now - k.t) / (k.ema || 8); // 比平均慢时不会顶住不动，而是越转越慢地逼近满圈
+    return x < 0.85 ? Math.max(0, x) : 0.85 + 0.14 * (1 - Math.exp(-(x - 0.85) * 4));
   },
   tick(real = 0) {
     const p = G.player;
     if (!p.alive) return;
     for (const ammo of ['nuke', 'conv', 'drone']) {
-      const [target, mode] = this.progress(ammo);
+      const target = this.progress(ammo);
       let v = this.shown[ammo];
-      // 换了显示内容（生产 ↔ 冷却），或者转满一圈又从头开始：直接跳过去，不倒着转回去
-      if (v === undefined || mode !== this.mode[ammo] || target < v - 0.2) v = target;
-      else v += (target - v) * Math.min(1, real * 14); // 其余时候平滑跟随，消掉逻辑步的台阶感
-      this.shown[ammo] = v; this.mode[ammo] = mode;
-      // 每帧更新能不能点：冷却一结束、库存一够就立刻亮起来
-      const tg = G.nations[G.target], can = this.canFire(ammo);
-      const dMain = !(tg && tg.alive && tg !== p) || !can, mainBtn = $('fire-' + ammo), popBtn = $('pfire-' + ammo);
-      if (mainBtn && mainBtn.disabled !== dMain) mainBtn.disabled = dMain;
-      if (popBtn && popBtn.disabled !== !can) popBtn.disabled = !can;
+      // 转满一圈又从头开始：直接跳回起点；其余时候只往前走、不往回退（数据抖一下也不会反转），并平滑跟随
+      if (!Number.isFinite(v) || target < v - 0.25) v = target;
+      else if (target > v) v += (target - v) * Math.min(1, real * 14);
+      this.shown[ammo] = v;
+      const dis = !this.canFire(ammo); // 每帧更新：库存一有就立刻亮起来
       for (const el of this.btns(ammo)) {
+        if (el.disabled !== dis) el.disabled = dis;
         setStyle(el.querySelector('.prog'), 'strokeDashoffset', (170 * (1 - v)).toFixed(1));
-        el.classList.toggle('cool', mode === 'cool');
       }
     }
   },
@@ -191,7 +193,7 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null)
   Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
   for (const t of G.newsQueue) UI.addFeed(t);
   G.target = -1;
-  Fire.shown = {}; Fire.mode = {};
+  Fire.shown = {}; Fire.nk = {};
   SFX.music(true);
   running = true;
 }
