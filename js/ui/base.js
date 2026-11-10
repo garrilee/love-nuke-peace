@@ -5,7 +5,11 @@ const $ = (id) => document.getElementById(id);
 // 只在内容真的变了才写 DOM：HUD 每 0.15 秒刷新一次，没变的部分不再重新渲染
 // （不能拿 el.innerHTML 来比较：浏览器会把 HTML 重新格式化，导致每次都"不一样"）
 // 小摩托的图标：纸飞机（没有现成的纸飞机 emoji，用一个小 SVG）
+// 武器图标：纸飞机（小摩托，机头朝左上）、导弹（弹头朝左上）。页面里用 <i data-icon="…"> 占位，加载时换成这里的 SVG
 const PAPER = '<svg class="paper" viewBox="0 0 24 24" aria-hidden="true"><path class="wing" d="M3.8 3.3 19.4 9 15.7 12.6z"/><path class="body" d="M3.8 3.3 15.7 12.6 13.1 15.3z"/><path class="wing2" d="M3.8 3.3 13.1 15.3 9.5 18.9z"/><path class="crease" d="M3.8 3.3 14.4 13.9"/></svg>';
+const MISSILE = '<svg class="msl" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><path class="flame" d="M10.6 19.2 12 23.6 13.4 19.2z"/><path class="fin" d="M10 14.5 6.8 18.6V20l3.2-1.6zM14 14.5l3.2 4.1V20L14 18.4z"/><path class="hull" d="M12 1.6c1.5 1.4 2 3.4 2 5.6v12H10v-12c0-2.2.5-4.2 2-5.6z"/><path class="nose" d="M12 1.6c1.5 1.4 2 3.4 2 5.6H10c0-2.2.5-4.2 2-5.6z"/><path class="band" d="M10 12.2h4v1.3h-4z"/></g></svg>';
+const ICONS = { paper: PAPER, missile: MISSILE };
+for (const el of document.querySelectorAll('[data-icon]')) el.outerHTML = ICONS[el.dataset.icon] || '';
 const setHTML = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
 const setText = (el, t) => { t = String(t); if (el._t !== t) { el._t = t; el.textContent = t; } };
 const setStyle = (el, prop, v) => { const k = '_s_' + prop; if (el[k] !== v) { el[k] = v; el.style[prop] = v; } };
@@ -319,145 +323,6 @@ const UI = {
     setStyle($('cd-' + key), 'width', Math.round(clamp(frac, 0, 1) * 100) + '%');
   },
 
-  refreshStrike() {
-    const p = G.player;
-    const tgt = G.nations[G.target];
-    const hasT = !!(tgt && tgt.alive);
-    // 目标按钮 + 地图上方目标条
-    $('pickTarget').classList.toggle('set', hasT);
-    const tHtml = hasT ? `<span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span> <span class="small dim">👥${fmtPop(totalPop(tgt))}</span>` : '未选择 · 点击选择';
-    setHTML($('targetName'), tHtml);
-    const badge = $('targetBadge');
-    badge.classList.toggle('hidden', !hasT || !p.alive);
-    const bHtml = hasT ? `<span class="lbl">🎯 打击目标</span><span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span>` : '';
-    setHTML(badge, bHtml);
-
-    // 核包裹
-    setText($('ct-nuke'), stock(p));
-    setText($('sub-nuke'), stock(p) ? '有库存就能发射' : '生产中');
-    // 导弹：库存上限 10，一次最多 5 枚
-    setText($('ct-conv'), p.conv);
-    setText($('sub-conv'), p.conv < CONV.stockCap && p.convBuildT > 0 ? `生产中 · 上限 ${CONV.stockCap}` : `一次最多 ${CONV.perLaunch} 枚`);
-    // 小摩托：库存上限 20，一次发射不限
-    setText($('ct-drone'), p.drones);
-    setText($('sub-drone'), p.drones < DRONE.stockCap && p.droneBuildT > 0 ? `生产中 · 上限 ${DRONE.stockCap}` : `上限 ${DRONE.stockCap} · 慢但难拦`);
-
-    Fire.syncIdle(); // 按钮能不能点由 Fire.tick 每帧统一更新
-
-    let st;
-    if (!hasT) st = '点击地图上的敌国，或按 Tab 选目标';
-    else st = '点圆形按钮发射 · 左边 ×N 切换每次数量';
-    setHTML($('strikeTarget'), st);
-  },
-
-  openChooser() {
-    if (!G.player.alive) return;
-    $('chooser').classList.remove('hidden');
-    this.renderChooser();
-    SFX.click();
-  },
-  closeChooser() {
-    $('chooser').classList.add('hidden');
-    G.selTarget = -1;
-  },
-  chooserTargets() { return G.nations.filter((x) => x.alive && x !== G.player); },
-  renderChooser() {
-    const p = G.player;
-    setText($('chooserInfo'), '选定后，地图上方会显示目标，点开火按钮即可打击。');
-    const list = $('chooserList');
-    const targets = this.chooserTargets();
-    const sig = targets.map((t) => t.id).join(',');
-    if (list.dataset.sig !== sig) {
-      list.dataset.sig = sig;
-      list.innerHTML = '';
-      targets.forEach((t, i) => {
-        const d = document.createElement('div');
-        d.className = 'tcard'; d.style.setProperty('--c', t.color); d.dataset.id = t.id;
-        d.onclick = () => { setTarget(t.id); this.closeChooser(); };
-        d.onmouseenter = () => { G.selTarget = t.id; };
-        d.onmouseleave = () => { G.selTarget = -1; };
-        d.innerHTML = `<kbd class="num">${i + 1}</kbd><div class="temo">${t.race.emoji}</div><div class="tbody"></div>`;
-        list.appendChild(d);
-      });
-    }
-    list.querySelectorAll('.tcard').forEach((d) => {
-      const t = G.nations[+d.dataset.id];
-      d.classList.toggle('human', G.mp && t.isPlayer);
-      const html = this.nationInfo(t);
-      setHTML(d.querySelector('.tbody'), html);
-    });
-  },
-  // 一个国家的简要情报：选目标窗口和地图浮窗共用
-  nationInfo(t) {
-    const p = G.player, human = G.mp && t.isPlayer;
-    const tags = (human ? ' <span class="tag human">👤 玩家</span>' : '')
-      + (recentAttacker(t) ? ' <span class="tag atk">⚔ 最近攻击过你</span>' : '')
-      + (t.name !== t.race.name ? ` <span class="dim small">${t.race.emoji}${t.race.name}</span>` : '')
-      + (G.target === t.id ? ' <span class="tag tgt">🎯 当前目标</span>' : '');
-    const head = `<div class="tn"><span class="nm" title="${t.name}">${t.name}</span>${tags}</div>
-      <div class="dim">👥 ${fmtPop(totalPop(t))} · 📦 ${stock(t)} · 🔬 ${t.techIdx}/${TECHS.length}</div>`;
-    if (human) return head + '<div class="dim small">🧠 真人玩家：没有怒气条，下一步全看心情</div>';
-    const anger = clamp(t.anger[p.id] / CFG.ANGER_MAX, 0, 1);
-    return head + `<div class="anger" title="对你的怒气"><i style="width:${anger * 100}%"></i></div>
-      <div class="dim small">${anger > 0.6 ? '😡 对你非常愤怒' : anger > 0.3 ? '😠 对你不太友好' : '😐 暂时没盯上你'}</div>`;
-  },
-
-  // ---------- 地图浮窗：点击其他国家，弹出情报 + 「开始打击」 ----------
-  openMapPop(n, sx, sy) {
-    if (!n || !n.alive || n === G.player || !G.player.alive) return this.closeMapPop();
-    this.popId = n.id;
-    const el = $('mapPop');
-    el.style.setProperty('--c', n.color);
-    el.classList.remove('hidden');
-    this.renderMapPop();
-    // 放在点击位置旁边，不超出屏幕
-    const w = el.offsetWidth, h = el.offsetHeight;
-    el.style.left = clamp(sx + 14, 8, window.innerWidth - w - 8) + 'px';
-    el.style.top = clamp(sy - h / 2, 52, window.innerHeight - h - 30) + 'px';
-    G.selTarget = n.id; // 地图上高亮这个国家
-    SFX.click();
-  },
-  renderMapPop() {
-    const n = G.nations[this.popId];
-    if (!n || !n.alive || !G.player.alive) return this.closeMapPop();
-    const html = `<div class="temo">${n.race.emoji}</div><div class="tbody">${this.nationInfo(n)}</div>`;
-    setHTML($('mapPopBody'), html);
-    const p = G.player, go = $('mapPopGo'), isT = G.target === n.id;
-    go.classList.toggle('hidden', isT);
-    for (const ammo of ['nuke', 'conv', 'drone']) setText($('pct-' + ammo), ammo === 'nuke' ? stock(p) : ammo === 'conv' ? p.conv : p.drones);
-  },
-  closeMapPop() {
-    if (this.popId === undefined || this.popId < 0) return;
-    if (G && G.selTarget === this.popId) G.selTarget = -1;
-    this.popId = -1;
-    $('mapPop').classList.add('hidden');
-  },
-  popOpen() { return this.popId >= 0; },
-
-  refreshIncoming() {
-    const all = incomingFor(G.player);
-    const inc = all.filter((x) => isThreat(x.p)), drones = all.filter((x) => !isThreat(x.p));
-    const box = $('incoming');
-    SFX.tension(inc.length > 0);
-    // 地图上方的「包裹来袭」弹框已去掉，只保留警报声
-    if (!box.classList.contains('hidden')) box.classList.add('hidden');
-    document.body.classList.remove('inc-on');
-    let fresh = false;
-    for (const { p } of inc) if (!this.seenInc.has(p.id)) { this.seenInc.add(p.id); fresh = true; }
-    if (fresh) SFX.alert(); // 每一波新来袭（不含小摩托）只响一次短促警报
-    return;
-    const rows = inc.slice(0, drones.length ? 6 : 7).map(({ p, left }) => {
-      const a = G.nations[p.att];
-      const tag = p.kind === 'conv' ? '<span class="lv conv">导弹</span> 💥' : `<span class="lv lv${p.lv}">${p.lv}级</span> ${p.kind === 'ufo' ? '✈' : '🚀'}`;
-      return `<div class="inc"><span style="color:${a.color}">${a.race.emoji}${a.name}</span> ${tag} <b class="mono">${left.toFixed(1)}s</b></div>`;
-    }).join('');
-    // 小摩托合并成一行：一群一群慢慢飞，逐个列出来太占地方
-    const dRow = drones.length ? `<div class="inc drone">${PAPER} 小摩托 ×${drones.length} <span class="dim small">近防炮自动迎击</span><b class="mono">${drones[0].left.toFixed(0)}s</b></div>` : '';
-    const title = inc.length ? `⚠ 包裹来袭 ×${inc.length}` : `${PAPER} 小摩托来袭`;
-    setHTML(box, `<div class="sect-title red">${title}</div>${rows}${dRow}
-      <div class="hint">${inc.length > netMax(G.player) || drones.length >= 10 ? '<b class="gold">来袭太多！</b>B 开护盾' : inc.length ? 'N 拦截（少量来袭）' : '近防炮会自动打小摩托'} · 或者……回敬一个</div>`);
-  },
-
   addFeed(text) {
     this.tickerItems.unshift(text);
     this.tickerItems = this.tickerItems.slice(0, 5);
@@ -481,47 +346,6 @@ const UI = {
     el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
     this.bannerTimer = 3;
   },
-
-  // ---------- 提示卡：新手引导 + “为什么挨打” ----------
-  // key：同一条提示只出一次（cd>0 时改为冷却 cd 秒后可再出）；tutorial：只在开启新手提示时显示
-  tip(key, html, { cd = 0, tutorial = false, life = 7 } = {}) {
-    if (!G || (tutorial && !G.tutorial)) return;
-    if (cd) { if (G.t < (this.tipCd[key] ?? -1e9)) return; this.tipCd[key] = G.t + cd; }
-    else { if (this.tipSeen.has(key)) return; this.tipSeen.add(key); }
-    this.tipQueue = this.tipQueue.filter((t) => t.key !== key);
-    this.tipQueue.push({ key, html, life });
-    if (this.tipQueue.length > 3) this.tipQueue.shift();
-  },
-  hideTip() { $('tip').classList.add('hidden'); this.tipCur = null; },
-  checkTips() {
-    const p = G.player;
-    if (!p.alive || G.over) return;
-    const t = G.t, U = p.race.ult;
-    // 新手引导
-    if (t > 1.5) this.tip('start', `👋 欢迎！${this.mobile() ? '左上角 📊 里的' : '左侧'}<b>国力分配</b>决定科技、核武、三防的产出。前期多投<b>科技</b>，尽快解锁核包裹。`, { tutorial: true, life: 9 });
-    if (t > 14) this.tip('conv', `💥 还没核包裹时，先用<b>常规导弹</b>骚扰：点${this.mobile() ? '下方' : '右侧'}「打击目标」选国家，点发射键发射（一次 2 枚）。`, { tutorial: true, life: 9 });
-    if (bestLevel(p)) this.tip('nuke', '☢ 核包裹解锁！选好目标后点发射按钮投送；按钮左边的 <b>×1</b> 可以切换每次 1 / 3 / 5 / 全部。点地图上的敌国也能直接打。', { tutorial: true });
-    if (incomingFor(p).length) this.tip('incoming', '⚠ 有东西飞过来了！少量来袭会<b>自动拦截</b>；来得多就开<b>护盾</b>（B）。', { tutorial: true });
-    if (p.cities.some((c) => c.ruined)) this.tip('ruin', '🏚 城市变成废墟，产出减半。开着<b>自动重建</b>会消耗能量慢慢修好。', { tutorial: true });
-    if (p.ultCd <= 0 && t >= ULT_FIRST) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, { tutorial: true, life: 9 });
-    if (t > 30 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', '🏭 <b>军工热度</b>低时核武产出打折，持续投入约 100 秒才能升满。临时转产效率很低。', { tutorial: true });
-    if (t > 50) this.tip('drone', PAPER + ' <b>小摩托</b>生产快、飞得慢、拦截弹很难打中，适合拆敌国的投送站、消耗对方的防空。按 D 或点小摩托按钮放飞（一次 5 架）。', { tutorial: true, life: 9 });
-    if (t > 300) this.tip('nolimit', '⏳ 没有时间限制，打到只剩一个国家。午夜后核弹威力会越来越大，苟是苟不住的。', { tutorial: true });
-    if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×3，人口不再加速恢复。', { tutorial: true });
-    // 局势提醒（始终开启，有冷却）
-    const alive = G.nations.filter((x) => x.alive);
-    const idle = t - Math.max(p.lastAttack, 60);
-    if (t > 90 && idle > CFG.BYSTANDER_AFTER - 15 && alive.length > 2)
-      this.tip('idle', `👀 你已经 ${Math.round(idle)} 秒没出手了。再观望下去会被当成<b>隔岸观火</b>，各国都会更恨你。`, { cd: 90 });
-    if (p.intelUntil < t && stock(p) >= CFG.INTEL_STOCK - 5 && alive.length > 2)
-      this.tip('stock', `📦 你囤了 ${stock(p)} 个核包裹。超过 ${CFG.INTEL_STOCK} 个会被情报机构<b>点名</b>，遭到围攻。`, { cd: 90 });
-    const others = alive.filter((x) => x !== p);
-    if (others.length >= 2 && p.intelUntil < t && p.techIdx - Math.max(...others.map((o) => o.techIdx)) === CFG.INTEL_TECH_LEAD - 1)
-      this.tip('techlead', '🔬 你的科技已经明显领先，再拉开差距会被情报<b>点名</b>，别光顾着闷头研发。', { cd: 120 });
-    if (others.length >= 2 && others.every((o) => totalPop(o) * 1.3 < totalPop(p)))
-      this.tip('bird', '🐦 你的人口遥遥领先，成了<b>出头鸟</b>，大家都更想打你。', { cd: 150 });
-  },
-  mobile() { return document.body.classList.contains('compact'); },
 
   tick(dt) {
     if (G && !G.over) {
@@ -564,43 +388,4 @@ const UI = {
     el.style.top = Math.min(sy + 16, window.innerHeight - 100) + 'px';
   },
 
-  showEnd(kind) {
-    const p = G.player;
-    const alive = G.nations.filter((n) => n.alive);
-    const survivor = alive[0];
-    // 排名：活着的在前，其余按坚持的时间（倒下得越晚越靠前）
-    const ranked = G.nations.slice().sort((a, b) => (b.alive - a.alive) || ((b.diedAt || 0) - (a.diedAt || 0)) || (totalPop(b) - totalPop(a)));
-    // 联机：同一个结局，每个人看到的胜负不同
-    if (G.mp && kind !== 'disconnected' && kind !== 'earth') kind = p.alive ? 'win' : 'lose';
-    let title, sub;
-    if (kind === 'disconnected') { title = '📴 连接中断'; sub = '和房主的连接断开了，这局游戏没法继续。'; }
-    else if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
-    else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
-    else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
-    else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${survivor.race.emoji}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
-    const s = p.stats;
-    const box = document.querySelector('#end .end-inner');
-    box.innerHTML = `<h1>${title}</h1><div class="slogan">${sub}</div>
-      <div class="endstats">
-        <div>用时 <b>${fmtTime(G.t)}</b></div>
-        <div>投送包裹 <b>${s.sent}</b></div>
-        <div>成功送达 <b>${s.delivered}</b></div>
-        <div>让别人少了 <b>${fmtPop(s.caused)}</b> 人口</div>
-        <div>自己少了 <b>${fmtPop(s.lost)}</b> 人口</div>
-        <div>打成烟花 <b>${s.intercepted}</b></div>
-        <div>护盾挡下 <b>${s.blocked || 0}</b></div>
-        <div>重建城市 <b>${s.rebuilt}</b></div>
-        <div>大招次数 <b>${s.ult}</b></div>
-        <div>放飞小摩托 <b>${s.dronesSent}</b></div>
-        <div>近防炮击落 <b>${s.ciwsKills}</b></div>
-        <div>空战击落 <b>${s.dogKills}</b></div>
-        <div>${p.alive ? '活到最后' : '坚持了'} <b>${fmtTime(p.alive ? G.t : p.diedAt || G.t)}</b></div>
-      </div>
-      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
-      <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
-      <button id="againBtn">再核平一次</button>`;
-    $('end').classList.remove('hidden');
-    if (G.tutorial) Store.set('tutorialDone', true);
-    $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
-  },
 };

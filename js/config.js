@@ -32,7 +32,6 @@ const CFG = {
   ANGER_HALF_LIFE: 60,    // 回落速度：约每 60 秒减半
   ATTACKER_MARK: 120,     // 最近 2 分钟内攻击过你的国家，会在地图和列表上标出来
   AI_IDLE_FORCE: 60,      // AI 超过 60 秒没出手，必须打一轮
-  SCORE_DAMAGE: 0.4,      // AI 评估威胁用：人口 + 造成伤亡 × 0.4
 
   PROD_BASE: 1.0,        // 保底产出：人口再少也有事可做
   UNDERDOG_MAX: 2.5,      // 弱势加成上限（人口低于平均时产出翻倍）
@@ -62,6 +61,7 @@ const CFG = {
   MAX_SEA: 4,             // 每国最多潜航器数
   MAX_UFO: 6,
   RUIN_PROD: 0.5,
+  STOCK_CAP: 30,          // 核包裹库存上限（到了就不再生产）
   START_PARCELS: 5,       // 每个国家开局自带 5 个 1 级核包裹（开局就能投送，不用研发）
 };
 
