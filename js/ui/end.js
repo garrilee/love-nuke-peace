@@ -36,9 +36,19 @@ Object.assign(UI, {
       </div>
       ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
-      <button id="againBtn">再核平一次</button>`;
+      ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>' : '<button id="againBtn">再核平一次</button>'}`;
     $('end').classList.remove('hidden');
     if (G.tutorial) Store.set('tutorialDone', true);
     $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
+    if ($('roomBtn')) $('roomBtn').onclick = () => Net.backToRoom();
+  },
+  // 联机：一局结束后回到开始界面的房间里（地图停止推进，连接保持）
+  showRoom() {
+    running = false;
+    SFX.music(false); SFX.tension && SFX.tension(false);
+    for (const id of ['hud', 'end', 'mapPop', 'tooltip', 'tip', 'countdown', 'leader', 'banner']) $(id).classList.add('hidden');
+    document.body.classList.remove('mp', 'mphost');
+    $('start').classList.remove('hidden');
+    $('start').scrollTop = 0;
   },
 });

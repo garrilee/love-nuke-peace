@@ -129,7 +129,7 @@ const Net = {
         const code = this.newCode();
         const peer = new Peer(ROOM_PREFIX + code);
         peer.on('open', () => {
-          Object.assign(this, { peer, role: 'host', code, myId: 'host', started: false, players: [{ id: 'host', race, host: true, name: cleanName(Lobby.nick()) }] });
+          Object.assign(this, { peer, role: 'host', code, myId: 'host', started: false, players: [{ id: 'host', race, host: true, name: cleanName(Lobby.nick()), back: true }] });
           peer.on('connection', (c) => this.onConn(c));
           resolve(code);
         });
@@ -152,7 +152,7 @@ const Net = {
         return;
       }
       this.conns.set(conn.peer, conn);
-      this.players.push({ id: conn.peer, race: null });
+      this.players.push({ id: conn.peer, race: null, back: true });
       SFX.click && SFX.ctx && SFX.click();
       this.broadcastLobby();
     });
@@ -163,14 +163,17 @@ const Net = {
   onHostMsg(conn, m) {
     const pl = this.players.find((p) => p.id === conn.peer);
     if (!pl || !m) return;
-    if (m.type === 'pick' && !this.started) {
+    const inRoom = !this.started || pl.back;
+    if (m.type === 'pick' && inRoom) {
       if (RACES.some((r) => r.id === m.race)) pl.race = m.race; // 可以和别人选同一个国家
       if (m.name !== undefined) pl.name = this.uniqueName(pl, m.name);
       this.broadcastLobby();
-    } else if (m.type === 'name' && !this.started) {
+    } else if (m.type === 'name' && inRoom) {
       pl.name = this.uniqueName(pl, m.name);
       this.broadcastLobby();
-    } else if (m.type === 'cmd' && this.started && G) {
+    } else if (m.type === 'back') { // 打完一局，回到房间等下一局
+      if (!this.started || (G && G.over)) { pl.back = true; this.broadcastLobby(); }
+    } else if (m.type === 'cmd' && this.started && G && !pl.back) {
       const n = G.nations.find((x) => x.netId === conn.peer);
       if (n && n.isPlayer) execCmd(n, m.cmd);
     }
@@ -178,7 +181,7 @@ const Net = {
   onLeave(id) {
     const had = this.conns.delete(id);
     this.players = this.players.filter((p) => p.id !== id);
-    if (this.started && G) { // 掉线：由 AI 接管
+    if (this.started && G && !G.over) { // 掉线：由 AI 接管
       const n = G.nations.find((x) => x.netId === id);
       if (n && n.isPlayer) {
         n.isPlayer = false; n.pers = 'steady'; n.aiNext = 1; n.retaliate = null;
@@ -187,7 +190,7 @@ const Net = {
     } else if (had) this.broadcastLobby();
   },
   broadcastLobby() {
-    const players = this.players.map((p) => ({ id: p.id, race: p.race, host: !!p.host, name: p.name || '' }));
+    const players = this.players.map((p) => ({ id: p.id, race: p.race, host: !!p.host, name: p.name || '', back: !!p.back }));
     for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, you: c.peer });
     Lobby.render();
   },
@@ -202,17 +205,32 @@ const Net = {
   },
   hostName(name) { this.players[0].name = this.uniqueName(this.players[0], name); this.broadcastLobby(); },
   setOpts(aiCount, diff, speed = this.speed) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.broadcastLobby(); },
-  canStart() { return this.players.length > 0 && this.players.every((p) => p.race); },
+  canStart() { return !this.started && this.players.length > 0 && this.players.every((p) => p.race && p.back); },
   hostStart(tutorial) {
     const players = this.players.map((p) => ({ race: p.race, id: p.id, name: p.name || '' }));
     const aiCount = clamp(this.aiCount, players.length > 1 ? 0 : 1, MAX_NATIONS - players.length);
     this.started = true;
+    for (const p of this.players) p.back = false;
     this.evQ = []; this.snapT = 0;
     startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' });
     G.speed = this.speed;
     const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, owners: G.owners, names: G.names, diff: this.diff, speed: this.speed };
     for (const c of this.conns.values()) if (c.open) c.send(msg);
     this.startTicker();
+  },
+  // 一局打完回到房间（连接保持，所有人回来后房主可以开下一局）
+  backToRoom() {
+    if (this.role === 'host') {
+      this.started = false; this.evQ = [];
+      this.players[0].back = true;
+      UI.showRoom();
+      this.broadcastLobby();
+    } else if (this.role === 'client') {
+      this.started = false;
+      this.send({ type: 'back' });
+      UI.showRoom();
+      Lobby.render();
+    }
   },
   // 每帧：转发事件；每 0.1 秒发一次快照
   hostTick(real) {
@@ -302,7 +320,7 @@ const Net = {
       this.leave(true); Lobby.error(m.reason); Lobby.render();
     } else if (m.type === 'start') {
       const me = this.players.find((p) => p.id === this.myId);
-      if (!me || !me.race) return;
+      if (!me || !me.race || this.started) return;
       this.started = true;
       startGame(me.race, 0, m.diff, Lobby.tutorial(), { seed: m.seed, raceIds: m.raceIds, owners: m.owners, names: m.names, me: this.myId });
     } else if (m.type === 'snap') {
@@ -320,6 +338,7 @@ const Net = {
     const inGame = this.started && G && !G.over;
     this.leave(true);
     if (inGame) { G.over = 'disconnected'; UI.showEnd('disconnected'); }
+    else if (!$('end').classList.contains('hidden')) UI.showEnd('disconnected');
     else { Lobby.error('和房主的连接断开了'); Lobby.render(); }
   },
   // 客户端每帧：本地推进时间和飞弹进度，让画面平滑；下一份快照到达时校正
@@ -481,7 +500,7 @@ const Lobby = {
       const r = RACES.find((x) => x.id === p.race), nm = cleanName(p.name);
       return `<div class="mp-pl${p.id === Net.myId ? ' me' : ''}" style="--c:${r ? r.color : '#7f93aa'}">
         <span class="emo">${r ? r.emoji : '❔'}</span><b>${nm || (r ? r.name : '还没选国家')}</b>${nm && r ? `<span class="dim small">${r.name}</span>` : ''}
-        ${p.host ? '<span class="tag">房主</span>' : ''}${p.id === Net.myId ? '<span class="tag me">你</span>' : ''}</div>`;
+        ${p.back ? '' : '<span class="tag wait">结算中</span>'}${p.host ? '<span class="tag">房主</span>' : ''}${p.id === Net.myId ? '<span class="tag me">你</span>' : ''}</div>`;
     }).join('');
     const humans = Net.players.length;
     const ai = clamp(Net.aiCount, humans > 1 ? 0 : 1, MAX_NATIONS - humans);
@@ -490,7 +509,7 @@ const Lobby = {
     if (Net.role === 'host') {
       const ok = Net.canStart();
       btn.disabled = !ok;
-      btn.textContent = ok ? `开始联机（${humans} 人 + ${ai} 个 AI）` : '等待所有人选好国家…';
+      btn.textContent = ok ? `开始联机（${humans} 人 + ${ai} 个 AI）` : Net.players.some((p) => !p.back) ? '等待所有人回到房间…' : '等待所有人选好国家…';
       $('mpHint').textContent = humans < 2 ? '把房间码或邀请链接发给朋友，对方点「加入」即可。' : '所有人选好国家后，由你开始游戏。';
     } else {
       btn.disabled = true;

@@ -370,6 +370,11 @@ body.compact .endstats b { font-size: 18px; }
 .mp-pl.me { box-shadow: 0 0 12px var(--c); }
 .tag.me { background: var(--gold); }
 .tag.human { background: #ff9a5a; }
+.tag.wait { background: #5a6a80; color: #dfe8f3; }
+.endbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#roomBtn { font-size: 18px; padding: 10px 28px; margin-top: 8px; letter-spacing: 2px; font-weight: 900;
+  background: linear-gradient(180deg, rgba(220,60,30,0.9), rgba(140,20,10,0.9)); border-color: #ff7b5b; box-shadow: 0 0 22px rgba(255,80,40,0.6); }
+#againBtn.ghost { font-size: 15px; padding: 10px 20px; letter-spacing: 1px; font-weight: 600; background: transparent; border: 1px solid #5a6a80; color: #b8c6d6; box-shadow: none; }
 .mp-name { margin-top: 8px; }
 #mpName { width: 230px; max-width: 70vw; background: #0a1626; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; user-select: text; }
 .mp-pl .small { margin-left: -2px; }
