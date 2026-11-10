@@ -63,7 +63,6 @@ const NET_EVENTS = {
   },
   scramble: { enc: encProj, dec: (a) => projFor(a) },
   guardGone: { enc: encProj, dec: (a) => { const p = projFor(a); setTimeout(() => dropProj(p), 0); return p; } },
-  ciws: { enc: (e) => [e.n.id, encProj(e.p), e.hit ? 1 : 0], dec: ([i, a, hit]) => { const p = projFor(a); if (hit) setTimeout(() => dropProj(p), 0); return { n: G.nations[i], p, hit: !!hit }; } },
   cityHit: { enc: (e) => [e.city.id, r2(e.loss)], dec: ([ci, loss]) => ({ city: G.world.cities[ci], loss }) },
   facDown: { enc: (f) => f.id, dec: (i) => G.world.facilities[i] },
   ult: { enc: (e) => [e.n.id, e.tgt ? e.tgt.id : -1], dec: ([a, b]) => ({ n: G.nations[a], tgt: NO(b) }) },
@@ -267,7 +266,7 @@ const Net = {
       n: G.nations.map((n) => ({
         a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
-        dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aC: n.autoCiws ? 1 : 0, aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
+        dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
         uC: r1(n.ultCd), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
@@ -360,7 +359,7 @@ const Net = {
         ultCd: d.uC, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
         autoNet: !!d.aN, autoRebuild: !!d.aR, rocketEra: !!d.re,
-        drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoCiws: !!d.aC, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,
+        drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,
       });
       d.pc.forEach((v, k) => { n.parcels[k + 1] = v; });
       n.subs = d.sb.map(([st, ti, rk]) => ({ state: SUB_STATES[st], tile: W.tiles[ti], rockets: rk, timer: 0 }));

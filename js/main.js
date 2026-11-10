@@ -50,7 +50,7 @@ function execCmd(n, c) {
       if (s > 0 && t >= 0 && k >= 0 && d >= 0) n.alloc = { tech: t / s, nuke: k / s, def: d / s };
       return 1;
     }
-    case 'toggle': if (['autoNet', 'autoRebuild', 'autoCiws', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
+    case 'toggle': if (['autoNet', 'autoRebuild', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;
 }
@@ -115,7 +115,6 @@ Bus.on('midnight', () => SFX.bell());
 Bus.on('dogfight', ({ a, b }) => {
   if (a.att === G.player.id || b.att === G.player.id) UI.tip('dogfight', `${PAPER} <b>空战！</b>不同国家的小摩托在空中相遇会互相攻击；敌方小摩托飞进国土时，你库存里的小摩托会自动<b>升空拦截</b>（最多 2 架，起飞就消耗，追到底）。`, { tutorial: true, life: 9 });
 });
-Bus.on('ciws', ({ n, hit }) => { if (n === G.player && hit) UI.tip('ciws', '🔫 <b>近防炮</b>自动打下了一架小摩托。它和护盾共用能量，但能量不够开护盾时会自动停火。', { tutorial: true }); });
 Bus.on('intel', (x) => {
   if (x !== G.player) return;
   UI.banner('🕵 你的动向已被各国情报机构察觉！准备迎接围攻');

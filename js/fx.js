@@ -55,7 +55,6 @@ const FX = {
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));
     Bus.on('ult', (e) => this.onUlt(e));
     Bus.on('droneExplode', (e) => this.onDroneExplode(e));
-    Bus.on('ciws', (e) => this.onCiws(e));
     Bus.on('dogfight', (e) => this.onDogfight(e));
     Bus.on('scramble', (g) => this.part({ x: g.fx, y: g.fy, life: 0.35, size: 4, grow: 6, sprite: this.S.cyan }));
     Bus.on('guardGone', (g) => { // 拦截的小摩托在空中自毁：一小团火花
@@ -145,25 +144,6 @@ const FX = {
     const near = att === G.player || tile.owner === (G.player && G.player.id);
     if (near) SFX.blast(false);
   },
-  // 近防炮：从最近的城市/设施朝无人机打出一串曳光弹，打中时空中一团火花
-  onCiws({ n, p, hit }) {
-    const q = Render.projPos(p);
-    let src = null, bd = Infinity;
-    for (const c of n.cities) { if (c.ruined) continue; const d = Math.hypot(c.tile.x - q.x, c.tile.y - q.y); if (d < bd) { bd = d; src = c.tile; } }
-    for (const f of n.facilities) { if (!f.alive) continue; const d = Math.hypot(f.tile.x - q.x, f.tile.y - q.y); if (d < bd) { bd = d; src = f.tile; } }
-    if (!src) return;
-    this.tracers.push({ x1: src.x, y1: src.y - 2, x2: q.x + (hit ? 0 : (Math.random() - 0.5) * 10), y2: q.y + (hit ? 0 : (Math.random() - 0.5) * 8), age: 0, life: 0.22 });
-    this.part({ x: src.x, y: src.y - 2, life: 0.12, size: 3, sprite: this.S.warm });
-    if (hit) {
-      this.part({ x: q.x, y: q.y, life: 0.25, size: 7, grow: 10, sprite: this.S.white });
-      for (let i = 0; i < 8; i++) {
-        const a = Math.random() * Math.PI * 2, v = 15 + Math.random() * 30;
-        this.part({ x: q.x, y: q.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.3 + Math.random() * 0.4, size: 1 + Math.random(), sprite: this.S.orange, grav: 40, drag: 2 });
-      }
-    }
-    if (n === G.player) SFX.ciws && SFX.ciws(hit);
-  },
-
   // 空战：两架小摩托互射短曳光，被击落的冒一团火花
   onDogfight({ a, b, ka, kb }) {
     const A = Render.projPos(a), B = Render.projPos(b);
@@ -511,7 +491,7 @@ const FX = {
   },
 
   drawAir(ctx) {
-    // 近防炮曳光弹：一串短亮线
+    // 空战曳光弹：一串短亮线
     ctx.globalCompositeOperation = 'lighter';
     if (this.tracers.length) {
       ctx.lineWidth = 1;

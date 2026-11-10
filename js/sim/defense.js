@@ -1,24 +1,6 @@
-// ===================== 模拟·防御：近防炮、空战、拦截锁定、护盾/拦截技能、大招、重建 =====================
+// ===================== 模拟·防御：空战、拦截锁定、护盾/拦截技能、大招、重建 =====================
 'use strict';
 
-// ---------- 近防炮：自动打飞进本国领土的无人机 ----------
-// 和护盾共用能量，但能量低于开一次护盾所需时自动停火，护盾永远开得出来
-function stepCiws(n, dt) {
-  n.ciwsT = Math.max(0, n.ciwsT - dt);
-  if (n.ciwsT > 0 || (n.isPlayer && !n.autoCiws) || n.hackT > 0) return;
-  if (n.energy - CIWS.cost < COSTS.shield) return;
-  let best = null, bestLeft = Infinity;
-  for (const p of G.projectiles) {
-    if (p.kind !== 'drone' || p.tgt !== n.id || !p.launched || p.done || !nearHome(p, n)) continue;
-    const left = p.delay + p.flight - p.t;
-    if (left < bestLeft) { bestLeft = left; best = p; }
-  }
-  if (!best) return;
-  n.energy -= CIWS.cost; n.ciwsT = CIWS.interval;
-  const hit = chance(CIWS.hit * (n.mods.ciws || 1));
-  Bus.emit('ciws', { n, p: best, hit });
-  if (hit) { best.done = true; n.stats.ciwsKills++; }
-}
 // ---------- 空战：小摩托互打 + 升空拦截 ----------
 // 空中位置：来袭的小摩托沿直线飞（和画面一致，忽略轻微摆动）；升空拦截的小摩托记录自己的坐标
 function airPos(p) {

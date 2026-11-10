@@ -27,7 +27,7 @@ Object.assign(UI, {
     if (t > 30 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', '🏭 <b>军工热度</b>低时核武产出打折，持续投入约 100 秒才能升满。临时转产效率很低。', { tutorial: true });
     if (t > 50) this.tip('drone', PAPER + ' <b>小摩托</b>生产快、飞得慢、拦截弹很难打中，适合拆敌国的投送站、消耗对方的防空。按 D 或点小摩托按钮放飞（一次 5 架）。', { tutorial: true, life: 9 });
     if (t > 300) this.tip('nolimit', '⏳ 没有时间限制，打到只剩一个国家。午夜后核弹威力会越来越大，苟是苟不住的。', { tutorial: true });
-    if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×3，人口不再加速恢复。', { tutorial: true });
+    if (!G.midnight && CFG.MIDNIGHT - t < 30) this.tip('midnight', '🕛 30 秒后<b>午夜狂欢</b>：包裹威力 ×1.5、核武预算 ×4，人口不再加速恢复。', { tutorial: true });
     // 局势提醒（始终开启，有冷却）
     const alive = G.nations.filter((x) => x.alive);
     const idle = t - Math.max(p.lastAttack, 60);

@@ -30,7 +30,6 @@ Object.assign(UI, {
         <div>重建城市 <b>${s.rebuilt}</b></div>
         <div>大招次数 <b>${s.ult}</b></div>
         <div>放飞小摩托 <b>${s.dronesSent}</b></div>
-        <div>近防炮击落 <b>${s.ciwsKills}</b></div>
         <div>空战击落 <b>${s.dogKills}</b></div>
         <div>${p.alive ? '活到最后' : '坚持了'} <b>${fmtTime(p.alive ? G.t : p.diedAt || G.t)}</b></div>
       </div>

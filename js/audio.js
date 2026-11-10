@@ -153,7 +153,7 @@ const SFX = {
     }
   },
   siren() {}, // 兼容旧调用
-  ciws(hit) {
+  ciws(hit) { // 空战交火声（原近防炮音效）
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     for (let i = 0; i < 3; i++) this._noise(this.white, t + i * 0.04, 0.03, 'bandpass', 2400, 1800, 0.04, 0.001);

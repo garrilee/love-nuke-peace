@@ -12,7 +12,8 @@ const CFG = {
   ESC_STEP: 0.15,         // 核弹威力再 +15%（午夜时为 ×1.5）
   ESC_MAX: 2.5,           // 最多 ×2.5
   PROD_PER_POP: 0.03,
-  NUKE_MUL: 2.3,          // 核武预算倍率
+  NUKE_MUL: 1.7,          // 核武预算倍率
+  MIDNIGHT_PROD: 4,       // 午夜后核武产出 ×4（后期火力和前期分开调，避免僵持）
   // 军工热度：持续投入核武，工厂越来越“热”，生产效率越高；突然转产的工厂是“冷”的
   HEAT_FULL_AT: 0.4,      // 核武分配达到 40% 时热度目标为满
   HEAT_UP: 100,           // 从冷到满热约 100 秒
@@ -79,18 +80,18 @@ const TECHS = [
 
 // 包裹等级（纯游戏数值）
 const PARCELS = {
-  1: { name: '普通件', r: 0, dmg: 0.46, cost: 12, fizzle: 0.12, fx: 0.8, color: '#ffd27a' },
-  2: { name: '次日达', r: 1, dmg: 0.62, cost: 14, fizzle: 0.06, fx: 1.3, color: '#ffb35a' },
-  3: { name: '当日达', r: 1, dmg: 0.77, cost: 16, fizzle: 0.04, fx: 1.9, color: '#ff8a4a' },
-  4: { name: '闪送',   r: 2, dmg: 0.90, cost: 20, fizzle: 0.03, fx: 2.7, color: '#ff6ad5', rainbow: true },
-  5: { name: '东风',   r: 3, dmg: 0.95, cost: 60, fizzle: 0.03, fx: 4.0, color: '#ffffff', ultimate: true },
+  1: { name: '普通件', r: 0, dmg: 0.30, cost: 12, fizzle: 0.12, fx: 0.8, color: '#ffd27a' },
+  2: { name: '次日达', r: 1, dmg: 0.42, cost: 14, fizzle: 0.06, fx: 1.3, color: '#ffb35a' },
+  3: { name: '当日达', r: 1, dmg: 0.58, cost: 16, fizzle: 0.04, fx: 1.9, color: '#ff8a4a' },
+  4: { name: '闪送',   r: 2, dmg: 0.75, cost: 20, fizzle: 0.03, fx: 2.7, color: '#ff6ad5', rainbow: true },
+  5: { name: '东风',   r: 3, dmg: 0.90, cost: 60, fizzle: 0.03, fx: 4.0, color: '#ffffff', ultimate: true },
 };
 
 // 常规导弹：不需要科技，便宜、飞得快、冷却短，但威力小、没有蘑菇云
 const CONV = {
   cost: 5,            // 每枚预算（核包裹 12~60 + 运载工具）
   buildTime: 4,       // 每枚生产耗时（秒）
-  dmg: 0.15,          // 命中城市损失 15% 人口
+  dmg: 0.20,          // 命中城市损失 20% 人口
   facChance: 0.45,    // 命中设施时 45% 打宕机
   cd: 3,              // 齐射冷却（秒）
   flight: [4, 6],     // 飞行时间
@@ -127,13 +128,6 @@ const GUARD = {
   leash: 10,          // 追出起飞点 10 格以上就放弃（自毁）
   every: 1.5,         // 每 1.5 秒最多起飞 1 架
 };
-// 近防炮：自动打飞进本国领土的无人机，和护盾共用能量，但永远给护盾留够能量
-const CIWS = {
-  interval: 0.8,      // 每 0.8 秒开一炮
-  hit: 0.25,          // 命中率
-  cost: 0.6,          // 每炮耗能
-};
-
 const COSTS = { rocket: 15, sea: 70, ufo: 20, facility: 15, rebuild: 10, shield: 40, net: 18 };
 
 const SKILLS = {

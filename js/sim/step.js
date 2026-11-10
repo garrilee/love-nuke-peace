@@ -8,7 +8,7 @@ function simStep(dt) {
   for (const n of G.nations) if (n.alive) stepNation(n, dt);
   stepProjectiles(dt);
   stepAir(dt);
-  for (const n of G.nations) if (n.alive) { stepCiws(n, dt); scramble(n, dt); }
+  for (const n of G.nations) if (n.alive) scramble(n, dt);
   stepTiles(dt);
   stepEvents();
   for (const n of G.nations) if (n.alive && !n.isPlayer) aiStep(n, dt);
@@ -38,7 +38,7 @@ function stepNation(n, dt) {
   const heatTarget = clamp(n.alloc.nuke / CFG.HEAT_FULL_AT, 0, 1);
   const heatRate = (heatTarget > n.heat ? 1 / CFG.HEAT_UP : 1 / CFG.HEAT_DOWN) * dt;
   n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
-  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * (G.midnight ? 3 : 1) * dt);
+  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * (G.midnight ? CFG.MIDNIGHT_PROD : 1) * dt);
   n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
   autoBuild(n);
 
