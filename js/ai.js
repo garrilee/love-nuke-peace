@@ -88,11 +88,12 @@ function aiStep(n, dt) {
     if (!x.alive || x === n) continue;
     let s = n.anger[x.id] + threatOf(x, maxPop) + rnd(0, 15);
     if (x.race.boss) s += BOSS_CFG.hate + (isChaos(x) ? BOSS_CFG.chaosHate : 0); // 三体人：大家的共同威胁，乱纪元时围攻
+    if (n.race.boss) s += Math.max(0, BOSS_CFG.neighborHate - capDist(n, x) * 2); // 三体人：压迫周边，离得越近越先打
     if (s > best) { best = s; tgt = x; }
   }
   if (!tgt) return;
   aiUlt(n, tgt, 'think');
-  const aggro = P.aggro * G.diff.aggro;
+  const aggro = P.aggro * G.diff.aggro * (n.race.boss ? BOSS_CFG.aggro : 1);
   const D = deliverable(n, { pad: true, sea: true, ufo: true });
   // 常规导弹骚扰：便宜、频繁；佛系不主动，记仇只打仇人
   if (n.convCd <= 0 && n.conv >= 2 && G.t > 40 && n.pers !== 'zen') {
@@ -127,7 +128,7 @@ function aiStep(n, dt) {
   else if (tgt.intelUntil > G.t && D >= 2) { fire = true; scale = D >= 6 ? 2 : 1; } // 情报点名：先下手为强
   else if (n.pers === 'crazy' && G.t > P.start && chance(0.08 * G.diff.aggro)) { fire = true; scale = rndi(0, 2); tgt = pick(G.nations.filter((x) => x.alive && x !== n)); }
   else if (n.pers === 'grudge' && n.lastAttacker >= 0 && G.nations[n.lastAttacker].alive && D >= 2) { fire = chance(0.35); scale = 2; tgt = G.nations[n.lastAttacker]; }
-  else if (G.t > P.start && D >= 2 && chance(0.35 * aggro)) { fire = true; scale = D >= 8 ? 2 : 1; }
+  else if (G.t > P.start && D >= 2 && chance(0.35 * aggro)) { fire = true; scale = D >= 8 || n.race.boss ? 2 : 1; }
 
   if (fire) {
     if (D >= 3) aiUlt(n, tgt, 'fire'); // 鱼叉、赛博朋克：开火前先放大招

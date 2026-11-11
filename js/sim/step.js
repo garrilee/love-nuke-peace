@@ -40,7 +40,7 @@ function stepNation(n, dt) {
   const heatTarget = clamp(n.alloc.nuke / CFG.HEAT_FULL_AT, 0, 1);
   const heatRate = (heatTarget > n.heat ? 1 / CFG.HEAT_UP : 1 / CFG.HEAT_DOWN) * dt;
   n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
-  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * (G.midnight ? CFG.MIDNIGHT_PROD : 1) * dt);
+  n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * midnightProd() * dt);
   n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
   autoBuild(n);
 
@@ -167,14 +167,14 @@ function stepTiles(dt) {
 function stepEvents() {
   if (!G.midnight && G.t >= CFG.MIDNIGHT) {
     G.midnight = true;
-    news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.5，人口不再加速恢复，所有仓库清仓甩卖！');
+    news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.25，人口不再加速恢复，所有仓库清仓甩卖！');
     Bus.emit('banner', '🕛 午夜狂欢');
     Bus.emit('midnight');
     G.escLevel = 0;
   }
-  if (G.midnight) { // 末日升级：午夜后每 3 分钟核弹威力再上升
+  if (G.midnight) { // 末日升级：午夜后每 2 分钟核弹威力再上升
     const lvl = Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY);
-    if (lvl > (G.escLevel || 0) && nukeMul() > 1.5) {
+    if (lvl > (G.escLevel || 0) && nukeMul() > CFG.ESC_START) {
       G.escLevel = lvl;
       news(`☢ 末日升级：核弹威力提升到 ×${nukeMul().toFixed(2)}，再拖下去谁都跑不掉`);
       Bus.emit('banner', `☢ 核弹威力 ×${nukeMul().toFixed(2)}`);

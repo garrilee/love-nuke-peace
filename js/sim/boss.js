@@ -1,6 +1,8 @@
 // ===================== 模拟·三体人（生存模式的高阶文明）：智子封锁、乱纪元、降维打击 =====================
 'use strict';
 
+// 两国首都之间的距离（格）
+const capDist = (a, b) => hexDist((a.cities.find((c) => c.isCapital) || a.cities[0]).tile, (b.cities.find((c) => c.isCapital) || b.cities[0]).tile);
 const bossOf = () => (G && G.nations.find((n) => n.race.boss)) || null;
 const isChaos = (n) => !!(n && n.chaosT > 0);
 // 智子封锁：三体人活着时，其他国家科技速度变慢
@@ -16,7 +18,7 @@ function setupBoss(n) {
   n.techIdx = BOSS_CFG.startTech;
   n.ultCd = BOSS_CFG.firstUlt;
   n.chaosT = 0; n.chaosNext = BOSS_CFG.chaosFirst; n.chaosWarned = false;
-  n.pers = 'steady';
+  n.pers = 'hot'; // 好战
   for (const x of G.nations) if (x.isPlayer) n.anger[x.id] = BOSS_CFG.playerAnger;
 }
 
@@ -68,6 +70,17 @@ function startDim(n, tgt) {
   tgt.anger[n.id] += 40; markHostile(n, tgt); n.lastAttack = G.t;
   return true;
 }
+// 二维化痕迹：记录压平的时间，渲染时随时间褪去（核心区保持到可以重建后再褪，外延区很快褪去）
+function markFlat(t, core) {
+  if (core) { t.flat = 1; t.flatAt = G.t; }
+  else if (t.flat !== 1 || flatAlpha(t) < 0.5) { t.flat = 0.5; t.flatAt = G.t; }
+}
+function flatAlpha(t) {
+  if (!t.flat) return 0;
+  const age = G.t - t.flatAt, B = BOSS_CFG;
+  if (t.flat >= 1) return age < B.flatHold ? 1 : Math.max(0, 1 - (age - B.flatHold) / B.flatFade);
+  return Math.max(0, 1 - age / B.flatFadeOuter);
+}
 // 当前展开半径（格）：预警期间为 -1
 function dimRadius(d) {
   const el = G.t - d.t0 - BOSS_CFG.dimWarn;
@@ -86,7 +99,7 @@ function stepDims() {
       const dist = hexDist(t, center);
       if (dist > r) continue;
       d.done.add(t.idx);
-      if (t.owner !== d.att) t.flat = Math.max(t.flat || 0, dist <= B.dimCore ? 1 : 0.5); // 三体人自己的国土不受影响
+      if (t.owner !== d.att) markFlat(t, dist <= B.dimCore); // 三体人自己的国土不受影响
       const core = dist <= B.dimCore, u = core ? 0 : (dist - B.dimCore) / (B.dimOuter - B.dimCore);
       if (t.city && t.city.pop > 0) {
         const c = t.city, owner = G.nations[c.nation];

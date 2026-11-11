@@ -314,10 +314,15 @@ function explode(tile, lv, att) {
 
 // 记录“谁最近一次打了谁”：b.hostileAt[a] = a 最近一次攻击 b 的时间。
 // b 对 a 的怒气，只在 a 停手一段时间后才回落（b 自己还在打 a 不影响它冷静下来）
-// 核弹威力倍率：午夜 ×1.5，之后每 3 分钟 +15%，最多 ×2.5
+// 核弹威力倍率：午夜 ×1.25，之后每 2 分钟 +10%，最多 ×2.5
 function nukeMul() {
   if (!G.midnight) return 1;
-  return Math.min(CFG.ESC_MAX, 1.5 + CFG.ESC_STEP * Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY));
+  return Math.min(CFG.ESC_MAX, CFG.ESC_START + CFG.ESC_STEP * Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY));
+}
+// 午夜后的核武产出倍率：×3.5，之后每次末日升级再 +10%（不封顶）
+function midnightProd() {
+  if (!G.midnight) return 1;
+  return CFG.MIDNIGHT_PROD * (1 + CFG.ESC_PROD * Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY));
 }
 function markHostile(a, b) { b.hostileAt[a.id] = G.t; }
 // x 多少秒前攻击过 n（没攻击过返回 Infinity）
