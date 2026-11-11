@@ -7,7 +7,7 @@ function generateWorld(seed, raceIds, humanFlags) {
   const dupOf = [], colorOf = [], dupCount = {}, usedColors = new Set();
   const order = raceIds.map((_, i) => i).sort((a, b) => (!!(humanFlags && humanFlags[b]) - !!(humanFlags && humanFlags[a])) || a - b);
   for (const i of order) {
-    const race = RACES.find((r) => r.id === raceIds[i]);
+    const race = ALL_RACES.find((r) => r.id === raceIds[i]);
     dupOf[i] = dupCount[race.id] = (dupCount[race.id] ?? -1) + 1;
     colorOf[i] = !usedColors.has(race.color) ? race.color : ALT_COLORS.find((c) => !usedColors.has(c)) || race.color;
     usedColors.add(colorOf[i]);
@@ -105,7 +105,7 @@ function generateWorld(seed, raceIds, humanFlags) {
   const cities = [], facilities = [];
   const nations = [];
   for (let i = 0; i < N; i++) {
-    const race = RACES.find((r) => r.id === raceIds[i]);
+    const race = ALL_RACES.find((r) => r.id === raceIds[i]);
     const own = tiles.filter((t) => t.owner === i);
     const dup = dupOf[i], color = colorOf[i];
     const names = shuffle(race.cities.slice()).map((nm) => nm + (dup ? '·' + (dup + 1) : ''));

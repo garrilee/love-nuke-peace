@@ -6,6 +6,8 @@ function simStep(dt) {
   if (G.over) return;
   G.t += dt;
   for (const n of G.nations) if (n.alive) stepNation(n, dt);
+  if (G.boss && G.boss.alive) stepBoss(G.boss, dt);
+  stepDims();
   stepProjectiles(dt);
   stepAir(dt);
   for (const n of G.nations) if (n.alive) scramble(n, dt);
@@ -24,7 +26,7 @@ function stepNation(n, dt) {
   const prod = production(n);
   // 科技
   if (n.techIdx < TECHS.length) {
-    n.techPts += prod * n.alloc.tech * (n.mods.tech || 1) * dt;
+    n.techPts += prod * n.alloc.tech * (n.mods.tech || 1) * sophonMul(n) * dt;
     const tech = TECHS[n.techIdx];
     if (n.techPts >= tech.cost) {
       n.techPts -= tech.cost; n.techIdx++;
@@ -190,7 +192,7 @@ function checkIntel() {
   const alive = G.nations.filter((n) => n.alive);
   if (alive.length < 3) return;
   for (const x of alive) {
-    if (G.t < x.intelCd) continue;
+    if (G.t < x.intelCd || x.race.boss) continue; // 三体人本来就是公开的威胁，不走情报点名
     const others = alive.filter((o) => o !== x);
     const techLead = x.techIdx - Math.max(...others.map((o) => o.techIdx));
     let why = null;

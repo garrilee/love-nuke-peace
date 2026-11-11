@@ -154,21 +154,21 @@ function autoNet(n) {
 
 // ---------- 技能 ----------
 function useShield(n) {
-  if (!n.alive || n.hackT > 0 || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
+  if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
   n.energy -= COSTS.shield; n.shieldT = SKILLS.shield.dur; n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
 const netMax = (n) => (has(n, 'net') ? SKILLS.net.chargesUp : SKILLS.net.charges);
 function useNet(n) {
-  if (!n.alive || n.hackT > 0 || n.netCd > 0 || n.energy < COSTS.net) return false;
+  if (!n.alive || n.hackT > 0 || isChaos(n) || n.netCd > 0 || n.energy < COSTS.net) return false;
   n.energy -= COSTS.net; n.netT = SKILLS.net.dur; n.netCd = SKILLS.net.cd;
   n.netCharges = netMax(n);
   Bus.emit('skill', { n, kind: 'net' }); return true;
 }
 // ---------- 国家大招 ----------
 // tgt：需要目标的大招（断网攻击、盾后突刺的后备目标）使用
-function ultNeedsTarget(n) { return n.race.id === 'ai'; }
+function ultNeedsTarget(n) { return n.race.id === 'ai' || n.race.id === 'trisolaris'; }
 function useUlt(n, tgt) {
   if (!n.alive || n.ultCd > 0) return false;
   const U = n.race.ult, id = n.race.id;
@@ -199,25 +199,27 @@ function useUlt(n, tgt) {
     const loot = tgt.bank * 0.3;
     tgt.bank -= loot; n.bank = Math.min(CFG.BANK_CAP, n.bank + loot);
     tgt.anger[n.id] += 15; markHostile(n, tgt); n.lastAttack = G.t;
+  } else if (id === 'trisolaris') {
+    if (!startDim(n, tgt)) return false;
   } else if (id === 'roach') {
     for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.35); }
     for (const f of n.facilities) if (!f.alive) { f.alive = true; f.rebuild = 0; Bus.emit('rebuilt', f); }
   }
   n.ultCd = U.cd; n.stats.ult++;
-  news(`${U.icon} ${n.race.emoji}${n.name} 发动大招【${U.name}】${tgt && id === 'ai' ? ' → ' + tgt.race.emoji + tgt.name : ''}`);
+  news(`${U.icon} ${n.race.emoji}${n.name} 发动大招【${U.name}】${tgt && ultNeedsTarget(n) ? ' → ' + tgt.race.emoji + tgt.name : ''}`);
   Bus.emit('ult', { n, tgt });
   return true;
 }
 
 function rebuildCity(n, c) {
-  if (!n.alive || !c.ruined || c.rebuild > 0 || n.energy < COSTS.rebuild) return false;
+  if (!n.alive || !c.ruined || c.rebuild > 0 || c.flatUntil > G.t || n.energy < COSTS.rebuild) return false;
   n.energy -= COSTS.rebuild; c.rebuild = CFG.REBUILD_TIME;
   c.pop = Math.max(c.pop, 0.3);
   n.stats.rebuilt++;
   Bus.emit('skill', { n, kind: 'rebuild', city: c }); return true;
 }
 function rebuildFac(n, f) {
-  if (!n.alive || f.alive || f.rebuild > 0 || n.bank < COSTS.facility) return false;
+  if (!n.alive || f.alive || f.rebuild > 0 || f.flatUntil > G.t || n.bank < COSTS.facility) return false;
   n.bank -= COSTS.facility; f.rebuild = CFG.REBUILD_TIME;
   Bus.emit('skill', { n, kind: 'rebuildFac', fac: f }); return true;
 }

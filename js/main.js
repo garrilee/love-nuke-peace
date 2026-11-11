@@ -56,12 +56,12 @@ function execCmd(n, c) {
 }
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
 
-function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null) {
+function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null, survival = false) {
   SFX.init();
   SFX.setMuted(Store.get('muted', false));
   FX.reset();
   Render.resetScorch();
-  newGame(raceId, aiCount, diff, mp);
+  newGame(raceId, aiCount, diff, mp, survival);
   G.tutorial = tutorial;
   document.body.classList.toggle('mp', G.mp);
   document.body.classList.toggle('mphost', G.mp && Net.role === 'host');

@@ -12,8 +12,9 @@ Object.assign(UI, {
     if (G.mp && kind !== 'disconnected' && kind !== 'earth') kind = p.alive ? 'win' : 'lose';
     let title, sub;
     if (kind === 'disconnected') { title = '📴 连接中断'; sub = '和房主的连接断开了，这局游戏没法继续。'; }
-    else if (kind === 'win') { title = '🏆 核平胜利'; sub = '恭喜，您统治了一片发着绿光的废墟。'; }
+    else if (kind === 'win') { title = G.boss ? '🏆 人类幸存' : '🏆 核平胜利'; sub = G.boss ? `你在${G.boss.name}的降维打击下活到了最后。` : '恭喜，您统治了一片发着绿光的废墟。'; }
     else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
+    else if (survivor && survivor.race.boss && alive.length === 1) { title = '👽 地球被降临'; sub = `${survivor.name}的舰队接管了这颗星球。下一次，记得在乱纪元集中火力。`; }
     else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
     else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${survivor.race.emoji}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
     const s = p.stats;

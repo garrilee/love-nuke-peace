@@ -50,10 +50,12 @@ const UI = {
     $('aiCount').value = String(Store.get('aiCount', 3));
     $('aiDiff').value = Store.get('diff', 'normal');
     $('tutorial').checked = !Store.get('tutorialDone', false);
+    $('survival').checked = !!Store.get('survival', false);
+    $('survival').addEventListener('change', () => Store.set('survival', $('survival').checked));
     this.startSolo = () => {
       const cnt = Math.max(1, +$('aiCount').value), diff = $('aiDiff').value;
       Store.set('race', this.pickedRace); Store.set('aiCount', cnt); Store.set('diff', diff);
-      onStart(this.pickedRace, cnt, diff, $('tutorial').checked);
+      onStart(this.pickedRace, cnt, diff, $('tutorial').checked, null, $('survival').checked);
     };
     $('startBtn').onclick = () => Lobby.start();
     Lobby.init();

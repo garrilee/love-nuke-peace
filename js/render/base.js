@@ -329,12 +329,14 @@ const Render = {
       ctx.drawImage(S.green, t.x - s / 2, t.y - s / 2, s, s);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    if (G.boss) { this.drawFlat(ctx, z, T); this.drawChaos(ctx, z, T); }
     FX.drawGround(ctx);
     FX.drawFires(ctx);
 
     this.drawCities(ctx, z, T);
     this.drawFacilities(ctx, z, T);
     FX.drawCineDark(ctx);   // 东风镜头：先压暗地面，飞弹和光柱在上面
+    if (G.dims && G.dims.length) this.drawDims(ctx, z, T);
     this.drawProjectiles(ctx, z, T);
     FX.drawAir(ctx);
     FX.drawCinePillar(ctx, z);

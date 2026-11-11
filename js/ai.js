@@ -31,7 +31,8 @@ function aiUlt(n, tgt, when) {
     || (id === 'mushroom' && when === 'think' && chance(0.4))
     || (id === 'roach' && when === 'think' && (totalPop(n) < n.stats.peakPop * 0.55 || n.cities.filter((c) => c.ruined).length >= 2))
     || (id === 'mole' && when === 'danger')
-    || ((id === 'octopus' || id === 'ai') && when === 'fire');
+    || ((id === 'octopus' || id === 'ai') && when === 'fire')
+    || (id === 'trisolaris' && when === 'think' && tgt && totalPop(tgt) > 25);
   return ok ? useUlt(n, tgt) : false;
 }
 
@@ -85,7 +86,8 @@ function aiStep(n, dt) {
   let tgt = null, best = -1e9;
   for (const x of G.nations) {
     if (!x.alive || x === n) continue;
-    const s = n.anger[x.id] + threatOf(x, maxPop) + rnd(0, 15);
+    let s = n.anger[x.id] + threatOf(x, maxPop) + rnd(0, 15);
+    if (x.race.boss) s += BOSS_CFG.hate + (isChaos(x) ? BOSS_CFG.chaosHate : 0); // 三体人：大家的共同威胁，乱纪元时围攻
     if (s > best) { best = s; tgt = x; }
   }
   if (!tgt) return;
@@ -117,7 +119,8 @@ function aiStep(n, dt) {
   if (D <= 0 || G.t - n.lastStrike < 8) return;
 
   let fire = false, scale = 1, kind = 'think';
-  if (G.midnight) { // 午夜：一半时间围攻最强的国家（不再补刀最弱的，避免躺赢），其余时间各打各的
+  if (tgt.race.boss && isChaos(tgt)) { fire = true; scale = 2; } // 三体乱纪元：倾巢而出
+  else if (G.midnight) { // 午夜：一半时间围攻最强的国家（不再补刀最弱的，避免躺赢），其余时间各打各的
     fire = true; scale = 2; kind = 'midnight';
     if (chance(0.5)) tgt = G.nations.filter((x) => x.alive && x !== n).sort((a, b) => threatOf(b, maxPop) - threatOf(a, maxPop))[0] || tgt;
   }

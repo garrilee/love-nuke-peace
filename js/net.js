@@ -85,6 +85,7 @@ const NET_EVENTS = {
   targeted: { enc: (e) => [e.n.id, e.tgt.id, e.why], dec: ([a, b, why]) => ({ n: G.nations[a], tgt: G.nations[b], why }) },
   tech: { enc: (e) => [e.n.id, TECHS.indexOf(e.tech)], dec: ([a, k]) => ({ n: G.nations[a], tech: TECHS[k] }) },
   gameover: { enc: (k) => k, dec: (k) => { G.over = k; return k; } },
+  dimStrike: { enc: (d) => [d.att, d.tgt, d.tile, r2(d.t0)], dec: ([att, tgt, tile, t0]) => { const d = { att, tgt, tile, t0, done: new Set() }; (G.dims = G.dims || []).push(d); return d; } },
 };
 
 // 房主：所有 Bus 事件照常在本地触发，同时把需要的事件排进发送队列
@@ -97,7 +98,7 @@ Bus.emit = (type, data) => {
 const Net = {
   role: 'solo',           // solo | host | client
   peer: null, conns: new Map(), hostConn: null,
-  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', speed: 1, started: false,
+  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', speed: 1, survival: false, started: false,
   evQ: [], snapT: 0, ticker: null, allocHold: 0, lastTick: 0, lastFrameAt: 0,
 
   loadLib() {
@@ -190,7 +191,7 @@ const Net = {
   },
   broadcastLobby() {
     const players = this.players.map((p) => ({ id: p.id, race: p.race, host: !!p.host, name: p.name || '', back: !!p.back }));
-    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, you: c.peer });
+    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, survival: this.survival, you: c.peer });
     Lobby.render();
   },
   hostPick(race) {
@@ -203,15 +204,15 @@ const Net = {
     return name && this.players.some((p) => p !== pl && p.name === name) ? '' : name;
   },
   hostName(name) { this.players[0].name = this.uniqueName(this.players[0], name); this.broadcastLobby(); },
-  setOpts(aiCount, diff, speed = this.speed) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.broadcastLobby(); },
+  setOpts(aiCount, diff, speed = this.speed, survival = this.survival) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.survival = survival; this.broadcastLobby(); },
   canStart() { return !this.started && this.players.length > 0 && this.players.every((p) => p.race && p.back); },
   hostStart(tutorial) {
     const players = this.players.map((p) => ({ race: p.race, id: p.id, name: p.name || '' }));
-    const aiCount = clamp(this.aiCount, players.length > 1 ? 0 : 1, MAX_NATIONS - players.length);
+    const aiCount = clamp(this.aiCount, players.length > 1 || this.survival ? 0 : 1, MAX_NATIONS - players.length - (this.survival ? 1 : 0));
     this.started = true;
     for (const p of this.players) p.back = false;
     this.evQ = []; this.snapT = 0;
-    startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' });
+    startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' }, this.survival);
     G.speed = this.speed;
     const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, owners: G.owners, names: G.names, diff: this.diff, speed: this.speed };
     for (const c of this.conns.values()) if (c.open) c.send(msg);
@@ -268,7 +269,7 @@ const Net = {
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
         dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
-        uC: r1(n.ultCd), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
+        uC: r1(n.ultCd), ch: r1(n.chaosT || 0), cn: r1(n.chaosNext || 0), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
         ha: Object.fromEntries(Object.entries(n.hostileAt).map(([k, v]) => [k, r1(v)])),
         u: n.ufoReady, ur: n.ufoReturn.length, sb: n.subs.map((s) => [SUB_STATES.indexOf(s.state), s.tile.idx, s.rockets]),
@@ -312,7 +313,7 @@ const Net = {
   onClientMsg(m) {
     if (!m) return;
     if (m.type === 'lobby') {
-      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff, speed: m.speed || 1 });
+      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff, speed: m.speed || 1, survival: !!m.survival });
       Lobby.checkName();
       Lobby.render();
     } else if (m.type === 'reject') {
@@ -356,7 +357,7 @@ const Net = {
       Object.assign(n, {
         alive: !!d.a, isPlayer: !!d.h, techIdx: d.ti, techPts: d.tp, bank: d.b, energy: d.e,
         conv: d.cv, convCd: d.cc, convBuildT: d.cb, heat: d.ht, shieldT: d.sT, shieldCd: d.sC, netT: d.nT, netCd: d.nC, netCharges: d.nq,
-        ultCd: d.uC, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
+        ultCd: d.uC, chaosT: d.ch || 0, chaosNext: d.cn || 0, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
         autoNet: !!d.aN, autoRebuild: !!d.aR, rocketEra: !!d.re,
         drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,
@@ -404,8 +405,8 @@ const Lobby = {
       if (navigator.clipboard) navigator.clipboard.writeText(link).then(ok, () => prompt('复制这个链接发给朋友：', link));
       else prompt('复制这个链接发给朋友：', link);
     };
-    const opts = () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value, +$('mpSpeed').value); };
-    for (const id of ['aiCount', 'aiDiff', 'mpSpeed']) $(id).addEventListener('change', opts);
+    const opts = () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value, +$('mpSpeed').value, $('survival').checked); };
+    for (const id of ['aiCount', 'aiDiff', 'mpSpeed', 'survival']) $(id).addEventListener('change', opts);
     $('mpSpeed').value = String(Store.get('mpSpeed', 1));
     $('mpSpeed').addEventListener('change', () => Store.set('mpSpeed', +$('mpSpeed').value));
     // 通过邀请链接打开：自动加入房间
@@ -451,7 +452,7 @@ const Lobby = {
     this.resetName();
     try {
       await Net.createRoom(UI.pickedRace);
-      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value; Net.speed = +$('mpSpeed').value;
+      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value; Net.speed = +$('mpSpeed').value; Net.survival = $('survival').checked;
       history.replaceState(null, '', `?room=${Net.code}`);
     } catch (e) { this.error(e.message); }
     this.busy = false; $('mpCreate').textContent = '🌐 创建房间';
@@ -490,7 +491,7 @@ const Lobby = {
     if (!inRoom) {
       btn.textContent = '按下按钮，开始核平';
       btn.disabled = !UI.pickedRace;
-      $('aiCount').disabled = $('aiDiff').disabled = false;
+      $('aiCount').disabled = $('aiDiff').disabled = $('survival').disabled = false;
       return;
     }
     $('mpCodeTxt').textContent = Net.code;
@@ -502,18 +503,18 @@ const Lobby = {
         ${p.back ? '' : '<span class="tag wait">结算中</span>'}${p.host ? '<span class="tag">房主</span>' : ''}${p.id === Net.myId ? '<span class="tag me">你</span>' : ''}</div>`;
     }).join('');
     const humans = Net.players.length;
-    const ai = clamp(Net.aiCount, humans > 1 ? 0 : 1, MAX_NATIONS - humans);
-    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed);
-    $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = Net.role !== 'host';
+    const ai = clamp(Net.aiCount, humans > 1 || Net.survival ? 0 : 1, MAX_NATIONS - humans - (Net.survival ? 1 : 0));
+    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed); $('survival').checked = Net.survival;
+    $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = $('survival').disabled = Net.role !== 'host';
     if (Net.role === 'host') {
       const ok = Net.canStart();
       btn.disabled = !ok;
-      btn.textContent = ok ? `开始联机（${humans} 人 + ${ai} 个 AI）` : Net.players.some((p) => !p.back) ? '等待所有人回到房间…' : '等待所有人选好国家…';
+      btn.textContent = ok ? `开始联机（${humans} 人 + ${ai} 个 AI${Net.survival ? ' + 👽三体人' : ''}）` : Net.players.some((p) => !p.back) ? '等待所有人回到房间…' : '等待所有人选好国家…';
       $('mpHint').textContent = humans < 2 ? '把房间码或邀请链接发给朋友，对方点「加入」即可。' : '所有人选好国家后，由你开始游戏。';
     } else {
       btn.disabled = true;
       btn.textContent = mine && mine.race ? '等待房主开始…' : '先选一个国家';
-      $('mpHint').textContent = `已加入房间，AI ${ai} 个 · 难度 ${DIFFS[Net.diff].name} · 速度 ${Net.speed}×`;
+      $('mpHint').textContent = `已加入房间，AI ${ai} 个${Net.survival ? ' + 👽三体人（生存模式）' : ''} · 难度 ${DIFFS[Net.diff].name} · 速度 ${Net.speed}×`;
     }
   },
 };

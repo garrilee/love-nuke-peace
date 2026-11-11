@@ -12,16 +12,17 @@ let G = null;
 // 每个国家占一个“席位”：raceIds[i] 国家类型（可以重复），owners[i] 玩家连接 id（AI 为 null），names[i] 自定义国家名
 // mp（联机）：房主传 { players: [{race, id, name}], me }，由这里排好席位；
 //             客户端传房主发来的 { seed, raceIds, owners, names, me }，生成一模一样的世界
-function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
+function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = false) {
   let raceIds = mp && mp.raceIds, owners = mp && mp.owners, names = mp && mp.names, seed = mp && mp.seed;
   if (!raceIds) {
     const humans = mp ? mp.players : [{ race: playerRaceId, id: 'local', name: '' }];
-    aiCount = clamp(aiCount, 0, MAX_NATIONS - humans.length);
+    aiCount = clamp(aiCount, 0, MAX_NATIONS - humans.length - (survival ? 1 : 0));
     // AI 先用没人选的国家，不够时再重复
     const unused = shuffle(RACES.map((r) => r.id).filter((id) => !humans.some((h) => h.race === id)));
     const ai = [];
     const notHuman = RACES.filter((r) => !humans.some((h) => h.race === r.id));
     for (let k = 0; k < aiCount; k++) ai.push(k < unused.length ? unused[k] : pick(notHuman.length ? notHuman : RACES).id);
+    if (survival) ai.push(BOSS.id); // 生存模式：三体人降临
     const seats = shuffle([...humans.map((h) => ({ race: h.race, id: h.id, name: h.name || '' })), ...ai.map((race) => ({ race, id: null, name: '' }))]);
     raceIds = seats.map((s) => s.race); owners = seats.map((s) => s.id); names = seats.map((s) => s.name);
     seed = (Math.random() * 1e9) | 0;
@@ -65,7 +66,10 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null) {
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
   };
+  G.boss = bossOf(); G.dims = [];
+  if (G.boss) setupBoss(G.boss);
   news(`${fmtDate(0)}：世界和平，一切安好。暂时。`);
+  if (G.boss) news(`👽 ${G.boss.name}降临：它的科技远超所有国家。开局 ${BOSS_CFG.chaosFirst / 60} 分钟后，它每 ${BOSS_CFG.chaosEvery} 秒会进入一次乱纪元，那是反击的窗口。`);
   return G;
 }
 
@@ -100,7 +104,8 @@ const heatEff = (n) => CFG.HEAT_MIN + (CFG.HEAT_MAX - CFG.HEAT_MIN) * n.heat;
 function production(n) {
   let p = 0;
   for (const c of n.cities) p += c.pop * (c.ruined ? CFG.RUIN_PROD : 1);
-  return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n)
+  if (isChaos(n)) return 0; // 三体乱纪元：停产
+  return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n) * (n.mods.prod || 1)
     * (n.overtimeT > 0 ? 1.7 : 1)              // 卷王大招：加班
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }

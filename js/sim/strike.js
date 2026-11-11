@@ -172,7 +172,7 @@ function convExplode(tile, att) {
   const losses = new Map();
   if (tile.city && tile.city.pop > 0) {
     const c = tile.city, owner = G.nations[c.nation];
-    let frac = CONV.dmg * (G.midnight ? 1.5 : 1);
+    let frac = CONV.dmg * (G.midnight ? 1.5 : 1) * takenMul(owner);
     if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
     const loss = c.pop * frac;
     c.pop -= loss;
@@ -228,7 +228,7 @@ function droneExplode(tile, att) {
     if (chance(DRONE.facChance)) knockFacility(f, owner);
   }
   if (tile.city && tile.city.pop > 0) {
-    const c = tile.city, owner = G.nations[c.nation], loss = c.pop * DRONE.cityDmg;
+    const c = tile.city, owner = G.nations[c.nation], loss = c.pop * DRONE.cityDmg * takenMul(owner);
     c.pop -= loss;
     losses.set(owner.id, loss);
     Bus.emit('cityHit', { city: c, loss });
@@ -295,7 +295,7 @@ function explode(tile, lv, att) {
       const c = t2.city, owner = G.nations[c.nation];
       let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * nukeMul());
       if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
-      frac *= owner.mods.nukeArmor || 1; // 吃土：皮糙肉厚
+      frac = Math.min(0.97, frac * (owner.mods.nukeArmor || 1) * takenMul(owner)); // 吃土：皮糙肉厚；三体乱纪元：伤害加重
       const loss = c.pop * frac;
       c.pop -= loss;
       if (owner.shieldT <= 0 && ((d === 0 && lv >= 2) || c.pop < c.basePop * 0.35)) { c.ruined = true; c.rebuild = 0; }
