@@ -218,11 +218,6 @@ const UI = {
     const t = TECHS[p.techIdx];
     const lv = bestLevel(p) || 1;
     const per = PARCELS[Math.min(lv, 4)].cost + COSTS.rocket / multiK(p);
-    const hints = [];
-    if (t) hints.push(`下一项【${t.name}】约 ${tech > 0 ? Math.ceil((t.cost - p.techPts) / tech) + ' 秒' : '∞'}`);
-    hints.push(`约每 ${nuke > 0 ? (per / nuke).toFixed(0) : '∞'} 秒造出一个包裹`);
-    hints.push(`护盾能量 ${def > 0 ? Math.max(0, Math.ceil((COSTS.shield - p.energy) / def)) : '∞'} 秒后够用`);
-    setHTML($('allocHint'), hints.join('<br>'));
     // 军工热度条
     const target = clamp(a.nuke / CFG.HEAT_FULL_AT, 0, 1);
     const trend = target > p.heat + 0.02 ? '▲ 升温中' : target < p.heat - 0.02 ? '▼ 降温中' : '稳定';
@@ -292,24 +287,21 @@ const UI = {
     const prod = production(p);
     const tech = TECHS[p.techIdx];
     const tk = tech ? clamp(p.techPts / tech.cost, 0, 1) : 1;
-    const lvStr = [1, 2, 3, 4, 5].filter((k) => p.parcels[k] > 0).map((k) => `<span class="lv lv${k}">${k}级×${p.parcels[k]}</span>`).join(' ') || '<span class="dim">暂无</span>';
-    const pads = facOf(p, 'pad');
-    const subsOut = p.subs.filter((s) => s.state === 'out');
     setHTML($('stats'), `
-      <div class="sect-title">${raceIcon(p.race.id, 18)} ${p.name}</div>
-      <div class="big">👥 ${fmtPop(totalPop(p))} <span class="dim">产出 ${prod.toFixed(1)}/秒</span></div>
+      <div class="me-head">${raceIcon(p.race.id, 34)}<b class="me-name">${p.name}</b><span class="me-pop mono">👥 ${fmtPop(totalPop(p))}</span></div>
       <div class="mods">${this.modChips(p)}</div>
       <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${Math.round(tk * 100)}%"></i></span></div>
-      <div>📦 包裹 ${lvStr} · <span class="conv">💥 常规×${p.conv}</span></div>
-      <div class="dim">🚀 ${has(p, 'pad') ? pads.map((f) => (f.alive ? f.missiles : '✘')).join('/') : '未解锁'} · 🐋 ${has(p, 'sea') ? subsOut.length + '/' + p.subs.length : '未解锁'} · ✈ ${p.ufoReady}${p.ufoReturn.length ? '(+' + p.ufoReturn.length + ')' : ''}</div>
-      <div class="dim">💰 预算 ${Math.floor(p.bank)} · ⚡ 能量 ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}</div>`);
+      <div class="me-res"><span>💰 预算 <b class="mono">${Math.floor(p.bank)}</b></span><span>⚡ 能量 <b class="mono">${Math.floor(p.energy)}</b><small>/${CFG.ENERGY_CAP}</small></span></div>`);
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
     setText($('energyTxt'), `⚡ ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}`);
     if (p.hackT > 0) { this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); this.skillCard('net', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); }
     else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / SKILLS.shield.dur);
     else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
-    else if (p.energy < COSTS.shield) this.skillCard('shield', `需 ⚡${COSTS.shield}`, 'poor', p.energy / COSTS.shield);
+    else if (p.energy < COSTS.shield) {
+      const eRate = production(p) * p.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1);
+      this.skillCard('shield', eRate > 0 ? `⚡ ${Math.ceil((COSTS.shield - p.energy) / eRate)} 秒后可用` : `需 ⚡${COSTS.shield}`, 'poor', p.energy / COSTS.shield);
+    }
     else this.skillCard('shield', `就绪 · ⚡${COSTS.shield}`, 'ready', 1);
     const netOn = p.netT > 0 && p.netCharges > 0;
     if (p.hackT > 0) { /* 断网：上面已经处理 */ }

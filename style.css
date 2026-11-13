@@ -532,3 +532,17 @@ body.compact #popChart { height: 150px; }
 .ricon { display: inline-block; vertical-align: -0.22em; flex-shrink: 0; }
 .race .emo .ricon { filter: drop-shadow(0 0 6px rgba(0,0,0,0.6)); }
 .lemo .ricon, .temo .ricon { display: block; }
+
+/* 本国信息：大徽章 + 名字，人口右对齐 */
+.me-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px !important; }
+.me-head .ricon { width: 34px; height: 34px; vertical-align: 0; }
+.me-name { font-size: 17px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-pop { margin-left: auto; font-size: 17px; font-weight: 700; color: var(--gold); white-space: nowrap; }
+.me-res { display: flex; gap: 14px; font-size: 13px; color: #c9d6e6; margin-top: 4px !important; }
+.me-res b { color: #fff; font-size: 14px; } .me-res small { color: var(--dim); }
+/* 国力分配、人口排行的标题和本国名字一样醒目 */
+#alloc .sect-title, #rank.docked #rankToggle { font-size: 15px; letter-spacing: 1px; font-weight: 700; color: #fff; text-transform: none; }
+#alloc label { font-size: 14px; }
+#alloc .rate { font-size: 13px; }
+#rank.docked .rk-row { font-size: 13px; }
+#rank.docked .rk-sub { font-size: 12px; }
