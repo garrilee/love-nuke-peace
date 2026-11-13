@@ -52,7 +52,7 @@ const FX = {
     Bus.on('intercept', (p) => this.onIntercept(p));
     Bus.on('fizzle', (p) => this.onFizzle(p));
     Bus.on('cityHit', (e) => this.pendHits.push(e));
-    Bus.on('explode', (e) => this.flushBlast(e));
+    Bus.on('explode', (e) => { this.flushBlast(e); if (e.lv >= 4 && G.player && ((e.att && e.att.id === G.player.id) || e.tile.owner === G.player.id)) Render.focusOn(e.tile.x, e.tile.y); });
     Bus.on('convExplode', () => this.flushSmall());
     Bus.on('droneExplode', () => this.flushSmall());
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));

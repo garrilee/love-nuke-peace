@@ -34,13 +34,46 @@ Object.assign(UI, {
         <div>空战击落 <b>${s.dogKills}</b></div>
         <div>${p.alive ? '活到最后' : '坚持了'} <b>${fmtTime(p.alive ? G.t : p.diedAt || G.t)}</b></div>
       </div>
+      <div class="popchart"><div class="pc-title">📈 人口走势</div><canvas id="popChart"></canvas><div id="popLegend" class="pc-legend"></div></div>
       ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>' : '<button id="againBtn">再核平一次</button>'}`;
     $('end').classList.remove('hidden');
+    this.drawPopChart();
     if (G.tutorial) Store.set('tutorialDone', true);
     $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
     if ($('roomBtn')) $('roomBtn').onclick = () => Net.backToRoom();
+  },
+  // 结算：全程人口曲线（每个国家一条线，你的最粗；午夜、乱纪元、倒下的时刻都标出来）
+  drawPopChart() {
+    const cv = $('popChart'), H = G.popHist || [];
+    if (!cv || H.length < 2) { if (cv) cv.parentElement.style.display = 'none'; return; }
+    const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 600, Hh = cv.clientHeight || 200;
+    cv.width = W * dpr; cv.height = Hh * dpr;
+    const x = cv.getContext('2d'); x.scale(dpr, dpr);
+    const pl = 38, pr = 10, pt = 10, pb = 22, tMax = H[H.length - 1].t;
+    const pMax = Math.max(10, ...H.flatMap((h) => h.p)) * 1.05;
+    const X = (t) => pl + (t / tMax) * (W - pl - pr), Y = (p) => pt + (1 - p / pMax) * (Hh - pt - pb);
+    x.font = '11px "Microsoft YaHei", sans-serif'; x.fillStyle = '#7f93aa'; x.strokeStyle = 'rgba(255,255,255,0.08)'; x.lineWidth = 1;
+    for (let k = 0; k <= 4; k++) { const v = pMax * k / 4, y = Y(v); x.beginPath(); x.moveTo(pl, y); x.lineTo(W - pr, y); x.stroke(); x.textAlign = 'right'; x.fillText(fmtPop(v), pl - 4, y + 4); }
+    x.textAlign = 'center';
+    for (let m = 0; m * 60 <= tMax; m += tMax > 900 ? 5 : 2) x.fillText(m + '分', X(m * 60), Hh - 6);
+    if (tMax > CFG.MIDNIGHT) { // 午夜狂欢分界
+      x.strokeStyle = 'rgba(255,60,40,0.55)'; x.setLineDash([4, 4]);
+      x.beginPath(); x.moveTo(X(CFG.MIDNIGHT), pt); x.lineTo(X(CFG.MIDNIGHT), Hh - pb); x.stroke(); x.setLineDash([]);
+      x.fillStyle = '#ff6b5b'; x.textAlign = 'left'; x.fillText('🕛 午夜', X(CFG.MIDNIGHT) + 4, pt + 10);
+    }
+    const order = G.nations.slice().sort((a, b) => (a === G.player) - (b === G.player)); // 你的线最后画、在最上面
+    for (const n of order) {
+      const me = n === G.player;
+      x.strokeStyle = me ? '#ffd27a' : n.color; x.lineWidth = me ? 3 : 1.6; x.globalAlpha = me ? 1 : 0.85;
+      x.beginPath();
+      let deadAt = null;
+      H.forEach((h, i) => { const v = h.p[n.id]; const px = X(h.t), py = Y(v); if (i) x.lineTo(px, py); else x.moveTo(px, py); if (deadAt === null && v <= 0 && i) deadAt = h; });
+      x.stroke(); x.globalAlpha = 1;
+      if (n.diedAt !== undefined) { x.textAlign = 'center'; x.font = '12px sans-serif'; x.fillText('💀', X(Math.min(n.diedAt, tMax)), Y(0) - 4); x.font = '11px "Microsoft YaHei", sans-serif'; }
+    }
+    setHTML($('popLegend'), G.nations.map((n) => `<span style="--c:${n === G.player ? '#ffd27a' : n.color}"${n === G.player ? ' class="me"' : ''}><i></i>${n.race.emoji}${n.name}</span>`).join(''));
   },
   // 联机：一局结束后回到开始界面的房间里（地图停止推进，连接保持）
   showRoom() {

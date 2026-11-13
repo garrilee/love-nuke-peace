@@ -124,6 +124,14 @@ const UI = {
     });
   },
 
+  // 人口走势记录（单机、房主、客户端都在本地记，客户端用快照里的人口）
+  recordPop() {
+    const H = G.popHist || (G.popHist = []);
+    const last = H[H.length - 1];
+    if (last && G.t - last.t < 5 && !(G.over && !G.popHistDone)) return;
+    if (G.over) G.popHistDone = true;
+    H.push({ t: G.t, p: G.nations.map((n) => (n.alive ? Math.round(totalPop(n) * 10) / 10 : 0)) });
+  },
   initHUD() {
     $('start').classList.add('hidden');
     $('end').classList.add('hidden');
@@ -222,8 +230,20 @@ const UI = {
     setText($('heatTxt'), `效率 ×${heatEff(p).toFixed(2)} · ${trend}`);
   },
 
+  // 当前生效的倍率：让隐藏机制看得见
+  modChips(p) {
+    const ud = underdog(p), chips = [];
+    if (ud > 1.01) chips.push(`<span class="chip good" title="人口低于存活国家平均值，产出提高（最多 ×${CFG.UNDERDOG_MAX}）；午夜后取消">📈 弱势加成 ×${ud.toFixed(2)}</span>`);
+    else if (!G.midnight) chips.push(`<span class="chip" title="人口低于存活国家平均值时，产出会提高（最多 ×${CFG.UNDERDOG_MAX}）">📈 弱势加成 无</span>`);
+    const he = heatEff(p);
+    chips.push(`<span class="chip ${he >= 1 ? 'good' : 'bad'}" title="军工热度：持续投入核武越来越高效（×${CFG.HEAT_MIN}～×${CFG.HEAT_MAX}）">🏭 军工 ×${he.toFixed(2)}</span>`);
+    if (G.midnight) chips.push(`<span class="chip bad" title="午夜后核弹威力和核武产出都在升级">🕛 核弹威力 ×${nukeMul().toFixed(2)} · 产出 ×${midnightProd().toFixed(1)}</span>`);
+    if (G.boss && G.boss.alive && p !== G.boss) chips.push(`<span class="chip bad" title="三体人活着时，其他国家科技速度 ×${BOSS_CFG.sophon}">👁 智子封锁 科技 ×${BOSS_CFG.sophon}</span>`);
+    return chips.join('');
+  },
   buildNationList() {
     const box = $('nations');
+    if (!box) return; // 已并入人口排行榜
     box.innerHTML = '<div class="sect-title">世界各国</div>';
     for (const n of G.nations) {
       const d = document.createElement('div');
@@ -258,6 +278,7 @@ const UI = {
     // 各国
     for (const n of G.nations) {
       const d = $('nat-' + n.id);
+      if (!d) continue;
       const pop = totalPop(n);
       const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></div>`;
       d.classList.toggle('dead', !n.alive);
@@ -277,6 +298,7 @@ const UI = {
     setHTML($('stats'), `
       <div class="sect-title">${p.race.emoji} ${p.name}</div>
       <div class="big">👥 ${fmtPop(totalPop(p))} <span class="dim">产出 ${prod.toFixed(1)}/秒</span></div>
+      <div class="mods">${this.modChips(p)}</div>
       <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${Math.round(tk * 100)}%"></i></span></div>
       <div>📦 包裹 ${lvStr} · <span class="conv">💥 常规×${p.conv}</span></div>
       <div class="dim">🚀 ${has(p, 'pad') ? pads.map((f) => (f.alive ? f.missiles : '✘')).join('/') : '未解锁'} · 🐋 ${has(p, 'sea') ? subsOut.length + '/' + p.subs.length : '未解锁'} · ✈ ${p.ufoReady}${p.ufoReturn.length ? '(+' + p.ufoReturn.length + ')' : ''}</div>
@@ -352,6 +374,7 @@ const UI = {
   },
 
   tick(dt) {
+    if (G) this.recordPop();
     if (G && !G.over) {
       this.tipCheckT -= dt;
       if (this.tipCheckT <= 0) { this.tipCheckT = 0.5; this.checkTips(); }

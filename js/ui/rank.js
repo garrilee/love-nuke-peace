@@ -6,9 +6,22 @@ Object.assign(UI, {
   initRank() {
     const box = $('rank');
     this.rankPrev = {}; this.rankMove = {};
-    box.classList.toggle('collapsed', this.mobile());
+    // 电脑：放进左栏（替代原来的「世界各国」）；手机：浮在地图右上角，默认收起
+    const docked = !this.mobile();
+    if (docked) $('leftcol').appendChild(box); else $('hud').appendChild(box);
+    box.classList.toggle('docked', docked);
+    box.classList.toggle('collapsed', !docked);
+    // 两侧栏折叠（只在电脑上）
+    const fold = (side) => { document.body.classList.toggle('fold' + side); this.syncFold(); Render.fit(); };
+    $('foldL').onclick = () => fold('L'); $('foldR').onclick = () => fold('R');
+    this.syncFold();
     $('rankToggle').onclick = () => { box.classList.toggle('collapsed'); this.refreshRank(); };
     this.refreshRank();
+  },
+  syncFold() {
+    const b = document.body.classList;
+    setText($('foldL'), b.contains('foldL') ? '▶' : '◀');
+    setText($('foldR'), b.contains('foldR') ? '◀' : '▶');
   },
   refreshRank() {
     const box = $('rank');
@@ -32,10 +45,12 @@ Object.assign(UI, {
         if (isChaos(n)) extra = `<div class="rk-x chaos">🌪 乱纪元中 · ${Math.ceil(n.chaosT)} 秒</div>`;
         else if (n.chaosNext <= 30) extra = `<div class="rk-x">🌪 ${Math.ceil(n.chaosNext)} 秒后乱纪元</div>`;
       }
-      return `<div class="rk-row${n === me ? ' me' : ''}${n.alive ? '' : ' dead'}${n.race.boss ? ' boss' : ''}" data-id="${n.id}" style="--c:${n.color}">
+      const sub = n.alive && n !== me && box.classList.contains('docked')
+        ? `<div class="rk-sub">🔬 ${n.techIdx}/${TECHS.length}${G.mp && n.isPlayer ? ' · 真人玩家' : `<span class="rk-ang" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></span>`}${recentAttacker(n) ? '<b class="rk-atk">⚔ 打过你</b>' : ''}</div>` : '';
+      return `<div class="rk-row${n === me ? ' me' : ''}${G.target === n.id ? ' sel' : ''}${n.alive ? '' : ' dead'}${n.race.boss ? ' boss' : ''}" data-id="${n.id}" style="--c:${n.color}">
         <span class="rk-i">${n.alive ? i + 1 : '💀'}</span><span class="rk-n">${n.race.emoji} ${n.name}${arrow}</span>
         <span class="rk-p mono">${n.alive ? fmtPop(pop) : ''}</span><span class="rk-k mono">${n.alive ? '☢' + stock(n) : ''}</span>
-        <div class="rk-bar"><i style="width:${n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0}%"></i></div>${extra}</div>`;
+        <div class="rk-bar"><i style="width:${n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0}%"></i></div>${sub}${extra}</div>`;
     };
     setHTML($('rankList'), alive.map(row).join('') + dead.map((n) => row(n, -1)).join(''));
     for (const el of $('rankList').querySelectorAll('.rk-row')) {

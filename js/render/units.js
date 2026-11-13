@@ -68,7 +68,8 @@ Object.assign(Render, {
         this.drawLock(ctx, p, z, T);
       } else p.lockT = undefined;
       const u = this.renderU(p);
-      const col = G.nations[p.att].color;
+      const toMe = G.player && p.tgt === G.player.id && G.player.alive && p.kind !== 'guard';
+      const col = toMe ? '#ff3b30' : G.nations[p.att].color;
       if (p.kind === 'conv') {
         const u0 = Math.max(0, u - 0.2), steps = 6;
         ctx.lineWidth = 1.1 / Math.max(0.6, z);
@@ -110,6 +111,39 @@ Object.assign(Render, {
       }
     }
     ctx.globalCompositeOperation = 'source-over';
+    this.drawIncomingMarks(ctx, z, T);
+  },
+
+  // 来袭落点：同一座城市只画一个红色瞄准圈，旁边写来袭数量和最快到达的秒数
+  drawIncomingMarks(ctx, z, T) {
+    const me = G.player;
+    if (!me || !me.alive) return;
+    const marks = new Map();
+    for (const p of G.projectiles) {
+      if (!p.launched || p.done || p.tgt !== me.id || (p.kind !== 'rocket' && p.kind !== 'ufo' && p.kind !== 'conv')) continue;
+      const left = p.delay + p.flight - p.t - (G.interp || 0);
+      const key = p.tile.idx;
+      const m = marks.get(key) || { x: p.tile.x, y: p.tile.y, n: 0, left: Infinity, nuke: false };
+      m.n++; m.left = Math.min(m.left, left); m.nuke = m.nuke || p.kind !== 'conv';
+      marks.set(key, m);
+    }
+    if (!marks.size) return;
+    const k = 1 / Math.max(0.7, z);
+    ctx.save();
+    for (const m of marks.values()) {
+      const urgent = m.left < 3, pulse = 0.55 + 0.45 * Math.sin(T * (urgent ? 16 : 7));
+      const r = (11 + (urgent ? 0 : 2 * pulse)) * k, col = m.nuke ? '255,60,48' : '255,170,60';
+      ctx.lineWidth = 1.6 * k; ctx.strokeStyle = `rgba(${col},${0.6 + 0.4 * pulse})`;
+      ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); // 十字准星
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { ctx.moveTo(m.x + dx * r * 0.55, m.y + dy * r * 0.55); ctx.lineTo(m.x + dx * r * 1.35, m.y + dy * r * 1.35); }
+      ctx.stroke();
+      const txt = `${m.nuke ? '☢' : '💥'}${m.n > 1 ? '×' + m.n : ''} ${Math.max(0, m.left).toFixed(m.left < 3 ? 1 : 0)}s`;
+      ctx.font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`; ctx.textAlign = 'left';
+      ctx.lineWidth = 3 * k; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.strokeText(txt, m.x + r + 3 * k, m.y - r * 0.6);
+      ctx.fillStyle = `rgb(${col})`; ctx.fillText(txt, m.x + r + 3 * k, m.y - r * 0.6);
+    }
+    ctx.restore();
   },
 
   // 无人机：贴地直飞，左右轻轻摆动

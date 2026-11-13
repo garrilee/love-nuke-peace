@@ -36,7 +36,7 @@ const Render = {
   fit() {
     // 可视区：避开左右两侧栏、顶栏和底栏；小屏时避开底部操作栏（竖屏）或右侧操作栏（横屏）
     const body = document.body.classList, rc = document.getElementById('rightcol');
-    let L = 296, Rt = 296, Tp = 58, Bt = 40;
+    let L = body.contains('foldL') ? 4 : 296, Rt = body.contains('foldR') ? 4 : 296, Tp = 58, Bt = 40;
     if (body.contains('portrait')) { L = Rt = 4; Tp = 50; Bt = (rc && rc.offsetHeight || 170) + 34; }
     else if (body.contains('compact')) { L = 4; Rt = (rc && rc.offsetWidth || 200) + 10; Tp = 46; Bt = 28; }
     document.documentElement.style.setProperty('--dockH', (body.contains('portrait') && rc ? rc.offsetHeight : 0) + 'px');
@@ -110,8 +110,8 @@ const Render = {
     x.save();
     for (const n of G.nations) {
       const col = n.alive ? n.color : '#555555';
-      x.shadowColor = col; x.shadowBlur = n.alive ? 8 : 0;
-      x.strokeStyle = rgba(col, n.alive ? 0.85 : 0.5); x.lineWidth = 1.5;
+      x.shadowColor = col; x.shadowBlur = n.alive ? 5 : 0;
+      x.strokeStyle = rgba(col, n.alive ? 0.8 : 0.45); x.lineWidth = 1;
       this.strokeEdges(x, (a, b) => a.owner === n.id && b.owner !== n.id);
     }
     x.restore();
@@ -253,6 +253,19 @@ const Render = {
     return x <= v.right && x + w >= v.left && y <= v.bottom && y + h >= v.top;
   },
 
+  // 大事件镜头：推近 0.15 秒、停 0.3 秒、0.45 秒拉回；同时顿帧（单机时短暂慢放）
+  focusOn(x, y) {
+    if (this.time - (this.fpT0 ?? -99) < 1.2) return;
+    this.fpT0 = this.time; this.fpX = x; this.fpY = y;
+    if (G && !G.mp) FX.slowmo = Math.max(FX.slowmo, 0.28);
+  },
+  focusW() {
+    const t = this.time - (this.fpT0 ?? -99);
+    if (t < 0 || t > 0.9) return 0;
+    if (t < 0.15) { const k = t / 0.15; return 1 - (1 - k) * (1 - k); }
+    if (t < 0.45) return 1;
+    const k = (t - 0.45) / 0.45; return 1 - k * k * (3 - 2 * k);
+  },
   draw(dt) {
     this.time += dt;
     const ctx = this.ctx, cam = this.cam, z = cam.zoom, T = this.time;
@@ -263,17 +276,19 @@ const Render = {
     const sx = sh ? (Math.random() - 0.5) * sh : 0, sy = sh ? (Math.random() - 0.5) * sh : 0;
     ctx.save();
     ctx.translate(this.w / 2 + sx, this.h / 2 + sy);
-    const pz = z * (1 + FX.punch); // 爆炸时镜头猛地一推
+    const fp = this.focusW(); // 大事件：镜头朝事件点推近半秒再拉回
+    const camX = fp ? lerp(cam.x, this.fpX, fp * 0.55) : cam.x, camY = fp ? lerp(cam.y, this.fpY, fp * 0.55) : cam.y;
+    const pz = z * (1 + FX.punch) * (1 + 0.28 * fp); // 爆炸时镜头猛地一推
     // Reuse glyphs during the brief camera punch instead of rerasterizing every frame.
     this.labelScale = this.dpr * z;
     ctx.scale(pz, pz);
-    ctx.translate(-cam.x, -cam.y);
+    ctx.translate(-camX, -camY);
     // Include shake, camera punch and a device-pixel margin for antialiasing.
     const pad = 1 / (this.dpr * pz), v = this.view;
-    v.left = cam.x + (-this.w / 2 - sx) / pz - pad;
-    v.right = cam.x + (this.w / 2 - sx) / pz + pad;
-    v.top = cam.y + (-this.h / 2 - sy) / pz - pad;
-    v.bottom = cam.y + (this.h / 2 - sy) / pz + pad;
+    v.left = camX + (-this.w / 2 - sx) / pz - pad;
+    v.right = camX + (this.w / 2 - sx) / pz + pad;
+    v.top = camY + (-this.h / 2 - sy) / pz - pad;
+    v.bottom = camY + (this.h / 2 - sy) / pz + pad;
 
     ctx.drawImage(this.base, 0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
@@ -364,9 +379,9 @@ const Render = {
 
   // ---------- 国境发光层缓存：shadowBlur 很贵，只在国界变化时画一次 ----------
   GLOW_STYLE: {
-    me: { shadow: '#ffd27a', blur: 20, color: 'rgba(255,215,120,0.95)', w: 3.2, inner: 'rgba(255,255,240,0.9)' },
-    target: { shadow: '#ff3020', blur: 18, color: 'rgba(255,70,50,1)', w: 3.2, inner: 'rgba(255,220,210,0.85)' },
-    shield: { shadow: '#66ccff', blur: 14, color: 'rgba(150,235,255,0.9)', w: 3.5, inner: null },
+    me: { shadow: '#ffd27a', blur: 12, color: 'rgba(255,215,120,0.9)', w: 1.6, inner: 'rgba(255,255,240,0.85)' },
+    target: { shadow: '#ff3020', blur: 12, color: 'rgba(255,70,50,0.95)', w: 1.6, inner: 'rgba(255,220,210,0.8)' },
+    shield: { shadow: '#66ccff', blur: 10, color: 'rgba(150,235,255,0.85)', w: 1.6, inner: null },
   },
   drawGlow(ctx, id, kind, alpha) {
     const key = kind + ':' + id;
@@ -394,7 +409,7 @@ const Render = {
     x.shadowColor = st.shadow; x.shadowBlur = st.blur * K;
     x.strokeStyle = st.color; x.lineWidth = st.w;
     x.stroke(this.borderPaths[id]); x.stroke(this.borderPaths[id]); // 描两遍，光晕更饱满
-    if (st.inner) { x.shadowBlur = 0; x.strokeStyle = st.inner; x.lineWidth = 1; x.stroke(this.borderPaths[id]); }
+    if (st.inner) { x.shadowBlur = 0; x.strokeStyle = st.inner; x.lineWidth = 0.6; x.stroke(this.borderPaths[id]); }
     return { c, x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   },
 
@@ -414,6 +429,26 @@ const Render = {
     return c;
   },
 
+  // 黑烟：废墟和人口低于一半的城市，一缕缕往上飘、慢慢散开
+  drawSmoke(ctx, z, T) {
+    const S = FX.S;
+    for (const c of G.world.cities) {
+      const n = G.nations[c.nation];
+      if (!n.alive || c.basePop <= 0) continue;
+      const f = c.ruined ? 0 : c.pop / c.basePop;
+      if (f > 0.5) continue;
+      const x = c.tile.x, y = c.tile.y;
+      if (!this.visibleRect(x - 20, y - 50, 40, 60)) continue;
+      const k = c.ruined ? 1 : (0.5 - f) * 2, puffs = c.ruined ? 5 : 3;
+      for (let i = 0; i < puffs; i++) {
+        const ph = ((T * 0.22 + i / puffs + c.id * 0.137) % 1);
+        const px = x + Math.sin(ph * 5 + c.id) * 3 + ph * 8, py = y - 4 - ph * 34, s = 7 + ph * 18;
+        ctx.globalAlpha = (1 - ph) * 0.55 * k;
+        ctx.drawImage(S.smokeLight || S.white, px - s / 2, py - s / 2, s, s);
+      }
+    }
+    ctx.globalAlpha = 1;
+  },
   // 城市亮度：人口越少灯越少；废墟为 0
   cityLit(c) { return c.ruined || c.basePop <= 0 ? 0 : clamp(c.pop / c.basePop, 0, 1.4); },
   drawCities(ctx, z, T) {
@@ -469,9 +504,20 @@ const Render = {
       ctx.drawImage(S.warm, x - core / 2, y - core / 2, core, core);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    this.drawSmoke(ctx, z, T);
     for (const c of G.world.cities) {
       const n = G.nations[c.nation];
       const x = c.tile.x, y = c.tile.y;
+      if (n.alive && c.basePop > 0) { // 人口环：受损才显示，越少越红
+        const f = clamp(c.pop / c.basePop, 0, 1);
+        if (f < 0.97 && this.visibleRect(x - 12, y - 12, 24, 24)) {
+          const r = 9.5, lw = 1.8 / Math.max(0.8, z);
+          ctx.lineWidth = lw; ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = f > 0.6 ? '#7dff8a' : f > 0.3 ? '#ffc23d' : '#ff4a3a';
+          if (f > 0.01) { ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); ctx.stroke(); }
+        }
+      }
       if (c.isCapital && n.alive) {
         ctx.fillStyle = n.color;
         ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3, y); ctx.closePath(); ctx.fill();

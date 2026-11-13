@@ -65,6 +65,7 @@ Object.assign(Render, {
         const label = this.labelImage('dim:' + d.t0, `🌀 降维打击 ${Math.ceil(left)}`, font, '#ffe0f0', 7, 'rgba(255,30,120,0.95)');
         ctx.drawImage(label.c, c.x + label.x, c.y - BOSS_CFG.dimCore * px - 6 + label.y, label.w, label.h);
       } else if (r < BOSS_CFG.dimOuter) {
+        if (!d.focused) { d.focused = true; this.focusOn(c.x, c.y); } // 二维化展开的一刻：镜头推近
         const R = Math.max(0.5, r) * px;
         ctx.globalCompositeOperation = 'lighter';
         // 冲击环后方的紫色余辉
