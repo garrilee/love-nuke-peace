@@ -45,6 +45,12 @@ Object.assign(Render, {
       if (me) { ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1.2 * k; this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.stroke(); }
       ctx.drawImage(label.c, x + label.x, by + 0.5 * k + label.y, label.w, label.h);
       ctx.restore();
+      if (me) { // 人口条：和其他国家同一个比例
+        const maxPop = Math.max(1, ...G.nations.filter((x2) => x2.alive).map(totalPop));
+        ctx.save(); ctx.fillStyle = 'rgba(10,6,0,0.7)';
+        this.roundRect(ctx, x - bw / 2 + 4 * k, by - bh / 2 - 9 * k, bw - 8 * k, 7 * k, 3.5 * k); ctx.fill(); ctx.restore();
+        this.drawPopBar(ctx, n, x, by - bh / 2 - 7.5 * k, bw - 12 * k, 4 * k, maxPop);
+      }
     }
   },
   // 长国家名在地图上用小一点的字（最小约 65%），避免标签伸出屏幕
@@ -104,7 +110,21 @@ Object.assign(Render, {
     return `rgb(${mix(v >> 16)},${mix((v >> 8) & 255)},${mix(v & 255)})`;
   },
   // 敌国标签：名字 + 人口/核弹数，垫一块半透明深色底板，不和地图颜色混在一起
+  // 人口条：长度 = 这个国家人口 ÷ 人口最多的国家
+  drawPopBar(ctx, n, cx, y, w, h, maxPop) {
+    const f = clamp(totalPop(n) / Math.max(1, maxPop), 0, 1);
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    this.roundRect(ctx, cx - w / 2, y, w, h, h / 2); ctx.fill();
+    if (f > 0.005) {
+      ctx.fillStyle = n === G.player ? '#ffd27a' : this.tint(n.color, 0.15);
+      ctx.shadowColor = n.color; ctx.shadowBlur = 4;
+      this.roundRect(ctx, cx - w / 2, y, Math.max(h, w * f), h, h / 2); ctx.fill();
+    }
+    ctx.restore();
+  },
   drawLabels(ctx, z) {
+    const maxPop = Math.max(1, ...G.nations.filter((x) => x.alive).map(totalPop));
     const sk = 1 / Math.max(0.8, z), sf = `bold ${Math.round(11 * sk)}px "Microsoft YaHei", sans-serif`;
     for (const n of G.nations) {
       const c = this.nationCenters[n.id];
@@ -123,10 +143,11 @@ Object.assign(Render, {
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
       const stats = n.alive ? this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
-      // 底板：盖住名字和数据两行
+      // 底板：盖住名字、数据和人口条
       const ny = c.y - 26, sy = c.y - 9;
-      const top = ny + label.y + 2, bot = stats ? sy + stats.y + stats.h - 2 : ny + label.y + label.h - 2;
-      const w = Math.max(label.width, stats ? stats.width : 0) + 16 * sk, h = bot - top + 4 * sk;
+      const barH = n.alive ? 4 * sk : 0, barGap = n.alive ? 3 * sk : 0;
+      const top = ny + label.y + 2, bot = (stats ? sy + stats.y + stats.h - 2 : ny + label.y + label.h - 2) + barGap + barH;
+      const w = Math.max(label.width, stats ? stats.width : 0, 70 * sk) + 16 * sk, h = bot - top + 4 * sk;
       ctx.save();
       ctx.fillStyle = n.alive ? 'rgba(6,10,18,0.62)' : 'rgba(6,10,18,0.4)';
       this.roundRect(ctx, c.x - w / 2, top - 2 * sk, w, h, Math.min(8 * sk, h / 2)); ctx.fill();
@@ -135,6 +156,7 @@ Object.assign(Render, {
       ctx.restore();
       ctx.drawImage(label.c, c.x + label.x, ny + label.y, label.w, label.h);
       if (stats) ctx.drawImage(stats.c, c.x + stats.x, sy + stats.y, stats.w, stats.h);
+      if (n.alive) this.drawPopBar(ctx, n, c.x, bot - barH, w - 14 * sk, barH, maxPop);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;

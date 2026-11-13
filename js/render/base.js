@@ -343,6 +343,7 @@ const Render = {
     this.drawLabels(ctx, z);
     this.drawMarkers(ctx, z, T);
     FX.drawTexts(ctx, z);
+    FX.drawCombos(ctx, z);
 
     if (this.hoverTile) {
       ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2 / z;

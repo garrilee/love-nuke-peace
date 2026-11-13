@@ -51,7 +51,10 @@ const FX = {
     Bus.on('netMiss', (p) => { const q = Render.projPos(p); this.text(q.x, q.y - 10, '拦截失败', '#ff8a7a', 0.8); });
     Bus.on('intercept', (p) => this.onIntercept(p));
     Bus.on('fizzle', (p) => this.onFizzle(p));
-    Bus.on('cityHit', (e) => this.text(e.city.tile.x, e.city.tile.y - 10, '-' + fmtPop(e.loss), '#ff6b5b', 1));
+    Bus.on('cityHit', (e) => this.pendHits.push(e));
+    Bus.on('explode', (e) => this.flushBlast(e));
+    Bus.on('convExplode', () => this.flushSmall());
+    Bus.on('droneExplode', () => this.flushSmall());
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));
     Bus.on('ult', (e) => this.onUlt(e));
     Bus.on('droneExplode', (e) => this.onDroneExplode(e));
@@ -73,7 +76,7 @@ const FX = {
     x.beginPath(); x.moveTo(0, 8); x.lineTo(128, 0); x.lineTo(128, 16); x.closePath(); x.fill();
     return c;
   },
-  reset() { this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
+  reset() { this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
   part(o) {
@@ -81,6 +84,77 @@ const FX = {
     this.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, age: 0, size: 4, grow: 0, alpha: 1, add: true, drag: 0, grav: 0, delay: 0, fire: 0 }, o));
   },
   text(x, y, str, color, scale = 1) { this.texts.push({ x, y, str, color, age: 0, life: 1.8, scale }); },
+
+  // ---------- 伤害数字 ----------
+  pendHits: [], combo: new Map(),
+  involves(attId, victims) { const p = G.player; return !!p && (attId === p.id || victims.has(p.id)); },
+  // 按伤害大小分档：字号（屏幕像素）、颜色、是否发光
+  dmgStyle(loss) {
+    if (loss < 3) return { size: 20, color: '#ffd25a', glow: 0 };
+    if (loss < 8) return { size: 30, color: '#ff9a3a', glow: 6 };
+    return { size: 44, color: '#ff3b2b', glow: 14 };
+  },
+  // 核弹爆炸：这一颗波及的所有城市损失合成一个大数字，显示在爆心
+  flushBlast({ tile, lv, att }) {
+    const hits = this.pendHits; this.pendHits = [];
+    if (!hits.length) return;
+    let total = 0; const victims = new Map();
+    for (const h of hits) { total += h.loss; victims.set(h.city.nation, (victims.get(h.city.nation) || 0) + h.loss); }
+    const attId = att && att.id !== undefined ? att.id : att;
+    const k = this.involves(attId, victims) ? 1 : 0.6;
+    const st = this.dmgStyle(total);
+    let str = '-' + fmtPop(total), size = st.size, color = st.color, glow = st.glow;
+    if (lv >= 5) { // 东风：特大号，带国家名
+      const v = G.nations[[...victims.entries()].sort((a, b) => b[1] - a[1])[0][0]];
+      str = `${v.name} -${fmtPop(total)}`; size = 54; color = '#ffffff'; glow = 22;
+    }
+    this.bigText(tile.x, tile.y - 16, str, color, size * k, glow);
+    for (const [vid, loss] of victims) this.addCombo(vid, loss, attId, false);
+  },
+  // 导弹 / 小摩托：照旧在城市上方显示小数字
+  flushSmall() {
+    const hits = this.pendHits; this.pendHits = [];
+    for (const h of hits) this.text(h.city.tile.x, h.city.tile.y - 10, '-' + fmtPop(h.loss), '#ff6b5b', 1);
+  },
+  // 没有爆炸事件的损失（降维打击）：计入国家的连击累计
+  flushRest() {
+    const hits = this.pendHits; this.pendHits = [];
+    for (const h of hits) this.addCombo(h.city.nation, h.loss, G.boss ? G.boss.id : -1, true);
+  },
+  bigText(x, y, str, color, size, glow) { this.texts.push({ x, y, str, color, age: 0, life: 2.6, size, glow, big: true }); },
+  // 连击累计：同一国家 1.5 秒内连续挨打，国名上方滚动累加总数
+  addCombo(vid, loss, attId, dim) {
+    const now = Render.time;
+    let c = this.combo.get(vid);
+    if (!c || now - c.last > 1.5) c = { total: 0, hits: 0, last: now, dim: false, att: attId, born: now };
+    c.total += loss; c.hits++; c.last = now; c.dim = c.dim || dim; c.bump = now;
+    this.combo.set(vid, c);
+  },
+  drawCombos(ctx, zoom) {
+    const now = Render.time;
+    for (const [vid, c] of this.combo) {
+      const age = now - c.last;
+      if (age > 1.8) { this.combo.delete(vid); continue; }
+      if (c.hits < 2 && !c.dim) continue; // 单发的伤害已经有爆心大数字
+      const cen = Render.nationCenters[vid];
+      if (!cen) continue;
+      const k = this.involves(c.att, new Set([vid])) ? 1 : 0.6;
+      const st = this.dmgStyle(c.total);
+      const pop = Math.max(0, 1 - (now - c.bump) / 0.18) * 0.35; // 每次累加时跳一下
+      const size = (st.size + 6) * k * (1 + pop) / Math.max(0.7, zoom);
+      const str = c.dim ? `🌀 -${fmtPop(c.total)}` : `-${fmtPop(c.total)} ×${c.hits}`;
+      ctx.save();
+      ctx.globalAlpha = age < 1.2 ? 1 : 1 - (age - 1.2) / 0.6;
+      ctx.font = `900 ${Math.round(size)}px "Microsoft YaHei", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.lineWidth = Math.max(2, size * 0.14); ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineJoin = 'round';
+      const y = cen.y - 44 / Math.max(0.8, zoom);
+      ctx.strokeText(str, cen.x, y);
+      ctx.shadowColor = c.dim ? '#c040ff' : st.color; ctx.shadowBlur = st.glow + 6;
+      ctx.fillStyle = c.dim ? '#e8b8ff' : st.color; ctx.fillText(str, cen.x, y);
+      ctx.restore();
+    }
+  },
 
   involvesPlayer(p) { return G.player && (p.att === G.player.id || p.tgt === G.player.id); },
 
@@ -427,6 +501,7 @@ const FX = {
   },
 
   update(dt) {
+    if (this.pendHits.length) this.flushRest();
     this.flash = Math.max(0, this.flash - dt * 1.8);
     this.whiteout = Math.max(0, this.whiteout - dt);
     // 震屏先保持一小段时间再衰减，更有“余震”感
@@ -624,6 +699,20 @@ const FX = {
     ctx.textAlign = 'center';
     for (const t of this.texts) {
       const k = t.age / t.life;
+      if (t.big) { // 大伤害数字：先放大弹出再回落，停留后上浮淡出
+        const a = t.age, s = a < 0.12 ? 0.5 + a / 0.12 * 0.9 : a < 0.3 ? 1.4 - (a - 0.12) / 0.18 * 0.4 : 1;
+        const px = t.size * s / Math.max(0.7, zoom);
+        ctx.save();
+        ctx.globalAlpha = a < 1.6 ? 1 : Math.max(0, 1 - (a - 1.6) / 1.0);
+        ctx.font = `900 ${Math.round(px)}px "Microsoft YaHei", sans-serif`;
+        ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(2, px * 0.14); ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+        const y = t.y - Math.max(0, a - 0.3) * 10;
+        ctx.strokeText(t.str, t.x, y);
+        if (t.glow) { ctx.shadowColor = t.color; ctx.shadowBlur = t.glow; }
+        ctx.fillStyle = t.color; ctx.fillText(t.str, t.x, y);
+        ctx.restore();
+        continue;
+      }
       ctx.globalAlpha = 1 - k * k;
       ctx.font = `bold ${Math.round((12 * t.scale) / Math.max(0.7, zoom))}px "Microsoft YaHei", sans-serif`;
       ctx.lineWidth = 3 / zoom; ctx.strokeStyle = 'rgba(0,0,0,0.7)';

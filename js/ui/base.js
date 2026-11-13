@@ -129,6 +129,7 @@ const UI = {
     $('end').classList.add('hidden');
     $('hud').classList.remove('hidden');
     this.tickerItems = [];
+    this.initRank();
     // 速度
     document.querySelectorAll('#speed button').forEach((b) => {
       b.onclick = () => { setSpeed(+b.dataset.speed); SFX.click(); };
@@ -236,6 +237,7 @@ const UI = {
 
   refreshAll() {
     const p = G.player;
+    this.refreshRank();
     // 顶栏
     setText($('date'), fmtDate(G.t));
     const mob = this.mobile();
