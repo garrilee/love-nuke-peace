@@ -15,7 +15,7 @@ const takenMul = (owner) => (isChaos(owner) ? BOSS_CFG.chaosDmg : owner.mods.arm
 
 // 开局：科技、人口已在种族数值里；这里设科技进度、大招冷却、乱纪元计时、对真人玩家的敌意
 function setupBoss(n) {
-  n.techIdx = BOSS_CFG.startTech;
+  for (const id of BOSS_CFG.startTechs) grantTech(n, id);
   n.ultCd = BOSS_CFG.firstUlt;
   n.chaosT = 0; n.chaosNext = BOSS_CFG.chaosFirst; n.chaosWarned = false;
   n.pers = 'hot'; // 好战

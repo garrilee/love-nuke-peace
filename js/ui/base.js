@@ -19,6 +19,15 @@ const Store = {
   set(k, v) { try { localStorage.setItem('lnp.' + k, JSON.stringify(v)); } catch (_) {} },
 };
 
+// 开始界面的国家卡片：只写加成和代价，一句话说清大招
+const RACE_CARD = {
+  human:    { plus: ['科技 +15%'], minus: [], ult: '15 秒内产出 ×1.7' },
+  mole:     { plus: ['护盾减伤 97%', '护盾冷却 -28%'], minus: ['科技 -4%'], ult: '免费护盾 + 回敬 6 枚导弹' },
+  octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -20%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
+  mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -3%'], minus: ['科技 -5%'], ult: '敌国人口停止增长并流失' },
+  ai:       { plus: ['科技 +15%', '不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
+  roach:    { plus: ['人口恢复 ×1.33'], minus: ['科技 -10%'], ult: '废墟和宕机设施立即复原' },
+};
 const UI = {
   pickedRace: null, uiTimer: 0, leaderTimer: 0, bannerTimer: 0, tickerItems: [],
 
@@ -31,10 +40,10 @@ const UI = {
       d.className = 'race';
       d.dataset.id = r.id;
       d.style.setProperty('--c', r.color);
-      d.innerHTML = `<div class="emo">${raceIcon(r.id, 52)}</div><div class="rn">${r.name}</div>
-        <div class="rt">✔ ${r.trait}</div><div class="rw">✘ ${r.weak}</div>
-        <div class="rs">大招：${r.ult.icon} ${r.ult.name} — ${r.ult.desc}</div>
-        <div class="rq">“${r.lines.launch}”</div>`;
+      const cd = RACE_CARD[r.id];
+      d.innerHTML = `<div class="emo">${raceIcon(r.id, 48)}</div><div class="rn">${r.name}</div>
+        ${cd.plus.map((t) => `<div class="rp">＋ ${t}</div>`).join('')}${cd.minus.map((t) => `<div class="rm">－ ${t}</div>`).join('')}
+        <div class="ru">${r.ult.icon} ${r.ult.name}：${cd.ult}</div>`;
       if (Store.get('race') === r.id) { this.pickedRace = r.id; d.classList.add('sel'); $('startBtn').disabled = false; }
       d.onclick = () => {
         if (d.classList.contains('taken')) return;
@@ -202,9 +211,9 @@ const UI = {
   // 国力分配的直观收益：每项每秒增加多少
   updateRates(changed) {
     const p = G.player, a = p.alloc, prod = production(p);
-    const done = p.techIdx >= TECHS.length;
-    const tech = prod * a.tech * (p.mods.tech || 1);
-    const nuke = prod * a.nuke * CFG.NUKE_MUL * heatEff(p) * (G.midnight ? 3 : 1);
+    const done = techDone(p);
+    const tech = prod * a.tech * (p.mods.tech || 1) * sophonMul(p);
+    const nuke = prod * a.nuke * CFG.NUKE_MUL * heatEff(p) * midnightProd();
     const def = prod * a.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1) + (done ? prod * a.tech : 0);
     const set = (k, html) => {
       const el = $('r-' + k);
@@ -215,9 +224,6 @@ const UI = {
     set('tech', done ? '<span class="dim">已满 · 全部转为能量</span>' : `+${tech.toFixed(1)}<small>点/秒</small>`);
     set('nuke', `+${nuke.toFixed(1)}<small>预算/秒</small>`);
     set('def', `+${def.toFixed(1)}<small>能量/秒</small>`);
-    const t = TECHS[p.techIdx];
-    const lv = bestLevel(p) || 1;
-    const per = PARCELS[Math.min(lv, 4)].cost + COSTS.rocket / multiK(p);
     // 军工热度条
     const target = clamp(a.nuke / CFG.HEAT_FULL_AT, 0, 1);
     const trend = target > p.heat + 0.02 ? '▲ 升温中' : target < p.heat - 0.02 ? '▼ 降温中' : '稳定';
@@ -225,6 +231,31 @@ const UI = {
     setText($('heatTxt'), `效率 ×${heatEff(p).toFixed(2)} · ${trend}`);
   },
 
+  // ---------- 研发区：科技路线 + 当前研发进度 + 第 4 级二选一 ----------
+  refreshResearch() {
+    const p = G.player, box = $('research');
+    if (!box) return;
+    const opts = availTechs(p), choosing = !p.research && opts.length > 1;
+    const node = (id, label) => `<span class="rt-n${has(p, id) ? ' done' : ''}${p.research === id ? ' cur' : ''}">${label}</span>`;
+    const fork = `<span class="rt-fork">${node('lv4', '闪送')}<i>/</i>${node('net', '拦截网')}</span>`;
+    const path = [node('pad', '投送站'), node('lv3', '当日达'), node('multi', '分装'), fork, node('lv5', '东风')].join('<b class="rt-ar">›</b>');
+    const cur = curTech(p);
+    let body;
+    if (choosing) {
+      const left = Math.max(0, Math.ceil(TECH_PICK_WAIT - (G.t - p.choiceSince)));
+      body = `<div class="rt-pick"><div class="rt-q">选择第 4 级路线（${left} 秒后按核武/三防分配自动选）</div>
+        <button class="rt-btn atk" data-id="lv4">☢ 闪送<small>主攻 · 4 级包裹</small></button>
+        <button class="rt-btn def" data-id="net">🛡 拦截网<small>主防 · 6 发 75%</small></button></div>`;
+    } else if (cur) {
+      const k = clamp(p.techPts / cur.cost, 0, 1);
+      body = `<div class="rt-cur">🔬 ${cur.name}<span class="mono">${Math.floor(Math.min(p.techPts, cur.cost))}/${cur.cost}</span></div><div class="bar rt-bar"><i style="width:${Math.round(k * 100)}%"></i></div>`;
+    } else body = '<div class="rt-cur dim">✅ 研发全部完成 · 科技分配转为能量</div>';
+    const key = path + body;
+    if (box._k === key) return;
+    box._k = key;
+    setHTML(box, `<div class="rt-path">${path}</div>${body}`);
+    for (const b of box.querySelectorAll('.rt-btn')) b.onclick = () => { Act.do({ a: 'research', id: b.dataset.id }); SFX.click && SFX.click(); };
+  },
   // 当前生效的倍率：让隐藏机制看得见
   modChips(p) {
     const ud = underdog(p), chips = [];
@@ -253,6 +284,7 @@ const UI = {
   refreshAll() {
     const p = G.player;
     this.refreshRank();
+    this.refreshResearch();
     // 顶栏
     setText($('date'), fmtDate(G.t));
     const mob = this.mobile();
@@ -285,12 +317,9 @@ const UI = {
 
     // 我方数据
     const prod = production(p);
-    const tech = TECHS[p.techIdx];
-    const tk = tech ? clamp(p.techPts / tech.cost, 0, 1) : 1;
     setHTML($('stats'), `
       <div class="me-head">${raceIcon(p.race.id, 34)}<b class="me-name">${p.name}</b><span class="me-pop mono">👥 ${fmtPop(totalPop(p))}</span></div>
       <div class="mods">${this.modChips(p)}</div>
-      <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${Math.round(tk * 100)}%"></i></span></div>
       <div class="me-res"><span>💰 预算 <b class="mono">${Math.floor(p.bank)}</b></span><span>⚡ 能量 <b class="mono">${Math.floor(p.energy)}</b><small>/${CFG.ENERGY_CAP}</small></span></div>`);
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）

@@ -50,6 +50,7 @@ function execCmd(n, c) {
       if (s > 0 && t >= 0 && k >= 0 && d >= 0) n.alloc = { tech: t / s, nuke: k / s, def: d / s };
       return 1;
     }
+    case 'research': { const t = availTechs(n).find((x) => x.id === c.id); if (!t || n.research) return 0; n.techPick = t.id; pickResearch(n); return 1; }
     case 'toggle': if (['autoNet', 'autoRebuild', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;
@@ -111,6 +112,10 @@ function frame(ts) {
 Bus.on('news', (t) => { if (running) UI.addFeed(t); });
 Bus.on('leader', ({ n, text, to }) => { if (to === undefined || to === G.player.id) UI.leader(n, text); });
 Bus.on('banner', (t) => UI.banner(t));
+Bus.on('techChoice', (n) => {
+  if (n !== G.player) return;
+  UI.tip('techChoice', `🔬 第 4 级科技二选一：<button class="rt-btn atk" onclick="Act.do({a:'research',id:'lv4'});UI.hideTip()">☢ 闪送 · 主攻</button> <button class="rt-btn def" onclick="Act.do({a:'research',id:'net'});UI.hideTip()">🛡 拦截网 · 主防</button><br><span class="small dim">两条路线都能研发东风；${TECH_PICK_WAIT} 秒不选按你的核武/三防分配自动选</span>`, { life: TECH_PICK_WAIT });
+});
 Bus.on('midnight', () => SFX.bell());
 Bus.on('dogfight', ({ a, b }) => {
   if (a.att === G.player.id || b.att === G.player.id) UI.tip('dogfight', `${PAPER} <b>空战！</b>不同国家的小摩托在空中相遇会互相攻击；敌方小摩托飞进国土时，你库存里的小摩托会自动<b>升空拦截</b>（最多 2 架，起飞就消耗，追到底）。`, { tutorial: true, life: 9 });

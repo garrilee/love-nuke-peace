@@ -25,11 +25,12 @@ function simStep(dt) {
 function stepNation(n, dt) {
   const prod = production(n);
   // 科技
-  if (n.techIdx < TECHS.length) {
-    n.techPts += prod * n.alloc.tech * (n.mods.tech || 1) * sophonMul(n) * dt;
-    const tech = TECHS[n.techIdx];
-    if (n.techPts >= tech.cost) {
-      n.techPts -= tech.cost; n.techIdx++;
+  pickResearch(n);
+  if (!techDone(n)) {
+    n.techPts += prod * n.alloc.tech * (n.mods.tech || 1) * sophonMul(n) * dt; // 二选一还没选时，科研点照样积累
+    const tech = curTech(n);
+    if (tech && n.techPts >= tech.cost) {
+      n.techPts -= tech.cost; grantTech(n, tech.id); n.research = null;
       Bus.emit('tech', { n, tech });
       if (tech.id === 'lv5') news(`${n.race.emoji}${n.name} 解锁了【终极核平·东风】，全世界的投送员都瑟瑟发抖`);
     }

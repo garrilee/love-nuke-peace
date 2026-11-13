@@ -265,7 +265,7 @@ const Net = {
     return {
       t: r2(G.t), m: G.midnight ? 1 : 0, sp: G.speed,
       n: G.nations.map((n) => ({
-        a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
+        a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tm: n.techMask, rs: n.research ? techIndex(n.research) : -1, cs: r1(n.choiceSince), tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
         dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
@@ -355,7 +355,7 @@ const Net = {
     s.n.forEach((d, i) => {
       const n = G.nations[i];
       Object.assign(n, {
-        alive: !!d.a, isPlayer: !!d.h, techIdx: d.ti, techPts: d.tp, bank: d.b, energy: d.e,
+        alive: !!d.a, isPlayer: !!d.h, techIdx: d.ti, techMask: d.tm || 0, research: d.rs >= 0 ? TECHS[d.rs].id : null, choiceSince: d.cs ?? -1, techPts: d.tp, bank: d.b, energy: d.e,
         conv: d.cv, convCd: d.cc, convBuildT: d.cb, heat: d.ht, shieldT: d.sT, shieldCd: d.sC, netT: d.nT, netCd: d.nC, netCharges: d.nq,
         ultCd: d.uC, chaosT: d.ch || 0, chaosNext: d.cn || 0, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,

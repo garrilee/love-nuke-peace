@@ -36,7 +36,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = f
       alive: true,
       pers: n.isPlayer ? null : persKeys[i % persKeys.length],
       alloc: { tech: 0.5, nuke: 0.3, def: 0.2 },
-      techPts: 0, techIdx: 0,
+      techPts: 0, techIdx: 0, techMask: 0, research: null, techPick: null, choiceSince: -1,
       bank: 0, energy: 40,
       parcels: { 1: CFG.START_PARCELS, 2: 0, 3: 0, 4: 0, 5: 0 },
       ufoReady: Math.max(2, Math.min(CFG.MAX_UFO, CFG.START_PARCELS)), ufoReturn: [], // 开局飞机数和开局核包裹数一致，5 个都能一起投出去
@@ -75,7 +75,40 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = f
 
 // ---------- 工具 ----------
 const techIndex = (id) => TECHS.findIndex((t) => t.id === id);
-const has = (n, id) => n.techIdx > techIndex(id);
+// 是否拥有某项科技：1 级包裹人人都有；2 级包裹已从科技树去掉；海底仓只有鱼叉天生拥有
+function has(n, id) {
+  if (id === 'lv1') return true;
+  if (id === 'sea') return !!n.mods.innateSea;
+  const k = techIndex(id);
+  return k >= 0 && !!(n.techMask & (1 << k));
+}
+function grantTech(n, id) {
+  const k = techIndex(id);
+  if (k < 0 || (n.techMask & (1 << k))) return;
+  n.techMask |= 1 << k; n.techIdx++;
+}
+// 现在能研发的科技（还没有、前置已满足）
+const availTechs = (n) => TECHS.filter((t) => !has(n, t.id) && (t.req || []).every((r) => has(n, r)) && (!t.reqAny || t.reqAny.some((r) => has(n, r))));
+const techDone = (n) => !n.research && !availTechs(n).length;
+const curTech = (n) => (n.research ? TECHS[techIndex(n.research)] : null);
+// 决定下一项研发：只有一个选项就直接研发；第 4 级二选一时，AI 按性格选，玩家自己选（超时按核武/三防分配自动选）
+function pickResearch(n) {
+  if (n.research) return;
+  const opts = availTechs(n);
+  if (!opts.length) return;
+  const atk = opts.find((t) => t.branch === 'atk'), def = opts.find((t) => t.branch === 'def');
+  // 只有第 4 级两个分支都还没研发时才需要二选一；否则先研发东风，最后补另一个分支
+  let pick = atk && def ? null : opts.find((t) => !t.branch) || opts[0];
+  if (!pick) {
+    if (n.techPick && opts.some((t) => t.id === n.techPick)) pick = opts.find((t) => t.id === n.techPick);
+    else if (!n.isPlayer) pick = n.race.boss || n.pers === 'hot' || n.pers === 'crazy' ? atk : def;
+    else {
+      if (n.choiceSince < 0) { n.choiceSince = G.t; Bus.emit('techChoice', n); }
+      if (G.t - n.choiceSince >= TECH_PICK_WAIT) pick = n.alloc.nuke >= n.alloc.def ? atk : def;
+    }
+  }
+  if (pick) { n.research = pick.id; n.techPick = null; n.choiceSince = -1; }
+}
 function bestLevel(n) {
   let lv = 0;
   for (let k = 1; k <= 5; k++) if (has(n, 'lv' + k)) lv = k;

@@ -60,7 +60,7 @@ function aiStep(n, dt) {
   if (G.t < 120) n.alloc = { tech: 0.6, nuke: 0.25, def: 0.15 };
   else if (recentlyHit) n.alloc = { tech: 0.3, nuke: 0.45, def: 0.25 };
   else n.alloc = { tech: 0.45, nuke: 0.35, def: 0.2 };
-  if (n.techIdx >= TECHS.length) n.alloc = { tech: 0.1, nuke: 0.6, def: 0.3 };
+  if (techDone(n)) n.alloc = { tech: 0.1, nuke: 0.6, def: 0.3 };
 
   // 大量来袭：刀盾先放大招（免费护盾 + 回敬）
   const inc = incomingFor(n);
