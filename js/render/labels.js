@@ -45,6 +45,10 @@ Object.assign(Render, {
       if (me) { ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1.2 * k; this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.stroke(); }
       ctx.drawImage(label.c, x + label.x, by + 0.5 * k + label.y, label.w, label.h);
       ctx.restore();
+      if (me) { // 种族徽章压在标牌左端
+        const img = raceIconImage(n.race.id), ic = bh * 1.45;
+        if (img.complete && img.naturalWidth) ctx.drawImage(img, x - bw / 2 - ic * 0.62, by - ic / 2, ic, ic);
+      }
       if (me) { // 人口条：和其他国家同一个比例
         const maxPop = Math.max(1, ...G.nations.filter((x2) => x2.alive).map(totalPop));
         ctx.save(); ctx.fillStyle = 'rgba(10,6,0,0.7)';
@@ -133,13 +137,13 @@ Object.assign(Render, {
       const font = `bold ${Math.round(16 / Math.max(0.8, z) * this.nameScale(n.name))}px "Microsoft YaHei", sans-serif`;
       if (recentAttacker(n)) this.drawAttackerBadge(ctx, n, c, z);
       const tg = n.id === G.target && n.alive;
-      let text = n.race.emoji + ' ' + n.name + (n.alive ? '' : '（已核平）');
+      let text = n.name + (n.alive ? '' : '（已核平）');
       let color = n.alive ? this.tint(n.color, 0.35) : 'rgba(150,150,150,0.6)', blur = 3, shadow = 'rgba(0,0,0,0.95)';
       if (tg) {
-        text = '🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.race.emoji + ' ' + n.name;
+        text = '🎯 ' + (G.mp && n.isPlayer ? '👤 ' : '') + n.name;
         color = '#ffd0c4'; blur = 8; shadow = '#ff3020';
       } else if (G.mp && n.isPlayer && n.alive) {
-        text = '👤 ' + n.race.emoji + ' ' + n.name;
+        text = '👤 ' + n.name;
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
       const stats = n.alive ? this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
@@ -148,15 +152,20 @@ Object.assign(Render, {
       const barH = n.alive ? 4 * sk : 0, barGap = n.alive ? 3 * sk : 0;
       const top = ny + label.y + 2, bot = (stats ? sy + stats.y + stats.h - 2 : ny + label.y + label.h - 2) + barGap + barH;
       const w = Math.max(label.width, stats ? stats.width : 0, 70 * sk) + 16 * sk, h = bot - top + 4 * sk;
+      // 左侧种族徽章：高度和底板差不多
+      const ic = Math.min(h + 2 * sk, 40 * sk), gap = 2 * sk, W = ic + gap + w;
+      const x0 = c.x - W / 2, tx = x0 + ic + gap + w / 2; // tx：文字列的中心
       ctx.save();
       ctx.fillStyle = n.alive ? 'rgba(6,10,18,0.62)' : 'rgba(6,10,18,0.4)';
-      this.roundRect(ctx, c.x - w / 2, top - 2 * sk, w, h, Math.min(8 * sk, h / 2)); ctx.fill();
+      this.roundRect(ctx, x0, top - 2 * sk, W, h, Math.min(8 * sk, h / 2)); ctx.fill();
       ctx.strokeStyle = tg ? 'rgba(255,90,60,0.85)' : rgba(n.alive ? n.color : '#888888', 0.7);
       ctx.lineWidth = (tg ? 1.6 : 1) * sk; ctx.stroke();
+      const img = raceIconImage(n.race.id);
+      if (img.complete && img.naturalWidth) { ctx.globalAlpha = n.alive ? 1 : 0.4; ctx.drawImage(img, x0 + 1 * sk, top - 2 * sk + (h - ic) / 2, ic, ic); }
       ctx.restore();
-      ctx.drawImage(label.c, c.x + label.x, ny + label.y, label.w, label.h);
-      if (stats) ctx.drawImage(stats.c, c.x + stats.x, sy + stats.y, stats.w, stats.h);
-      if (n.alive) this.drawPopBar(ctx, n, c.x, bot - barH, w - 14 * sk, barH, maxPop);
+      ctx.drawImage(label.c, tx + label.x, ny + label.y, label.w, label.h);
+      if (stats) ctx.drawImage(stats.c, tx + stats.x, sy + stats.y, stats.w, stats.h);
+      if (n.alive) this.drawPopBar(ctx, n, tx, bot - barH, w - 14 * sk, barH, maxPop);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;

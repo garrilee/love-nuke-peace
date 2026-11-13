@@ -31,7 +31,7 @@ const UI = {
       d.className = 'race';
       d.dataset.id = r.id;
       d.style.setProperty('--c', r.color);
-      d.innerHTML = `<div class="emo">${r.emoji}</div><div class="rn">${r.name}</div>
+      d.innerHTML = `<div class="emo">${raceIcon(r.id, 52)}</div><div class="rn">${r.name}</div>
         <div class="rt">✔ ${r.trait}</div><div class="rw">✘ ${r.weak}</div>
         <div class="rs">大招：${r.ult.icon} ${r.ult.name} — ${r.ult.desc}</div>
         <div class="rq">“${r.lines.launch}”</div>`;
@@ -296,7 +296,7 @@ const UI = {
     const pads = facOf(p, 'pad');
     const subsOut = p.subs.filter((s) => s.state === 'out');
     setHTML($('stats'), `
-      <div class="sect-title">${p.race.emoji} ${p.name}</div>
+      <div class="sect-title">${raceIcon(p.race.id, 18)} ${p.name}</div>
       <div class="big">👥 ${fmtPop(totalPop(p))} <span class="dim">产出 ${prod.toFixed(1)}/秒</span></div>
       <div class="mods">${this.modChips(p)}</div>
       <div class="techline">🔬 ${tech ? tech.name : '全部解锁'} <span class="bar"><i style="width:${Math.round(tk * 100)}%"></i></span></div>
@@ -362,7 +362,7 @@ const UI = {
   leader(n, text) {
     const el = $('leader');
     el.style.setProperty('--c', n.color);
-    el.innerHTML = `<div class="lemo">${n.race.emoji}</div><div><div class="lname">${n.name} 领袖</div><div class="ltext">“${text}”</div></div>`;
+    el.innerHTML = `<div class="lemo">${raceIcon(n.race.id, 46)}</div><div><div class="lname">${n.name} 领袖</div><div class="ltext">“${text}”</div></div>`;
     el.classList.remove('hidden');
     this.leaderTimer = 4.5;
   },
@@ -397,7 +397,7 @@ const UI = {
     if (!tile) { el.classList.add('hidden'); return; }
     const lines = [];
     const owner = tile.owner >= 0 ? G.nations[tile.owner] : null;
-    lines.push(`<b>${TERRAIN_NAME[tile.terrain]}</b>${owner ? ` · <span style="color:${owner.color}">${owner.race.emoji}${owner.name}</span>` : ''}`);
+    lines.push(`<b>${TERRAIN_NAME[tile.terrain]}</b>${owner ? ` · <span style="color:${owner.color}">${raceIcon(owner.race.id, 14)}${owner.name}</span>` : ''}`);
     if (tile.city) {
       const c = tile.city;
       lines.push(`🏙 ${c.name}${c.isCapital ? '（首都）' : ''} · 👥 ${fmtPop(c.pop)}`);

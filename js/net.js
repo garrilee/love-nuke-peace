@@ -499,7 +499,7 @@ const Lobby = {
     $('mpPlayers').innerHTML = Net.players.map((p) => {
       const r = RACES.find((x) => x.id === p.race), nm = cleanName(p.name);
       return `<div class="mp-pl${p.id === Net.myId ? ' me' : ''}" style="--c:${r ? r.color : '#7f93aa'}">
-        <span class="emo">${r ? r.emoji : '❔'}</span><b>${nm || (r ? r.name : '还没选国家')}</b>${nm && r ? `<span class="dim small">${r.name}</span>` : ''}
+        <span class="emo">${r ? raceIcon(r.id, 22) : '❔'}</span><b>${nm || (r ? r.name : '还没选国家')}</b>${nm && r ? `<span class="dim small">${r.name}</span>` : ''}
         ${p.back ? '' : '<span class="tag wait">结算中</span>'}${p.host ? '<span class="tag">房主</span>' : ''}${p.id === Net.myId ? '<span class="tag me">你</span>' : ''}</div>`;
     }).join('');
     const humans = Net.players.length;

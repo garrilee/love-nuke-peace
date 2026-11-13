@@ -527,3 +527,8 @@ body.compact #popChart { height: 150px; }
 .chip { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: rgba(255,255,255,0.07); color: #9fb2c6; border: 1px solid rgba(255,255,255,0.08); }
 .chip.good { color: #7dff8a; border-color: rgba(125,255,138,0.35); background: rgba(125,255,138,0.08); }
 .chip.bad { color: #ffb35a; border-color: rgba(255,179,90,0.35); background: rgba(255,179,90,0.08); }
+
+/* 种族徽章图标 */
+.ricon { display: inline-block; vertical-align: -0.22em; flex-shrink: 0; }
+.race .emo .ricon { filter: drop-shadow(0 0 6px rgba(0,0,0,0.6)); }
+.lemo .ricon, .temo .ricon { display: block; }

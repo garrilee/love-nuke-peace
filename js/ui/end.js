@@ -16,7 +16,7 @@ Object.assign(UI, {
     else if (kind === 'earth') { title = '🌍 地球赢了'; sub = '所有国家同归于尽。鸟儿重新开始歌唱，世界终于和平了。'; }
     else if (survivor && survivor.race.boss && alive.length === 1) { title = '👽 地球被降临'; sub = `${survivor.name}的舰队接管了这颗星球。下一次，记得在乱纪元集中火力。`; }
     else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
-    else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${survivor.race.emoji}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
+    else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${raceIcon(survivor.race.id, 20)}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
     const s = p.stats;
     const box = document.querySelector('#end .end-inner');
     box.innerHTML = `<h1>${title}</h1><div class="slogan">${sub}</div>
@@ -35,8 +35,8 @@ Object.assign(UI, {
         <div>${p.alive ? '活到最后' : '坚持了'} <b>${fmtTime(p.alive ? G.t : p.diedAt || G.t)}</b></div>
       </div>
       <div class="popchart"><div class="pc-title">📈 人口走势</div><canvas id="popChart"></canvas><div id="popLegend" class="pc-legend"></div></div>
-      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${n.race.emoji} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
-      <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${n.race.emoji}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
+      ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${raceIcon(n.race.id, 18)} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
+      <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${raceIcon(n.race.id, 14)}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>' : '<button id="againBtn">再核平一次</button>'}`;
     $('end').classList.remove('hidden');
     this.drawPopChart();
@@ -73,7 +73,7 @@ Object.assign(UI, {
       x.stroke(); x.globalAlpha = 1;
       if (n.diedAt !== undefined) { x.textAlign = 'center'; x.font = '12px sans-serif'; x.fillText('💀', X(Math.min(n.diedAt, tMax)), Y(0) - 4); x.font = '11px "Microsoft YaHei", sans-serif'; }
     }
-    setHTML($('popLegend'), G.nations.map((n) => `<span style="--c:${n === G.player ? '#ffd27a' : n.color}"${n === G.player ? ' class="me"' : ''}><i></i>${n.race.emoji}${n.name}</span>`).join(''));
+    setHTML($('popLegend'), G.nations.map((n) => `<span style="--c:${n === G.player ? '#ffd27a' : n.color}"${n === G.player ? ' class="me"' : ''}><i></i>${raceIcon(n.race.id, 14)}${n.name}</span>`).join(''));
   },
   // 联机：一局结束后回到开始界面的房间里（地图停止推进，连接保持）
   showRoom() {

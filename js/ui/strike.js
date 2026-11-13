@@ -133,11 +133,11 @@ Object.assign(UI, {
     const hasT = !!(tgt && tgt.alive);
     // 目标按钮 + 地图上方目标条
     $('pickTarget').classList.toggle('set', hasT);
-    const tHtml = hasT ? `<span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span> <span class="small dim">👥${fmtPop(totalPop(tgt))}</span>` : '未选择 · 点击选择';
+    const tHtml = hasT ? `<span style="color:${tgt.color}">${raceIcon(tgt.race.id, 16)} ${tgt.name}</span> <span class="small dim">👥${fmtPop(totalPop(tgt))}</span>` : '未选择 · 点击选择';
     setHTML($('targetName'), tHtml);
     const badge = $('targetBadge');
     badge.classList.toggle('hidden', !hasT || !p.alive);
-    const bHtml = hasT ? `<span class="lbl">🎯 打击目标</span><span style="color:${tgt.color}">${tgt.race.emoji} ${tgt.name}</span>` : '';
+    const bHtml = hasT ? `<span class="lbl">🎯 打击目标</span><span style="color:${tgt.color}">${raceIcon(tgt.race.id, 18)} ${tgt.name}</span>` : '';
     setHTML(badge, bHtml);
 
     // 核包裹
@@ -184,7 +184,7 @@ Object.assign(UI, {
         d.onclick = () => { setTarget(t.id); this.closeChooser(); };
         d.onmouseenter = () => { G.selTarget = t.id; };
         d.onmouseleave = () => { G.selTarget = -1; };
-        d.innerHTML = `<kbd class="num">${i + 1}</kbd><div class="temo">${t.race.emoji}</div><div class="tbody"></div>`;
+        d.innerHTML = `<kbd class="num">${i + 1}</kbd><div class="temo">${raceIcon(t.race.id, 34)}</div><div class="tbody"></div>`;
         list.appendChild(d);
       });
     }
@@ -228,7 +228,7 @@ Object.assign(UI, {
   renderMapPop() {
     const n = G.nations[this.popId];
     if (!n || !n.alive || !G.player.alive) return this.closeMapPop();
-    const html = `<div class="temo">${n.race.emoji}</div><div class="tbody">${this.nationInfo(n)}</div>`;
+    const html = `<div class="temo">${raceIcon(n.race.id, 34)}</div><div class="tbody">${this.nationInfo(n)}</div>`;
     setHTML($('mapPopBody'), html);
     const p = G.player, go = $('mapPopGo'), isT = G.target === n.id;
     go.classList.toggle('hidden', isT);
