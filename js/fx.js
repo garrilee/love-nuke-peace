@@ -142,7 +142,7 @@ const FX = {
       const st = this.dmgStyle(c.total);
       const pop = Math.max(0, 1 - (now - c.bump) / 0.18) * 0.35; // 每次累加时跳一下
       const size = (st.size + 6) * k * (1 + pop) / Math.max(0.7, zoom);
-      const str = c.dim ? `🌀 -${fmtPop(c.total)}` : `${c.hits} 发 -${fmtPop(c.total)}`;
+      const str = c.dim ? `🌀 -${fmtPop(c.total)}` : `-${fmtPop(c.total)}`;
       ctx.save();
       ctx.globalAlpha = age < 1.2 ? 1 : 1 - (age - 1.2) / 0.6;
       ctx.font = `900 ${Math.round(size)}px "Microsoft YaHei", sans-serif`;
