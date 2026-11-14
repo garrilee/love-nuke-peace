@@ -26,7 +26,7 @@ const RACE_CARD = {
   octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -20%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
   mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -3%'], minus: ['科技 -5%'], ult: '敌国人口停止增长并流失' },
   ai:       { plus: ['科技 +5%', '不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
-  roach:    { plus: ['人口恢复 ×1.33'], minus: ['科技 -10%'], ult: '废墟和宕机设施立即复原' },
+  roach:    { plus: ['人口恢复 ×1.5'], minus: ['科技 -5%'], ult: '废墟和宕机设施立即复原' },
 };
 const UI = {
   pickedRace: null, uiTimer: 0, leaderTimer: 0, bannerTimer: 0, tickerItems: [],
@@ -176,8 +176,6 @@ const UI = {
     document.body.classList.remove('midnight');
     $('sk-autonet').checked = true;
     $('sk-autonet').onchange = (e) => Act.do({ a: 'toggle', k: 'autoNet', v: e.target.checked });
-    $('sk-autorebuild').checked = true;
-    $('sk-autorebuild').onchange = (e) => Act.do({ a: 'toggle', k: 'autoRebuild', v: e.target.checked });
     // 打击：选目标 + 三行武器（档位键 + 单击发射）
     $('pickTarget').onclick = () => this.openChooser();
     this.popId = -1; $('mapPop').classList.add('hidden');
@@ -339,7 +337,7 @@ const UI = {
     const deadFac = p.facilities.filter((f) => !f.alive && f.rebuild <= 0).length;
     let rs = '🏗 ';
     if (building) rs += `重建中 ${building} 处`;
-    if (ruined + deadFac) rs += `${building ? ' · ' : ''}待重建 ${ruined + deadFac} 处${p.autoRebuild ? '（等能量）' : ' · 按 R 重建'}`;
+    if (ruined + deadFac) rs += `${building ? ' · ' : ''}待重建 ${ruined + deadFac} 处（排队中，每处约 ${Math.round(rebuildTime(p))} 秒）`;
     if (!building && !(ruined + deadFac)) rs += '国土完好';
     setText($('rebuildStatus'), rs);
     if (!$('chooser').classList.contains('hidden')) this.renderChooser();
@@ -417,12 +415,12 @@ const UI = {
     if (tile.city) {
       const c = tile.city;
       lines.push(`🏙 ${c.name}${c.isCapital ? '（首都）' : ''} · 👥 ${fmtPop(c.pop)}`);
-      if (c.ruined) lines.push(c.rebuild > 0 ? `🏗 重建中 ${c.rebuild.toFixed(0)}s` : `<span class="red">废墟</span>${owner && owner === G.player ? ' · 点击重建（⚡' + COSTS.rebuild + '）' : ''}`);
+      if (c.ruined) lines.push(c.rebuild > 0 ? `🏗 重建中 ${c.rebuild.toFixed(0)}s` : `<span class="red">废墟</span> · 等待自动重建`);
     }
     if (tile.fac) {
       const f = tile.fac, info = FACILITY_INFO[f.type];
       const mine = owner && owner === G.player;
-      lines.push(`${info.icon} ${info.name} ${f.alive ? (f.type === 'pad' && mine ? '· 火箭 ' + f.missiles : '') : f.rebuild > 0 ? '· 修复中' : '<span class="red">· 宕机</span>' + (mine ? ' · 点击修复（💰' + COSTS.facility + '）' : '')}`);
+      lines.push(`${info.icon} ${info.name} ${f.alive ? (f.type === 'pad' && mine ? '· 火箭 ' + f.missiles : '') : f.rebuild > 0 ? '· 修复中' : '<span class="red">· 宕机</span>' + ' · 等待自动修复'}`);
     }
     if (tile.rad > 0.03) lines.push(`🌫 灰尘浓度 ${(tile.rad * 100).toFixed(0)}%`);
     setHTML(el, lines.join('<br>'));

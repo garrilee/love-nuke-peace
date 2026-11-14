@@ -43,12 +43,13 @@ const CFG = {
   ENERGY_BASE: 0.5,       // 能量保底回复/秒
   GROWTH: 0.0008,
   RECOVER_GROWTH: 3,      // 人口越低于原值，增长越快
-  REBUILD_TIME: 8,
+  REBUILD_SLOW: 14, REBUILD_FAST: 9, // 重建一处的时间：没有科技 14 秒，科技全满 9 秒（不消耗任何资源，同时只修一座城市 + 一个设施）
   REBUILD_POP: 0.35,      // 重建完成后人口至少恢复到原值的 35%
   DEATH_POP: 3,           // 总人口低于 3M 即被核平
   POP_CAP_MUL: 1.6,
   ENERGY_CAP: 150,
-  // 拦截弹药：拦截单独的能量池（不再和护盾、重建抢能量）。来自三防分配的一部分，是额外给的，不从护盾能量里扣
+  // 拦截弹药：拦截单独的能量池；护盾能量只给护盾用，保持稳定、可预测。
+  // 来自三防分配的一部分，是额外给的，不从护盾能量里扣
   NET_E_CAP: 60, NET_E_SHARE: 0.25, NET_E_BASE: 0.15, NET_E_START: 20,
   BANK_CAP: 400,
   MIRV_SPLIT: 0.42,       // 分弹头在 42% 航程处与母弹分离
@@ -85,8 +86,8 @@ const TECHS = [
 ];
 // 快速局：午夜提前、产出加倍，各种计时（末日升级、大招冷却、三体人的乱纪元等）减半，一局约 6 分钟
 // time：计时类参数减半；energy：三防换来的能量打七折；ultCd：普通国家的大招冷却打七五折；
-// shieldDur：护盾持续时间减半（火力密度翻倍而护盾冷却不变，不缩短的话每次护盾挡下的核弹翻倍，护盾多的国家太占便宜）
-const QUICK = { midnight: 240, prod: 2, time: 0.5, energy: 0.7, ultCd: 0.75, shieldDur: 0.5 };
+// shieldDur：护盾持续时间 ×0.4（火力密度翻倍而护盾冷却不变，不缩短的话每次护盾挡下的核弹翻倍，护盾多的国家太占便宜）
+const QUICK = { midnight: 240, prod: 2, time: 0.5, energy: 0.7, ultCd: 0.75, shieldDur: 0.4 };
 const TECH_PICK_WAIT = 20; // 第 4 级二选一：玩家 20 秒不选，按当前核武/三防分配自动选
 
 // 包裹等级（纯游戏数值）
@@ -139,7 +140,7 @@ const GUARD = {
   leash: 10,          // 追出起飞点 10 格以上就放弃（自毁）
   every: 1.5,         // 每 1.5 秒最多起飞 1 架
 };
-const COSTS = { rocket: 15, sea: 70, ufo: 20, facility: 15, rebuild: 10, shield: 40, net: 18 };
+const COSTS = { rocket: 15, sea: 70, ufo: 20, shield: 40, net: 18 };
 
 const SKILLS = {
   // 护盾：全国领土的大范围防御，短时间扛住饱和打击
@@ -154,7 +155,7 @@ const RACES = [
   {
     id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
     trait: '全民内卷：科技 +5%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
+    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 150, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
     cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
     lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
@@ -188,8 +189,8 @@ const RACES = [
   },
   {
     id: 'roach', name: '青铜', emoji: '🥉', color: '#e8d04a',
-    trait: '越级挑战：倒下也能爬起来，人口恢复 ×1.33', weak: '科技 -10%',
-    mods: { tech: 0.9, growth: 1.33 }, ult: { name: '燃烧吧小宇宙', icon: '🔥', cd: 170, desc: '所有废墟和宕机设施立即复原，城市人口至少恢复到 35%' },
+    trait: '越级挑战：倒下也能爬起来，人口恢复 ×1.5', weak: '科技 -5%',
+    mods: { tech: 0.95, growth: 1.5 }, ult: { name: '燃烧吧小宇宙', icon: '🔥', cd: 170, desc: '所有废墟和宕机设施立即复原，城市人口至少恢复到 35%' },
     cities: ['青铜城', '小宇宙港', '燃烧镇', '越级堡', '不屈岭', '星光市'],
     lines: { launch: '燃烧吧，小宇宙！', hit: '倒下了？我们还能再站起来！', dead: '小宇宙……燃尽了……' },
   },
@@ -237,7 +238,7 @@ const BOSS_CFG = {
 const DIFFS = {
   easy:   { name: '简单', prod: 0.8, aggro: 0.7,  react: 1.6, idle: 100, ult: 0.35 },
   normal: { name: '普通', prod: 1.0, aggro: 1.0,  react: 1.0, idle: 60,  ult: 1 },
-  hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1, auto: true }, // auto：AI 也有玩家那样的自动拦截和自动重建
+  hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1, auto: true }, // auto：AI 也有玩家那样逐帧的自动拦截
 };
 const ULT_FIRST = 90;
 const MAX_NATIONS = 8;   // 一局最多 8 个国家（真人 + AI）；国家可以重复选

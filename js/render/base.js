@@ -522,7 +522,7 @@ const Render = {
         ctx.fillStyle = n.color;
         ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3, y); ctx.lineTo(x, y + 4); ctx.lineTo(x - 3, y); ctx.closePath(); ctx.fill();
       }
-      if (c.rebuild > 0) this.progressRing(ctx, x, y, 9, 1 - c.rebuild / 20, '#7dffb0', z);
+      if (c.rebuild > 0) this.progressRing(ctx, x, y, 9, 1 - c.rebuild / rebuildTime(n), '#7dffb0', z);
     }
   },
 
@@ -533,7 +533,7 @@ const Render = {
       if (!f.alive) {
         ctx.strokeStyle = 'rgba(255,80,60,0.6)'; ctx.lineWidth = 1.5 / z;
         ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 4, y + 4); ctx.moveTo(x + 4, y - 4); ctx.lineTo(x - 4, y + 4); ctx.stroke();
-        if (f.rebuild > 0) this.progressRing(ctx, x, y, 8, 1 - f.rebuild / 20, '#7dffb0', z);
+        if (f.rebuild > 0) this.progressRing(ctx, x, y, 8, 1 - f.rebuild / rebuildTime(n), '#7dffb0', z);
         continue;
       }
       ctx.save();

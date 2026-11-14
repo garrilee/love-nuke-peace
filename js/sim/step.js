@@ -18,10 +18,10 @@ function simStep(dt) {
   for (const n of G.nations) {
     if (!n.alive || !n.isPlayer) continue;
     if (n.autoNet) autoNet(n);
-    if (n.autoRebuild) autoRebuild(n);
   }
-  // 癫狂难度：AI 也有自动拦截和自动重建（和玩家同样的待遇）
-  if (G.diff.auto) for (const n of G.nations) if (n.alive && !n.isPlayer && !n.race.boss) { autoNet(n); autoRebuild(n); }
+  // 癫狂难度：AI 也有逐帧的自动拦截（和玩家同样的待遇）
+  if (G.diff.auto) for (const n of G.nations) if (n.alive && !n.isPlayer && !n.race.boss) autoNet(n);
+  for (const n of G.nations) if (n.alive) autoRebuild(n); // 重建：所有国家全自动、不花资源
   checkEnd();
 }
 
@@ -134,7 +134,6 @@ function autoBuild(n) {
     const seaBase = facOf(n, 'sea').find((f) => f.alive);
     const ufoBase = facOf(n, 'ufo').find((f) => f.alive);
     const ufoTotal = n.ufoReady + n.ufoReturn.length;
-    const dead = n.facilities.find((f) => !f.alive && f.rebuild <= 0);
     let item = null, cost = 0;
     const loaded = facOf(n, 'pad').reduce((k, f) => k + (f.alive ? f.missiles : 0), 0);
     if (!n.rocketEra && has(n, 'pad') && pad && loaded < 3) { item = 'rocket'; cost = COSTS.rocket * (n.mods.rocket || 1); } // 先把投送站装上火箭，换掉飞机
@@ -142,7 +141,6 @@ function autoBuild(n) {
     else if (has(n, 'pad') && pad) { item = 'rocket'; cost = COSTS.rocket * (n.mods.rocket || 1); }
     else if (has(n, 'sea') && seaBase && n.subs.length < CFG.MAX_SEA) { item = 'sea'; cost = COSTS.sea * (n.mods.sea || 1); }
     else if (ufoBase && ufoTotal < CFG.MAX_UFO && !has(n, 'pad')) { item = 'ufo'; cost = COSTS.ufo; } // 有投送站后不再造飞机
-    else if (!n.isPlayer && dead) { item = 'fac'; cost = COSTS.facility; }
     else if (st < CFG.STOCK_CAP) { item = 'parcel'; cost = pc; }
     // 给导弹、小摩托生产线留出下一件的钱，它们才能准点开工（发射按钮的圆环也不会转满后卡住）
     const reserve = (n.conv < CONV.stockCap && n.convBuildT < 1 ? CONV.cost : 0) + (n.drones < DRONE.stockCap && n.droneBuildT < 1 ? DRONE.cost : 0);
@@ -154,7 +152,6 @@ function autoBuild(n) {
     else if (item === 'rocket') pad.missiles++;
     else if (item === 'sea') n.subs.push({ state: 'dock', timer: 3, rockets: 0, tile: seaBase.tile });
     else if (item === 'ufo') n.ufoReady++;
-    else if (item === 'fac') dead.rebuild = 20;
   }
 }
 

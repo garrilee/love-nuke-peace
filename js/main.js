@@ -42,9 +42,6 @@ function execCmd(n, c) {
     case 'shield': return useShield(n);
     case 'net': return useNet(n);
     case 'ult': return useUlt(n, tgt && tgt.alive ? tgt : null);
-    case 'rebuildAll': return rebuildAll(n);
-    case 'rebuildCity': { const ct = G.world.cities[c.id]; return ct && ct.nation === n.id ? rebuildCity(n, ct) : false; }
-    case 'rebuildFac': { const f = G.world.facilities[c.id]; return f && f.nation === n.id ? rebuildFac(n, f) : false; }
     case 'alloc': {
       const v = c.v || {}, t = +v.tech || 0, k = +v.nuke || 0, d = +v.def || 0, s = t + k + d;
       if (s > 0 && t >= 0 && k >= 0 && d >= 0) n.alloc = { tech: t / s, nuke: k / s, def: d / s };
@@ -52,7 +49,7 @@ function execCmd(n, c) {
     }
     case 'research': { const t = availTechs(n).find((x) => x.id === c.id); if (!t || n.research) return 0; n.techPick = t.id; pickResearch(n); return 1; }
     case 'crate': return takeCrate(n);
-    case 'toggle': if (['autoNet', 'autoRebuild', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
+    case 'toggle': if (['autoNet', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;
 }
@@ -266,7 +263,6 @@ function setupInput() {
     else if (k === 'b') Act.do({ a: 'shield' });
     else if (k === 'q') playerUlt();
     else if (k === 'n') Act.do({ a: 'net' });
-    else if (k === 'r') Act.do({ a: 'rebuildAll' });
     else if (k === '=' || k === '+') setSpeed(Math.min(3, Math.floor(G.speed) + 1));
     else if (k === '-') setSpeed(Math.max(G.mp ? 1 : 0, Math.ceil(G.speed) - 1));
   });
@@ -280,8 +276,6 @@ function onMapClick(tile, sx, sy) {
   if (!tile) return false;
   const p = G.player;
   if (tile.owner === p.id) {
-    if (tile.city && tile.city.ruined) { if (Act.do({ a: 'rebuildCity', id: tile.city.id }) !== false) SFX.click(); return false; }
-    if (tile.fac && !tile.fac.alive) { if (Act.do({ a: 'rebuildFac', id: tile.fac.id }) !== false) SFX.click(); return false; }
     return false;
   }
   // 点击其他国家：弹出情报浮窗，点「开始打击」才设为目标；不能打自己

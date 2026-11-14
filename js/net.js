@@ -275,7 +275,7 @@ const Net = {
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
         ha: Object.fromEntries(Object.entries(n.hostileAt).map(([k, v]) => [k, r1(v)])),
         u: n.ufoReady, ur: n.ufoReturn.length, sb: n.subs.map((s) => [SUB_STATES.indexOf(s.state), s.tile.idx, s.rockets]),
-        al: [r2(n.alloc.tech), r2(n.alloc.nuke), r2(n.alloc.def)], st: n.stats, re: n.rocketEra ? 1 : 0, aN: n.autoNet ? 1 : 0, aR: n.autoRebuild ? 1 : 0,
+        al: [r2(n.alloc.tech), r2(n.alloc.nuke), r2(n.alloc.def)], st: n.stats, re: n.rocketEra ? 1 : 0, aN: n.autoNet ? 1 : 0,
       })),
       c: W.cities.map((c) => [r2(c.pop), c.ruined ? 1 : 0, r1(c.rebuild)]),
       f: W.facilities.map((f) => [f.alive ? 1 : 0, r1(f.rebuild), f.missiles]),
@@ -363,7 +363,7 @@ const Net = {
         conv: d.cv, convCd: d.cc, convBuildT: d.cb, heat: d.ht, shieldT: d.sT, shieldCd: d.sC, netT: d.nT, netCd: d.nC, netCharges: d.nq,
         ultCd: d.uC, chaosT: d.ch || 0, chaosNext: d.cn || 0, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
-        autoNet: !!d.aN, autoRebuild: !!d.aR, rocketEra: !!d.re,
+        autoNet: !!d.aN, rocketEra: !!d.re,
         drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,
       });
       d.pc.forEach((v, k) => { n.parcels[k + 1] = v; });

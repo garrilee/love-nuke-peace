@@ -51,7 +51,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
       shieldT: 0, shieldCd: 0, netT: 0, netCd: 0, netCharges: 0,
       lastHit: -99, lastAttacker: -1, retaliate: null, lastStrike: -99,
       aiNext: rnd(1, 3),
-      autoNet: true, autoRebuild: true,
+      autoNet: true,
       ultCd: ULT_FIRST * ts, overtimeT: 0, harpoonT: 0, hackT: 0,
       stats: { dronesSent: 0, dogKills: 0, ult: 0, sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
     });

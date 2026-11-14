@@ -153,7 +153,7 @@ function autoNet(n) {
 }
 
 // ---------- 技能 ----------
-// 护盾持续时间：全域护盾 +50%；快速局减半
+// 护盾持续时间：全域护盾 +50%；快速局 ×0.4
 const shieldDur = (n) => SKILLS.shield.dur * (has(n, 'aegis') ? 1.5 : 1) * (G.quick ? QUICK.shieldDur : 1);
 function useShield(n) {
   if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
@@ -213,39 +213,37 @@ function useUlt(n, tgt) {
   return true;
 }
 
+// ---------- 重建：不消耗能量和预算，全自动；同一时间修一座城市 + 一个设施，科技越高修得越快 ----------
+// 重建一处需要的时间（秒）：没有科技 14 秒，科技全满 9 秒
+const rebuildTime = (n) => lerp(CFG.REBUILD_SLOW, CFG.REBUILD_FAST, clamp(n.techIdx / TECHS.length, 0, 1));
 function rebuildCity(n, c) {
-  if (!n.alive || !c.ruined || c.rebuild > 0 || c.flatUntil > G.t || n.energy < COSTS.rebuild) return false;
-  n.energy -= COSTS.rebuild; c.rebuild = CFG.REBUILD_TIME;
+  if (!n.alive || !c.ruined || c.rebuild > 0 || c.flatUntil > G.t) return false;
+  c.rebuild = rebuildTime(n);
   c.pop = Math.max(c.pop, 0.3);
   n.stats.rebuilt++;
   Bus.emit('skill', { n, kind: 'rebuild', city: c }); return true;
 }
 function rebuildFac(n, f) {
-  if (!n.alive || f.alive || f.rebuild > 0 || f.flatUntil > G.t || n.bank < COSTS.facility) return false;
-  n.bank -= COSTS.facility; f.rebuild = CFG.REBUILD_TIME;
+  if (!n.alive || f.alive || f.rebuild > 0 || f.flatUntil > G.t) return false;
+  f.rebuild = rebuildTime(n);
   Bus.emit('skill', { n, kind: 'rebuildFac', fac: f }); return true;
 }
-// 一键重建：先修城市（能量），再修设施（预算）
-function rebuildAll(n) {
-  let k = 0;
-  const cities = n.cities.filter((c) => c.ruined && c.rebuild <= 0).sort((a, b) => b.basePop - a.basePop);
-  for (const c of cities) if (rebuildCity(n, c)) k++;
-  for (const f of n.facilities) if (!f.alive && f.rebuild <= 0 && rebuildFac(n, f)) k++;
-  return k > 0;
+// 每步调用：没有城市在修就开修人口最多的那座废墟；没有设施在修就开修一个宕机的设施
+function autoRebuild(n) {
+  if (isChaos(n)) return; // 三体人乱纪元：连重建也停了
+  if (!n.cities.some((c) => c.rebuild > 0)) {
+    const c = n.cities.filter((x) => x.ruined && !(x.flatUntil > G.t)).sort((a, b) => b.basePop - a.basePop)[0];
+    if (c) rebuildCity(n, c);
+  }
+  if (!n.facilities.some((f) => f.rebuild > 0)) {
+    const f = n.facilities.find((x) => !x.alive && !(x.flatUntil > G.t));
+    if (f) rebuildFac(n, f);
+  }
 }
 function incomingFor(n) {
   return G.projectiles.filter((p) => p.tgt === n.id && p.launched && !p.done)
     .map((p) => ({ p, left: p.delay + p.flight - p.t }))
     .sort((a, b) => a.left - b.left);
-}
-// 自动重建（玩家）：始终给护盾留够能量，不和手动护盾抢
-function autoRebuild(n) {
-  const ruined = n.cities.filter((c) => c.ruined && c.rebuild <= 0).sort((a, b) => b.basePop - a.basePop);
-  for (const c of ruined) {
-    if (n.energy < COSTS.rebuild + COSTS.shield) break;
-    rebuildCity(n, c);
-  }
-  for (const f of n.facilities) if (!f.alive && f.rebuild <= 0) rebuildFac(n, f);
 }
 // 自动防御（AI）：少量来袭用拦截，大量来袭或核包裹多时开护盾
 function autoDefend(n) {
@@ -258,5 +256,4 @@ function autoDefend(n) {
     if (heavy && n.shieldT <= 0) useShield(n);
   }
   if (!n.isPlayer || n.autoNet) autoNet(n);
-  if (!inc.length && n.energy > COSTS.rebuild + COSTS.shield) rebuildAll(n);
 }
