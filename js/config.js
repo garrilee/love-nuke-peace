@@ -87,7 +87,7 @@ const TECHS = [
 // 快速局：午夜提前、产出加倍，各种计时（末日升级、大招冷却、三体人的乱纪元等）减半，一局约 6 分钟
 // time：计时类参数减半；energy：三防换来的能量打七折；ultCd：普通国家的大招冷却打七五折；
 // shieldDur：护盾持续时间 ×0.4（火力密度翻倍而护盾冷却不变，不缩短的话每次护盾挡下的核弹翻倍，护盾多的国家太占便宜）
-const QUICK = { midnight: 240, prod: 2, time: 0.5, energy: 0.7, ultCd: 0.75, shieldDur: 0.4 };
+const QUICK = { midnight: 240, prod: 2, time: 0.5, energy: 0.7, ultCd: 0.75, shieldDur: 0.4, prodMul: { mole: 0.88 } }; // prodMul：快速局里个别国家的产出修正（刀盾在快节奏下护盾收益偏高）
 const TECH_PICK_WAIT = 20; // 第 4 级二选一：玩家 20 秒不选，按当前核武/三防分配自动选
 
 // 包裹等级（纯游戏数值）
@@ -155,7 +155,7 @@ const RACES = [
   {
     id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
     trait: '全民内卷：科技 +5%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 150, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
+    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 165, dur: 15, mult: 1.5, desc: '全国加班 15 秒：总产出 ×1.5' },
     cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
     lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
@@ -168,29 +168,29 @@ const RACES = [
   },
   {
     id: 'octopus', name: '鱼叉', emoji: '🔱', color: '#b67bff',
-    trait: '深海猎手：天生拥有海底仓，潜航器造价 -40%、送达更快；包裹从不被拒收，被拦截几率 -20%', weak: '投送站火箭造价 +5%',
-    mods: { sea: 0.6, rocket: 1.05, seaSpeed: 0.75, fizzle: -1, evade: 0.8, innateSea: true }, ult: { name: '一叉入魂', icon: '🔱', cd: 90, dur: 30, desc: '潜航器立即满载出海；30 秒内发射的核包裹无法被拦截、不会被拒收' },
+    trait: '深海猎手：天生拥有海底仓，潜航器造价 -40%、送达更快；包裹从不被拒收，被拦截几率 -28%', weak: '投送站火箭造价 +5%',
+    mods: { sea: 0.6, rocket: 1.05, seaSpeed: 0.75, fizzle: -1, evade: 0.72, innateSea: true }, ult: { name: '一叉入魂', icon: '🔱', cd: 90, dur: 30, desc: '潜航器立即满载出海；30 秒内发射的核包裹无法被拦截、不会被拒收' },
     cities: ['鱼叉湾', '捕鲸港', '渔场城', '浪尖镇', '礁石市', '深海口'],
     lines: { launch: '鱼叉已上膛，目标锁定。', hit: '浪再大，也掀不翻我们的船。', dead: '回归……大海……' },
   },
   {
     id: 'mushroom', name: '废土', emoji: '🏜️', color: '#ff5e8a',
-    trait: '废土求生：辐射灰地块人口反而增长；皮糙肉厚，受到核弹伤害 -3%', weak: '科技 -5%',
-    mods: { tech: 0.95, dustLove: true, nukeArmor: 0.97 }, ult: { name: '扬沙', icon: '🌪', cd: 100, desc: '向所有敌国扬起辐射沙尘：敌国人口停止增长并缓慢流失，你在沙里长得更快' },
+    trait: '废土求生：辐射灰地块人口反而增长；皮糙肉厚，受到核弹伤害 -5%', weak: '没有明显弱点',
+    mods: { dustLove: true, nukeArmor: 0.95 }, ult: { name: '扬沙', icon: '🌪', cd: 100, desc: '向所有敌国扬起辐射沙尘：敌国人口停止增长并缓慢流失，你在沙里长得更快' },
     cities: ['土坡村', '泥饼城', '月光镇', '尘埃港', '土豆岭', '灰原'],
     lines: { launch: '废土上什么都缺，就是不缺辐射。', hit: '这点辐射，还不够下饭。', dead: '尘归尘……土归土……' },
   },
   {
     id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
-    trait: '义体改造：科技 +5%，不怕辐射灰', weak: '人口增长 -30%',
-    mods: { tech: 1.05, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
+    trait: '义体改造：不怕辐射灰', weak: '人口增长 -30%',
+    mods: { growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
     cities: ['霓虹市', '义体街', '电子港', '节点-7', '矩阵城', '云端堡'],
     lines: { launch: '检测到你的城市即将离线。', hit: '义体受损……正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
   },
   {
     id: 'roach', name: '青铜', emoji: '🥉', color: '#e8d04a',
-    trait: '越级挑战：倒下也能爬起来，人口恢复 ×1.5', weak: '科技 -5%',
-    mods: { tech: 0.95, growth: 1.5 }, ult: { name: '燃烧吧小宇宙', icon: '🔥', cd: 170, desc: '所有废墟和宕机设施立即复原，城市人口至少恢复到 35%' },
+    trait: '越级挑战：倒下也能爬起来，人口恢复 ×1.5', weak: '没有明显弱点',
+    mods: { growth: 1.5 }, ult: { name: '燃烧吧小宇宙', icon: '🔥', cd: 150, desc: '所有废墟和宕机设施立即复原，城市人口至少恢复到 35%' },
     cities: ['青铜城', '小宇宙港', '燃烧镇', '越级堡', '不屈岭', '星光市'],
     lines: { launch: '燃烧吧，小宇宙！', hit: '倒下了？我们还能再站起来！', dead: '小宇宙……燃尽了……' },
   },

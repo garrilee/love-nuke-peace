@@ -116,10 +116,7 @@ const FX = {
     const k = this.involves(attId, victims) ? 1 : 0.6;
     const st = this.dmgStyle(total);
     let str = '-' + fmtPop(total), size = st.size, color = st.color, glow = st.glow;
-    if (lv >= 5) { // 东风：特大号，带国家名
-      const v = G.nations[[...victims.entries()].sort((a, b) => b[1] - a[1])[0][0]];
-      str = `${v.name} -${fmtPop(total)}`; size = 54; color = '#ffffff'; glow = 22;
-    }
+    if (lv >= 5) { size = 54; color = '#ffffff'; glow = 22; } // 东风：特大号
     this.bigText(tile.x, tile.y - 16, str, color, size * k, glow);
     for (const [vid, loss] of victims) this.addCombo(vid, loss, attId, false);
   },

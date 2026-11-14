@@ -270,7 +270,7 @@ const Render = {
     const ctx = this.ctx, cam = this.cam, z = cam.zoom, T = this.time;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = '#01040a'; ctx.fillRect(0, 0, this.w, this.h);
-    if (!G || !this.base) return;
+    if (!G || !this.base || this.w < 2 || this.h < 2) return; // 窗口被最小化或隐藏时画布尺寸为 0：不画
     const sh = FX.shake;
     const sx = sh ? (Math.random() - 0.5) * sh : 0, sy = sh ? (Math.random() - 0.5) * sh : 0;
     ctx.save();

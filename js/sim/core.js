@@ -148,7 +148,8 @@ function production(n) {
   return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n) * (n.mods.prod || 1)
     * (G.quick ? QUICK.prod : 1)               // 快速局：产出加倍
     * (weatherIs('boom') ? 1.5 : 1)            // 天气：军备竞赛
-    * (n.overtimeT > 0 ? 1.7 : 1)              // 卷王大招：加班
+    * (n.overtimeT > 0 ? n.race.ult.mult || 1.5 : 1) // 卷王大招：加班
+    * (G.quick ? QUICK.prodMul[n.race.id] || 1 : 1) // 快速局的个别修正
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }
 const sendCount = (D, scale) => (D <= 0 ? 0 : scale === 0 ? 1 : scale === 1 ? Math.ceil(D / 2) : D);

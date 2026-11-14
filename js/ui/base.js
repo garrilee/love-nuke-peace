@@ -21,12 +21,12 @@ const Store = {
 
 // 开始界面的国家卡片：只写加成和代价，一句话说清大招
 const RACE_CARD = {
-  human:    { plus: ['科技 +5%'], minus: [], ult: '15 秒内产出 ×1.7' },
+  human:    { plus: ['科技 +5%'], minus: [], ult: '15 秒内产出 ×1.5' },
   mole:     { plus: ['护盾减伤 97%', '护盾冷却 -28%'], minus: ['科技 -4%'], ult: '免费护盾 + 回敬 6 枚导弹' },
-  octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -20%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
-  mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -3%'], minus: ['科技 -5%'], ult: '敌国人口停止增长并流失' },
-  ai:       { plus: ['科技 +5%', '不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
-  roach:    { plus: ['人口恢复 ×1.5'], minus: ['科技 -5%'], ult: '废墟和宕机设施立即复原' },
+  octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -28%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
+  mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -5%'], minus: [], ult: '敌国人口停止增长并流失' },
+  ai:       { plus: ['不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
+  roach:    { plus: ['人口恢复 ×1.5'], minus: [], ult: '废墟和宕机设施立即复原' },
 };
 const UI = {
   pickedRace: null, uiTimer: 0, leaderTimer: 0, bannerTimer: 0, tickerItems: [],

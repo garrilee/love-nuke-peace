@@ -85,6 +85,11 @@ function simAdvance(real) {
 }
 
 function frame(ts) {
+  // 无论这一帧出什么错，都要预约下一帧，否则画面会永久停住
+  try { frameBody(ts); } catch (e) { console.error(e); }
+  requestAnimationFrame(frame);
+}
+function frameBody(ts) {
   // 一帧最多推进 0.05 秒：慢帧之后不把落下的时间一次补回来（否则画面会“卡一下再跳一截”）。
   // 联机房主保持 0.1 秒，尽量不拖慢所有人的世界
   const real = clamp((ts - lastFrame) / 1000 || 0, 0, Net.role === 'host' ? 0.1 : 0.05);
@@ -107,7 +112,6 @@ function frame(ts) {
     FX.tuneQuality(performance.now() - t0);
     lastDraw = ts;
   }
-  requestAnimationFrame(frame);
 }
 
 // ---------- 事件 ----------
