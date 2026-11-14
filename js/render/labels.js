@@ -2,6 +2,25 @@
 'use strict';
 
 Object.assign(Render, {
+  plateCache: new Map(),
+  // 预渲染的小部件（带阴影、文字、图标的标牌和图标）：内容没变时每帧只贴一张图。
+  // key 每个部件一个；sig 内容签名，变了才重画；box = [x, y, w, h]（以部件原点为准的世界坐标）；
+  // blurPx 阴影模糊（屏幕像素，用来留边）；paint(cx) 在原点坐标系里画；mul 额外的分辨率倍数（会被放大着画的部件用）
+  plate(key, sig, box, blurPx, paint, mul = 1) {
+    const scale = this.labelScale * mul;
+    let e = this.plateCache.get(key);
+    if (e && e.sig === sig && e.scale === scale) return e;
+    const pad = (blurPx * 2 + 2) / scale;
+    const x = Math.floor((box[0] - pad) * scale) / scale, y = Math.floor((box[1] - pad) * scale) / scale;
+    const w = Math.max(1, Math.ceil((box[0] + box[2] + pad - x) * scale)), h = Math.max(1, Math.ceil((box[1] + box[3] + pad - y) * scale));
+    const canvas = new OffscreenCanvas(w, h), cx = canvas.getContext('2d');
+    cx.scale(scale, scale); cx.translate(-x, -y);
+    paint(cx);
+    if (e) e.c.close();
+    e = { c: canvas.transferToImageBitmap(), x, y, w: w / scale, h: h / scale, sig, scale };
+    this.plateCache.set(key, e);
+    return e;
+  },
   // 首都上空的标识：自己的国家是金色的「你」+ 光柱 + 地面波纹；联机时其他真人玩家是国家颜色的「玩家」小旗
   drawMarkers(ctx, z, T) {
     const k = 1 / Math.max(0.5, z);   // 标识大小基本不随缩放变化
@@ -33,28 +52,31 @@ Object.assign(Render, {
       const text = me ? `★ ${n.name}  👥${fmtPop(totalPop(n))} ☢${stock(n)}` : '👤 玩家'; // 我方：人口和核弹数直接写在标牌里
       const font = `bold ${Math.round((me ? 15 : 11) * k * (me ? this.nameScale(n.name) : 1))}px "Microsoft YaHei", sans-serif`;
       const label = this.labelImage('marker:' + n.id, text, font, '#1a0d00', 0, '', 'middle');
-      ctx.save();
       const bw = label.width + 14 * k, bh = (me ? 24 : 18) * k;
       const by = y - H - bh / 2 + bob;
-      ctx.shadowColor = col; ctx.shadowBlur = me ? 18 : 10;
-      ctx.fillStyle = me ? 'rgba(255,200,90,0.95)' : rgba(n.color, 0.9);
-      this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.fill();
-      ctx.beginPath(); // 指向首都的小三角
-      ctx.moveTo(x - 5 * k, by + bh / 2 - 1); ctx.lineTo(x + 5 * k, by + bh / 2 - 1); ctx.lineTo(x, by + bh / 2 + 7 * k); ctx.closePath(); ctx.fill();
-      ctx.shadowBlur = 0;
-      if (me) { ctx.strokeStyle = 'rgba(255,255,240,0.9)'; ctx.lineWidth = 1.2 * k; this.roundRect(ctx, x - bw / 2, by - bh / 2, bw, bh, bh / 2); ctx.stroke(); }
-      ctx.drawImage(label.c, x + label.x, by + 0.5 * k + label.y, label.w, label.h);
-      ctx.restore();
-      if (me) { // 种族徽章压在标牌左端
-        const img = raceIconImage(n.race.id), ic = bh * 1.45;
-        if (img.complete && img.naturalWidth) ctx.drawImage(img, x - bw / 2 - ic * 0.62, by - ic / 2, ic, ic);
-      }
-      if (me) { // 人口条：和其他国家同一个比例
-        const maxPop = Math.max(1, ...G.nations.filter((x2) => x2.alive).map(totalPop));
-        ctx.save(); ctx.fillStyle = 'rgba(10,6,0,0.7)';
-        this.roundRect(ctx, x - bw / 2 + 4 * k, by - bh / 2 - 9 * k, bw - 8 * k, 7 * k, 3.5 * k); ctx.fill(); ctx.restore();
-        this.drawPopBar(ctx, n, x, by - bh / 2 - 7.5 * k, bw - 12 * k, 4 * k, maxPop);
-      }
+      // 整块标牌（底板、文字、徽章、人口条）预先画成一张图：内容变了才重画，上下浮动只是挪位置
+      const img = me ? raceIconImage(n.race.id) : null, iconOk = !!img && img.complete && img.naturalWidth > 0, ic = bh * 1.45;
+      const popF = me ? this.popFrac(n) : 0;
+      const left = -bw / 2 - (me ? ic * 0.62 : 0), top = Math.min(-bh / 2 - (me ? 9 * k : 0), -ic / 2), bot = Math.max(bh / 2 + 7 * k, ic / 2);
+      const pl = this.plate('markerPlate:' + n.id, [text, font, col, iconOk, popF].join('|'), [left, top, bw / 2 - left, bot - top], me ? 18 : 10, (cx) => {
+        cx.save();
+        cx.shadowColor = col; cx.shadowBlur = me ? 18 : 10;
+        cx.fillStyle = me ? 'rgba(255,200,90,0.95)' : rgba(n.color, 0.9);
+        this.roundRect(cx, -bw / 2, -bh / 2, bw, bh, bh / 2); cx.fill();
+        cx.beginPath(); // 指向首都的小三角
+        cx.moveTo(-5 * k, bh / 2 - 1); cx.lineTo(5 * k, bh / 2 - 1); cx.lineTo(0, bh / 2 + 7 * k); cx.closePath(); cx.fill();
+        cx.shadowBlur = 0;
+        if (me) { cx.strokeStyle = 'rgba(255,255,240,0.9)'; cx.lineWidth = 1.2 * k; this.roundRect(cx, -bw / 2, -bh / 2, bw, bh, bh / 2); cx.stroke(); }
+        cx.drawImage(label.c, label.x, 0.5 * k + label.y, label.w, label.h);
+        cx.restore();
+        if (iconOk) cx.drawImage(img, -bw / 2 - ic * 0.62, -ic / 2, ic, ic); // 种族徽章压在标牌左端
+        if (me) { // 人口条：和其他国家同一个比例
+          cx.fillStyle = 'rgba(10,6,0,0.7)';
+          this.roundRect(cx, -bw / 2 + 4 * k, -bh / 2 - 9 * k, bw - 8 * k, 7 * k, 3.5 * k); cx.fill();
+          this.drawPopBar(cx, n, 0, -bh / 2 - 7.5 * k, bw - 12 * k, 4 * k, popF);
+        }
+      });
+      ctx.drawImage(pl.c, x + pl.x, by + pl.y, pl.w, pl.h);
     }
   },
   // 长国家名在地图上用小一点的字（最小约 65%），避免标签伸出屏幕
@@ -72,16 +94,17 @@ Object.assign(Render, {
     const text = '⚔ 最近攻击过你';
     const font = `bold ${Math.round(11 * k)}px "Microsoft YaHei", sans-serif`;
     const label = this.labelImage('attacker', text, font, '#fff', 0, '', 'middle');
-    ctx.save();
     const w = label.width + 12 * k, h = 17 * k, y = c.y + 8 * k; // 在人口 / 核弹数下面
+    const pl = this.plate(fresh ? 'attacker:fresh' : 'attacker:old', font, [-w / 2, -h / 2, w, h], fresh ? 16 : 8, (cx) => {
+      cx.shadowColor = '#ff2a1a'; cx.shadowBlur = fresh ? 16 : 8;
+      cx.fillStyle = 'rgba(150,12,8,0.9)';
+      this.roundRect(cx, -w / 2, -h / 2, w, h, h / 2); cx.fill();
+      cx.shadowBlur = 0; cx.strokeStyle = 'rgba(255,120,100,0.9)'; cx.lineWidth = 1 * k; cx.stroke();
+      cx.drawImage(label.c, label.x, 0.5 * k + label.y, label.w, label.h);
+    });
     ctx.globalAlpha = alpha;
-    ctx.shadowColor = '#ff2a1a'; ctx.shadowBlur = fresh ? 16 : 8;
-    ctx.fillStyle = 'rgba(150,12,8,0.9)';
-    this.roundRect(ctx, c.x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
-    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,120,100,0.9)'; ctx.lineWidth = 1 * k; ctx.stroke();
-    ctx.drawImage(label.c, c.x + label.x, y + 0.5 * k + label.y, label.w, label.h);
-    ctx.restore();
-    ctx.textBaseline = 'alphabetic';
+    ctx.drawImage(pl.c, c.x + pl.x, y + pl.y, pl.w, pl.h);
+    ctx.globalAlpha = 1;
   },
 
   // Keep one bitmap per label owner; state and scale changes replace it.
@@ -114,9 +137,12 @@ Object.assign(Render, {
     return `rgb(${mix(v >> 16)},${mix((v >> 8) & 255)},${mix(v & 255)})`;
   },
   // 敌国标签：名字 + 人口/核弹数，垫一块半透明深色底板，不和地图颜色混在一起
-  // 人口条：长度 = 这个国家人口 ÷ 人口最多的国家
-  drawPopBar(ctx, n, cx, y, w, h, maxPop) {
-    const f = clamp(totalPop(n) / Math.max(1, maxPop), 0, 1);
+  // 人口条：长度 = 这个国家人口 ÷ 人口最多的国家（取整到 1/80，标牌缓存才不会每帧都重画）
+  popFrac(n, maxPop) {
+    if (maxPop === undefined) maxPop = Math.max(1, ...G.nations.filter((x) => x.alive).map(totalPop));
+    return Math.round(clamp(totalPop(n) / Math.max(1, maxPop), 0, 1) * 80) / 80;
+  },
+  drawPopBar(ctx, n, cx, y, w, h, f) {
     ctx.save();
     ctx.fillStyle = 'rgba(255,255,255,0.14)';
     this.roundRect(ctx, cx - w / 2, y, w, h, h / 2); ctx.fill();
@@ -146,26 +172,33 @@ Object.assign(Render, {
         text = '👤 ' + n.name;
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
-      const stats = n.alive ? this.labelImage('stats:' + n.id, `👥${fmtPop(totalPop(n))}  ☢${stock(n)}`, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
-      // 底板：盖住名字、数据和人口条
-      const ny = c.y - 26, sy = c.y - 9;
+      const statsText = n.alive ? `👥${fmtPop(totalPop(n))}  ☢${stock(n)}` : '';
+      const stats = n.alive ? this.labelImage('stats:' + n.id, statsText, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
+      // 底板：盖住名字、数据和人口条（以下坐标都以国家中心为原点）
+      const ny = -26, sy = -9;
       const barH = n.alive ? 4 * sk : 0, barGap = n.alive ? 3 * sk : 0;
       const top = ny + label.y + 2, bot = (stats ? sy + stats.y + stats.h - 2 : ny + label.y + label.h - 2) + barGap + barH;
       const w = Math.max(label.width, stats ? stats.width : 0, 70 * sk) + 16 * sk, h = bot - top + 4 * sk;
       // 左侧种族徽章：高度和底板差不多
       const ic = Math.min(h + 2 * sk, 40 * sk), gap = 2 * sk, W = ic + gap + w;
-      const x0 = c.x - W / 2, tx = x0 + ic + gap + w / 2; // tx：文字列的中心
-      ctx.save();
-      ctx.fillStyle = n.alive ? 'rgba(6,10,18,0.62)' : 'rgba(6,10,18,0.4)';
-      this.roundRect(ctx, x0, top - 2 * sk, W, h, Math.min(8 * sk, h / 2)); ctx.fill();
-      ctx.strokeStyle = tg ? 'rgba(255,90,60,0.85)' : rgba(n.alive ? n.color : '#888888', 0.7);
-      ctx.lineWidth = (tg ? 1.6 : 1) * sk; ctx.stroke();
-      const img = raceIconImage(n.race.id);
-      if (img.complete && img.naturalWidth) { ctx.globalAlpha = n.alive ? 1 : 0.4; ctx.drawImage(img, x0 + 1 * sk, top - 2 * sk + (h - ic) / 2, ic, ic); }
-      ctx.restore();
-      ctx.drawImage(label.c, tx + label.x, ny + label.y, label.w, label.h);
-      if (stats) ctx.drawImage(stats.c, tx + stats.x, sy + stats.y, stats.w, stats.h);
-      if (n.alive) this.drawPopBar(ctx, n, tx, bot - barH, w - 14 * sk, barH, maxPop);
+      const x0 = -W / 2, tx = x0 + ic + gap + w / 2; // tx：文字列的中心
+      const img = raceIconImage(n.race.id), iconOk = img.complete && img.naturalWidth > 0;
+      const popF = n.alive ? this.popFrac(n, maxPop) : 0;
+      // 整块标牌预先画成一张图：名字、人口、核弹数、人口条变了才重画
+      const sig = [text, color, font, statsText, sf, popF, tg, n.alive, iconOk, n.color].join('|');
+      const pl = this.plate('nationPlate:' + n.id, sig, [x0, Math.min(top - 2 * sk, ny + label.y), W, Math.max(h, bot - top) + 6 * sk], blur + 2, (cx) => {
+        cx.save();
+        cx.fillStyle = n.alive ? 'rgba(6,10,18,0.62)' : 'rgba(6,10,18,0.4)';
+        this.roundRect(cx, x0, top - 2 * sk, W, h, Math.min(8 * sk, h / 2)); cx.fill();
+        cx.strokeStyle = tg ? 'rgba(255,90,60,0.85)' : rgba(n.alive ? n.color : '#888888', 0.7);
+        cx.lineWidth = (tg ? 1.6 : 1) * sk; cx.stroke();
+        if (iconOk) { cx.globalAlpha = n.alive ? 1 : 0.4; cx.drawImage(img, x0 + 1 * sk, top - 2 * sk + (h - ic) / 2, ic, ic); }
+        cx.restore();
+        cx.drawImage(label.c, tx + label.x, ny + label.y, label.w, label.h);
+        if (stats) cx.drawImage(stats.c, tx + stats.x, sy + stats.y, stats.w, stats.h);
+        if (n.alive) this.drawPopBar(cx, n, tx, bot - barH, w - 14 * sk, barH, popF);
+      });
+      ctx.drawImage(pl.c, c.x + pl.x, c.y + pl.y, pl.w, pl.h);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;

@@ -39,6 +39,8 @@ const FX = {
       dust: this.sprite('du', 170, 140, 80, 'smoke'),
       ray: this.raySprite(),
     };
+    this.S.fire = this.fireSprite(this.S.orange);
+    this.S.fireHot = this.fireSprite(this.S.warm);
     this.hue = [];
     for (let h = 0; h < 12; h++) {
       const [r, g, b] = hslToRgb(h / 12, 1, 0.6);
@@ -66,6 +68,15 @@ const FX = {
     });
     Bus.on('midnight', () => { this.midFlash = 1; });
   },
+  // 一处余火 = 红色光晕 + 火芯，合成一张图（余火同屏有几百处，每处只贴一次图）
+  fireSprite(core) {
+    const K = 6, c = document.createElement('canvas'); c.width = 14 * K; c.height = 10 * K;
+    const x = c.getContext('2d');
+    x.scale(K, K); x.globalCompositeOperation = 'lighter';
+    x.globalAlpha = 0.4; x.drawImage(this.S.red, 0, 0, 14, 10);
+    x.globalAlpha = 0.85; x.drawImage(core, 7 - 2.6, 5 - 3.4, 5.2, 5.2);
+    return c;
+  },
   // 爆炸光芒：一根从中心向外变淡的光束，预先画好，绘制时旋转贴上
   raySprite() {
     const c = document.createElement('canvas'); c.width = 128; c.height = 16;
@@ -76,14 +87,21 @@ const FX = {
     x.beginPath(); x.moveTo(0, 8); x.lineTo(128, 0); x.lineTo(128, 16); x.closePath(); x.fill();
     return c;
   },
-  reset() { this.drawMs = 0; this.cineNext = 0; this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
+  reset() { this.drawMs = 0; this.gapMs = this.gapBase; this.cineNext = 0; this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
-  // 自动画质：每帧绘制耗时的滑动平均超过预算就降一档（粒子、余火变少），有余量再慢慢升回来
-  quality: 1, drawMs: 0, MAX_FIRES: 360,
-  tuneQuality(ms) {
+  // 自动画质：画面掉帧就降一档（粒子、余火变少），有余量再慢慢升回来。
+  // 掉帧看两个数：绘制代码本身的耗时 ms，和相邻两帧的真实间隔 gap（显卡出图慢时只有间隔会变长）。
+  // gapBase 是这台设备流畅时的帧间隔（60Hz 屏约 16.7 毫秒），间隔比它长三成以上算掉帧
+  quality: 1, drawMs: 0, gapMs: 16.7, gapBase: 16.7, MAX_FIRES: 360,
+  tuneQuality(ms, gap) {
     this.drawMs += (Math.min(ms, 60) - this.drawMs) * 0.08;
-    if (this.drawMs > 11) this.quality = Math.max(0.3, this.quality - 0.02);
+    if (gap > 0 && gap < 100) { // 切到后台再回来的超长间隔不算
+      this.gapMs += (gap - this.gapMs) * 0.08;
+      this.gapBase = Math.max(13, Math.min(this.gapMs, this.gapBase + 0.002));
+    }
+    const slow = this.drawMs > 11 || this.gapMs > Math.max(21, this.gapBase * 1.3);
+    if (slow) this.quality = Math.max(0.3, this.quality - 0.02);
     else if (this.drawMs < 7) this.quality = Math.min(1, this.quality + 0.004);
     // 超出当前上限的旧粒子直接丢掉一批（先丢普通粒子，蘑菇云本体留着）
     const cap = Math.round(this.MAX_PARTS * this.quality);
@@ -414,10 +432,8 @@ const FX = {
       const k = f.age / f.life, it = Math.min(1, f.age / 1.2) * Math.pow(1 - k, 0.6);
       const fl = 0.65 + 0.35 * Math.sin(T * 11 + f.ph) * Math.sin(T * 6.7 + f.ph * 1.7);
       const s = f.s;
-      ctx.globalAlpha = 0.4 * it * fl;
-      ctx.drawImage(this.S.red, f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s);
-      ctx.globalAlpha = 0.85 * it * fl;
-      ctx.drawImage(fl > 0.85 ? this.S.warm : this.S.orange, f.x - 2.6 * s, f.y - 3.4 * s, 5.2 * s, 5.2 * s);
+      ctx.globalAlpha = it * fl;
+      ctx.drawImage(fl > 0.85 ? this.S.fireHot : this.S.fire, f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s);
     }
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   },

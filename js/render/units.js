@@ -184,22 +184,26 @@ Object.assign(Render, {
   drawPaperPlane(ctx, x, y, ang, col, z, wob) {
     const k = (1 / Math.max(0.75, z) + 0.3) * 1.05;
     const flap = 1 + 0.12 * Math.sin(this.time * 5 + (wob || 0) * 3); // 机翼扇动
+    // 每种颜色的纸飞机预先画成一张图；每帧只是平移、旋转后贴上，机翼扇动用纵向缩放表现
+    const pl = this.plate('paper:' + col, '', [-5.5, -6.1, 13, 12.2], 0, (cx) => {
+      cx.lineJoin = 'round';
+      const w = 5.6, b = 1.5;
+      cx.strokeStyle = 'rgba(255,255,255,0.95)'; cx.lineWidth = 0.45;
+      // 左翼（亮）、右翼（稍暗），中间机身用国家颜色
+      cx.fillStyle = '#f2fbff';
+      cx.beginPath(); cx.moveTo(7, 0); cx.lineTo(-5, -w); cx.lineTo(-5, -b); cx.closePath(); cx.fill(); cx.stroke();
+      cx.fillStyle = '#cfe3ee';
+      cx.beginPath(); cx.moveTo(7, 0); cx.lineTo(-5, b); cx.lineTo(-5, w); cx.closePath(); cx.fill(); cx.stroke();
+      cx.fillStyle = col;
+      cx.beginPath(); cx.moveTo(7, 0); cx.lineTo(-5, -b); cx.lineTo(-5, b); cx.closePath(); cx.fill(); cx.stroke();
+      // 中线折痕
+      cx.strokeStyle = 'rgba(0,0,0,0.25)'; cx.lineWidth = 0.4;
+      cx.beginPath(); cx.moveTo(7, 0); cx.lineTo(-5, 0); cx.stroke();
+    }, 2);
     ctx.save();
-    ctx.translate(x, y); ctx.rotate(ang); ctx.scale(k, k);
+    ctx.translate(x, y); ctx.rotate(ang); ctx.scale(k, k * flap);
     ctx.globalCompositeOperation = 'source-over';
-    ctx.lineJoin = 'round';
-    const w = 5.6 * flap, b = 1.5;
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 0.45;
-    // 左翼（亮）、右翼（稍暗），中间机身用国家颜色
-    ctx.fillStyle = '#f2fbff';
-    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -w); ctx.lineTo(-5, -b); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#cfe3ee';
-    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, b); ctx.lineTo(-5, w); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, -b); ctx.lineTo(-5, b); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // 中线折痕
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.4;
-    ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-5, 0); ctx.stroke();
+    ctx.drawImage(pl.c, pl.x, pl.y, pl.w, pl.h);
     ctx.restore();
     ctx.globalCompositeOperation = 'lighter';
   },
@@ -307,28 +311,32 @@ Object.assign(Render, {
     ctx.save();
     ctx.translate(pos.x, pos.y); ctx.rotate(ang);
     ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowColor = col; ctx.shadowBlur = 8;
-    ctx.fillStyle = '#e9f2ff';
-    ctx.beginPath();
-    ctx.moveTo(7, 0);            // 机头
-    ctx.lineTo(2, -1.1);
-    ctx.lineTo(0, -6.5);         // 左翼
-    ctx.lineTo(-2.2, -6.5);
-    ctx.lineTo(-1.5, -1.2);
-    ctx.lineTo(-5, -1);
-    ctx.lineTo(-6.5, -3.2);      // 左尾翼
-    ctx.lineTo(-7.5, -3.2);
-    ctx.lineTo(-6.8, 0);
-    ctx.lineTo(-7.5, 3.2);       // 右尾翼
-    ctx.lineTo(-6.5, 3.2);
-    ctx.lineTo(-5, 1);
-    ctx.lineTo(-1.5, 1.2);
-    ctx.lineTo(-2.2, 6.5);       // 右翼
-    ctx.lineTo(0, 6.5);
-    ctx.lineTo(2, 1.1);
-    ctx.closePath(); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = col; ctx.fillRect(-3, -0.7, 6, 1.4);
+    // 发光的机身按国家颜色预先画成一张图
+    const pl = this.plate('plane:' + col, '', [-7.5, -6.5, 14.5, 13], 8, (cx) => {
+      cx.shadowColor = col; cx.shadowBlur = 8;
+      cx.fillStyle = '#e9f2ff';
+      cx.beginPath();
+      cx.moveTo(7, 0);            // 机头
+      cx.lineTo(2, -1.1);
+      cx.lineTo(0, -6.5);         // 左翼
+      cx.lineTo(-2.2, -6.5);
+      cx.lineTo(-1.5, -1.2);
+      cx.lineTo(-5, -1);
+      cx.lineTo(-6.5, -3.2);      // 左尾翼
+      cx.lineTo(-7.5, -3.2);
+      cx.lineTo(-6.8, 0);
+      cx.lineTo(-7.5, 3.2);       // 右尾翼
+      cx.lineTo(-6.5, 3.2);
+      cx.lineTo(-5, 1);
+      cx.lineTo(-1.5, 1.2);
+      cx.lineTo(-2.2, 6.5);       // 右翼
+      cx.lineTo(0, 6.5);
+      cx.lineTo(2, 1.1);
+      cx.closePath(); cx.fill();
+      cx.shadowBlur = 0;
+      cx.fillStyle = col; cx.fillRect(-3, -0.7, 6, 1.4);
+    });
+    ctx.drawImage(pl.c, pl.x, pl.y, pl.w, pl.h);
     // 航行灯：左红右绿，闪烁
     if (Math.sin(this.time * 8 + p.id) > 0) {
       ctx.fillStyle = '#ff4040'; ctx.fillRect(-1.6, -6.8, 1.4, 1.4);

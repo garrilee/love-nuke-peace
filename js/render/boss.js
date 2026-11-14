@@ -18,31 +18,34 @@ Object.assign(Render, {
       }
     }
     if (G.dims) G.dims = G.dims.filter((d) => G.t - d.t0 < BOSS_CFG.dimWarn + BOSS_CFG.dimSpread + 0.5);
-    ctx.save();
+    // 一块二维化地块预先画成一张图（核心区、外延区各一张）；一次降维打击会压平几百块，每帧每块只贴一次图
+    const H = CFG.HEX, box = [-H - 1, -H - 1, H * 2 + 2, H * 2 + 2];
+    const stamp = (core) => this.plate(core ? 'flat:core' : 'flat:outer', '', box, 0, (cx) => {
+      // 深紫黑色的“画布”
+      cx.fillStyle = core ? 'rgba(18,6,38,0.82)' : 'rgba(48,14,80,0.45)';
+      this.hexPath(cx, 0, 0, H + 0.4); cx.fill();
+      // 发光网格：横纹 + 斜纹
+      cx.strokeStyle = core ? 'rgba(150,110,255,0.5)' : 'rgba(190,90,255,0.25)';
+      cx.lineWidth = 0.7;
+      cx.beginPath();
+      for (let k = -2; k <= 2; k++) { cx.moveTo(-H * 0.75, k * 3.6); cx.lineTo(H * 0.75, k * 3.6); }
+      if (core) for (let k = -1; k <= 1; k++) { cx.moveTo(k * 6 - 4, -H * 0.7); cx.lineTo(k * 6 + 4, H * 0.7); }
+      cx.stroke();
+      if (core) { // 青色描边，像被裁下来的画格
+        cx.strokeStyle = 'rgba(80,230,255,0.35)'; cx.lineWidth = 0.8;
+        this.hexPath(cx, 0, 0, H - 0.6); cx.stroke();
+      }
+    });
     for (const t of W.tiles) {
       if (!t.flat) continue;
       const a = flatAlpha(t);
       if (a <= 0) { t.flat = 0; continue; }
-      const s = CFG.HEX * 2;
-      if (!this.visibleRect(t.x - s, t.y - s, s * 2, s * 2)) continue;
-      const core = t.flat >= 1;
-      // 深紫黑色的“画布”
-      ctx.fillStyle = core ? `rgba(18,6,38,${0.82 * a})` : `rgba(48,14,80,${0.45 * a})`;
-      this.hexPath(ctx, t.x, t.y, CFG.HEX + 0.4); ctx.fill();
-      // 发光网格：横纹 + 斜纹，轻微流动
-      const flow = Math.sin(T * 2 + t.phase) * 0.15 + 0.85;
-      ctx.strokeStyle = core ? `rgba(150,110,255,${0.55 * a * flow})` : `rgba(190,90,255,${0.28 * a * flow})`;
-      ctx.lineWidth = 0.7;
-      ctx.beginPath();
-      for (let k = -2; k <= 2; k++) { ctx.moveTo(t.x - CFG.HEX * 0.75, t.y + k * 3.6); ctx.lineTo(t.x + CFG.HEX * 0.75, t.y + k * 3.6); }
-      if (core) for (let k = -1; k <= 1; k++) { ctx.moveTo(t.x + k * 6 - 4, t.y - CFG.HEX * 0.7); ctx.lineTo(t.x + k * 6 + 4, t.y + CFG.HEX * 0.7); }
-      ctx.stroke();
-      if (core) { // 青色描边，像被裁下来的画格
-        ctx.strokeStyle = `rgba(80,230,255,${0.35 * a})`; ctx.lineWidth = 0.8;
-        this.hexPath(ctx, t.x, t.y, CFG.HEX - 0.6); ctx.stroke();
-      }
+      if (!this.visibleRect(t.x - H * 2, t.y - H * 2, H * 4, H * 4)) continue;
+      const pl = stamp(t.flat >= 1);
+      ctx.globalAlpha = a * (0.93 + 0.07 * Math.sin(T * 2 + t.phase)); // 轻微的明暗流动
+      ctx.drawImage(pl.c, t.x + pl.x, t.y + pl.y, pl.w, pl.h);
     }
-    ctx.restore();
+    ctx.globalAlpha = 1;
   },
   // 进行中的降维打击：预警时两圈红紫色虚线闪烁，展开时一道紫红色电光冲击环向外推
   drawDims(ctx, z, T) {
@@ -155,7 +158,7 @@ Object.assign(Render, {
     const b = G.boss;
     if (!b || !b.alive || !isChaos(b) || !this.nationPaths[b.id]) return;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = `rgba(255,110,40,${0.1 + 0.08 * Math.sin(T * 9)})`; ctx.fill(this.nationPaths[b.id]);
+    this.fillNation(ctx, b.id, 'rgb(255,110,40)', 0.1 + 0.08 * Math.sin(T * 9));
     ctx.restore();
     this.drawGlow(ctx, b.id, 'target', 0.5 + 0.5 * Math.abs(Math.sin(T * 6)));
   },

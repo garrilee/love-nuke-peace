@@ -109,7 +109,7 @@ function frameBody(ts) {
   if (ts - lastDraw >= 13 && !(G && G.over && !$('end').classList.contains('hidden'))) {
     const t0 = performance.now();
     Render.draw((ts - lastDraw) / 1000 > 0.1 ? real : Math.min(0.1, (ts - lastDraw) / 1000));
-    FX.tuneQuality(performance.now() - t0);
+    FX.tuneQuality(performance.now() - t0, ts - lastDraw);
     lastDraw = ts;
   }
 }
