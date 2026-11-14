@@ -23,6 +23,7 @@
   <label>模式 <select id="mode"><option value="normal">普通</option><option value="survival">生存（三体人）</option></select></label>
   <label><input type="checkbox" id="quick"> 快速局</label>
   <label>玩家打法 <select id="play"><option value="ai">和 AI 一样</option><option value="aggr">开局就集中猛攻最弱的国家</option></select></label>
+  <label>难度 <select id="diff"><option value="easy">简单</option><option value="normal" selected>普通</option><option value="hard">癫狂</option></select></label>
   <label>AI 数量 <select id="ai"><option>3</option><option>4</option><option>5</option></select></label>
   <label>局数 <input id="n" type="number" value="96" min="6" max="600" step="6" style="width:70px"></label>
   <button id="run">开始</button> <span id="status" class="dim"></span>
@@ -31,7 +32,7 @@
 <div id="out" class="dim">选好参数后点「开始」。每个国家轮流当玩家席位；胜率后面的 ± 是 1 个标准误差。</div>
 
 <script>
-const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/end', 'ai'];
+const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/events', 'sim/end', 'ai'];
 const base = new URL('../js/', location.href).href;
 // 后台线程：加载模拟代码，逐局运行，把每局的结果发回来
 const workerSrc = `
@@ -46,9 +47,10 @@ Bus.on('dimStrike', () => { dims++; });
 Bus.on('launchOrder', (e) => { if (!e.drone && !e.conv) nukes += e.sent; });
 onmessage = (ev) => {
   const o = ev.data, pers = Object.keys(PERSONALITIES);
+  if (o.patch) (0, eval)(o.patch); // 调参用：开始前执行一段临时修改参数的代码（页面上 window.PATCH）
   for (let g = 0; g < o.n; g++) {
     for (const k in loss) loss[k] = 0; nukes = 0; dims = 0; pend = 0;
-    newGame(RACES[g % RACES.length].id, o.ai, 'normal', null, { survival: o.survival, quick: o.quick });
+    newGame(RACES[g % RACES.length].id, o.ai, o.diff, null, { survival: o.survival, quick: o.quick });
     const p = G.player; p.pers = pers[g % pers.length];
     const last = G.nations.map((n) => n.techMask), reach = {}; let fd = null, bd = null;
     for (let i = 0; i < 60000 && !G.over; i++) {
@@ -91,7 +93,7 @@ $('run').onclick = () => {
     document.querySelector('#prog i').style.width = (R.length / N * 100) + '%';
     if (R.length % 6 === 0) { $('status').textContent = `运行中… ${R.length}/${N}`; report(R, false); }
   };
-  worker.postMessage({ n: N, ai: +$('ai').value, survival: $('mode').value === 'survival', quick: $('quick').checked, aggr: $('play').value === 'aggr' });
+  worker.postMessage({ patch: window.PATCH || '', n: N, ai: +$('ai').value, diff: $('diff').value, survival: $('mode').value === 'survival', quick: $('quick').checked, aggr: $('play').value === 'aggr' });
 };
 function summarize(R) {
   const app = {}, win = {};

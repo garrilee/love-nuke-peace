@@ -153,9 +153,11 @@ function autoNet(n) {
 }
 
 // ---------- 技能 ----------
+// 护盾持续时间：全域护盾 +50%；快速局减半
+const shieldDur = (n) => SKILLS.shield.dur * (has(n, 'aegis') ? 1.5 : 1) * (G.quick ? QUICK.shieldDur : 1);
 function useShield(n) {
   if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
-  n.energy -= COSTS.shield; n.shieldT = SKILLS.shield.dur; n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
+  n.energy -= COSTS.shield; n.shieldT = shieldDur(n); n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
@@ -175,7 +177,7 @@ function useUlt(n, tgt) {
   if (tgt && (!tgt.alive || tgt === n)) tgt = null;
   if (id === 'human') n.overtimeT = U.dur;
   else if (id === 'mole') {
-    n.shieldT = Math.max(n.shieldT, SKILLS.shield.dur);
+    n.shieldT = Math.max(n.shieldT, shieldDur(n));
     const foe = G.nations[n.lastAttacker];
     const t2 = foe && foe.alive && foe !== n ? foe : tgt;
     if (t2) { n.conv += 6; n.convCd = 0; launchConv(n, t2, 0, 6); }
@@ -205,7 +207,7 @@ function useUlt(n, tgt) {
     for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.35); }
     for (const f of n.facilities) if (!f.alive) { f.alive = true; f.rebuild = 0; Bus.emit('rebuilt', f); }
   }
-  n.ultCd = U.cd * tScale(); n.stats.ult++;
+  n.ultCd = U.cd * (G.quick && !n.race.boss ? QUICK.ultCd : tScale()); n.stats.ult++;
   news(`${U.icon} ${n.race.emoji}${n.name} 发动大招【${U.name}】${tgt && ultNeedsTarget(n) ? ' → ' + tgt.race.emoji + tgt.name : ''}`);
   Bus.emit('ult', { n, tgt });
   return true;

@@ -51,6 +51,7 @@ function execCmd(n, c) {
       return 1;
     }
     case 'research': { const t = availTechs(n).find((x) => x.id === c.id); if (!t || n.research) return 0; n.techPick = t.id; pickResearch(n); return 1; }
+    case 'vote': return voteGlobalEvent(n, c.v);
     case 'toggle': if (['autoNet', 'autoRebuild', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;

@@ -13,12 +13,15 @@ function simStep(dt) {
   for (const n of G.nations) if (n.alive) scramble(n, dt);
   stepTiles(dt);
   stepEvents();
+  stepGlobalEvents();
   for (const n of G.nations) if (n.alive && !n.isPlayer) aiStep(n, dt);
   for (const n of G.nations) {
     if (!n.alive || !n.isPlayer) continue;
     if (n.autoNet) autoNet(n);
     if (n.autoRebuild) autoRebuild(n);
   }
+  // 癫狂难度：AI 也有自动拦截和自动重建（和玩家同样的待遇）
+  if (G.diff.auto) for (const n of G.nations) if (n.alive && !n.isPlayer && !n.race.boss) { autoNet(n); autoRebuild(n); }
   checkEnd();
 }
 
@@ -42,7 +45,7 @@ function stepNation(n, dt) {
   const heatRate = (heatTarget > n.heat ? 1 / CFG.HEAT_UP : 1 / CFG.HEAT_DOWN) * dt;
   n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
   n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * midnightProd() * dt);
-  n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
+  n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def * (G.quick ? QUICK.energy : 1) + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
   autoBuild(n);
 
   // 人口

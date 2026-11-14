@@ -77,9 +77,14 @@ const TECHS = [
   { id: 'lv4',   name: '星际顺丰·闪送',   cost: 110, req: ['multi'], branch: 'atk', desc: '主攻：4 级包裹，蘑菇云自带彩虹边。' },
   { id: 'net',   name: '拦截网升级',       cost: 110, req: ['multi'], branch: 'def', desc: '主防：拦截弹 3 → 6 枚，命中率 60% → 75%。' },
   { id: 'lv5',   name: '终极核平·东风',   cost: 230, reqAny: ['lv4', 'net'], desc: '5 级包裹“东风”。全屏白光，使命必达。' },
+  // 两条路线各自的终极科技（造出东风后才能研发；补齐另一条路线后，两个都能拿）
+  { id: 'mirv',  name: '分导东风',         cost: 200, req: ['lv5', 'lv4'], desc: '主攻终极：每颗东风落地时，再分出 2 枚 3 级弹头打向目标国的其他城市。' },
+  { id: 'aegis', name: '全域护盾',         cost: 200, req: ['lv5', 'net'], desc: '主防终极：护盾持续时间 +50%。' },
 ];
 // 快速局：午夜提前、产出加倍，各种计时（末日升级、大招冷却、三体人的乱纪元等）减半，一局约 6 分钟
-const QUICK = { midnight: 240, prod: 2, time: 0.5 };
+// time：计时类参数减半；energy：三防换来的能量打七折；ultCd：普通国家的大招冷却打七五折；
+// shieldDur：护盾持续时间减半（火力密度翻倍而护盾冷却不变，不缩短的话每次护盾挡下的核弹翻倍，护盾多的国家太占便宜）
+const QUICK = { midnight: 240, prod: 2, time: 0.5, energy: 0.7, ultCd: 0.75, shieldDur: 0.5 };
 const TECH_PICK_WAIT = 20; // 第 4 级二选一：玩家 20 秒不选，按当前核武/三防分配自动选
 
 // 包裹等级（纯游戏数值）
@@ -146,8 +151,8 @@ const SKILLS = {
 const RACES = [
   {
     id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
-    trait: '全民内卷：科技 +15%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.15 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
+    trait: '全民内卷：科技 +10%', weak: '没有明显弱点，也没有明显优点',
+    mods: { tech: 1.1 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
     cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
     lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
@@ -174,8 +179,8 @@ const RACES = [
   },
   {
     id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
-    trait: '义体改造：科技 +15%，不怕辐射灰', weak: '人口增长 -30%',
-    mods: { tech: 1.15, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
+    trait: '义体改造：科技 +10%，不怕辐射灰', weak: '人口增长 -30%',
+    mods: { tech: 1.1, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
     cities: ['霓虹市', '义体街', '电子港', '节点-7', '矩阵城', '云端堡'],
     lines: { launch: '检测到你的城市即将离线。', hit: '义体受损……正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
   },
@@ -230,7 +235,7 @@ const BOSS_CFG = {
 const DIFFS = {
   easy:   { name: '简单', prod: 0.8, aggro: 0.7,  react: 1.6, idle: 100, ult: 0.35 },
   normal: { name: '普通', prod: 1.0, aggro: 1.0,  react: 1.0, idle: 60,  ult: 1 },
-  hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1 },
+  hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1, auto: true }, // auto：AI 也有玩家那样的自动拦截和自动重建
 };
 const ULT_FIRST = 90;
 const MAX_NATIONS = 8;   // 一局最多 8 个国家（真人 + AI）；国家可以重复选

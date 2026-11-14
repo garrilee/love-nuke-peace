@@ -263,13 +263,14 @@ const Net = {
     const W = G.world, rad = [];
     for (const t of W.tiles) if (t.rad > 0.01) rad.push(t.idx, r2(t.rad));
     return {
-      t: r2(G.t), m: G.midnight ? 1 : 0, sp: G.speed,
+      t: r2(G.t), m: G.midnight ? 1 : 0, sp: G.speed, tr: r1(G.treatyUntil || 0),
+      ge: G.gev ? [G.gev.key, r1(G.gev.t0), r1(G.gev.deadline), G.gev.tgt, G.gev.votes] : 0,
       n: G.nations.map((n) => ({
         a: n.alive ? 1 : 0, h: n.isPlayer ? 1 : 0, ti: n.techIdx, tm: n.techMask, rs: n.research ? techIndex(n.research) : -1, cs: r1(n.choiceSince), tp: r1(n.techPts), b: r1(n.bank), e: r1(n.energy),
         pc: [1, 2, 3, 4, 5].map((k) => n.parcels[k]), cv: n.conv, cc: r1(n.convCd), cb: r1(n.convBuildT || 0), ht: r2(n.heat),
         dr: n.drones, dc: r1(n.droneCd), db: r1(n.droneBuildT), aS: n.autoScramble ? 1 : 0, da: n.diedAt === undefined ? -1 : r1(n.diedAt),
         sT: r1(n.shieldT), sC: r1(n.shieldCd), nT: r1(n.netT), nC: r1(n.netCd), nq: n.netCharges,
-        uC: r1(n.ultCd), ch: r1(n.chaosT || 0), cn: r1(n.chaosNext || 0), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
+        uC: r1(n.ultCd), su: r1(n.sanctionUntil || 0), ch: r1(n.chaosT || 0), cn: r1(n.chaosNext || 0), oT: r1(n.overtimeT), hT: r1(n.harpoonT), kT: r1(n.hackT),
         iU: r1(n.intelUntil), iW: n.intelWhy || '', an: n.anger.map((v) => Math.round(v)), la: r1(n.lastAttack), lh: r1(n.lastHit),
         ha: Object.fromEntries(Object.entries(n.hostileAt).map(([k, v]) => [k, r1(v)])),
         u: n.ufoReady, ur: n.ufoReturn.length, sb: n.subs.map((s) => [SUB_STATES.indexOf(s.state), s.tile.idx, s.rockets]),
@@ -351,13 +352,14 @@ const Net = {
   },
   applySnap(s) {
     const W = G.world;
-    G.t = s.t; G.midnight = !!s.m; if (s.sp) G.speed = s.sp;
+    G.t = s.t; G.midnight = !!s.m; if (s.sp) G.speed = s.sp; G.treatyUntil = s.tr || 0;
+    G.gev = s.ge ? { key: s.ge[0], t0: s.ge[1], deadline: s.ge[2], tgt: s.ge[3], votes: s.ge[4] || {} } : null;
     s.n.forEach((d, i) => {
       const n = G.nations[i];
       Object.assign(n, {
         alive: !!d.a, isPlayer: !!d.h, techIdx: d.ti, techMask: d.tm || 0, research: d.rs >= 0 ? TECHS[d.rs].id : null, choiceSince: d.cs ?? -1, techPts: d.tp, bank: d.b, energy: d.e,
         conv: d.cv, convCd: d.cc, convBuildT: d.cb, heat: d.ht, shieldT: d.sT, shieldCd: d.sC, netT: d.nT, netCd: d.nC, netCharges: d.nq,
-        ultCd: d.uC, chaosT: d.ch || 0, chaosNext: d.cn || 0, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
+        ultCd: d.uC, sanctionUntil: d.su || 0, chaosT: d.ch || 0, chaosNext: d.cn || 0, overtimeT: d.oT, harpoonT: d.hT, hackT: d.kT, intelUntil: d.iU, intelWhy: d.iW, anger: d.an,
         lastAttack: d.la, lastHit: d.lh, hostileAt: d.ha || {}, ufoReady: d.u, ufoReturn: new Array(d.ur).fill(0), stats: d.st,
         autoNet: !!d.aN, autoRebuild: !!d.aR, rocketEra: !!d.re,
         drones: d.dr, droneCd: d.dc, droneBuildT: d.db, autoScramble: !!d.aS, diedAt: d.da >= 0 ? d.da : undefined,

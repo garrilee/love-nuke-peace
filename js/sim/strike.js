@@ -173,7 +173,7 @@ function convExplode(tile, att) {
   if (tile.city && tile.city.pop > 0) {
     const c = tile.city, owner = G.nations[c.nation];
     let frac = CONV.dmg * (G.midnight ? 1.5 : 1) * takenMul(owner);
-    if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
+    if (owner.shieldT > 0) frac *= 1 - shieldCut(owner);
     const loss = c.pop * frac;
     c.pop -= loss;
     if (c.pop < c.basePop * 0.35) { c.ruined = true; c.rebuild = 0; }
@@ -294,7 +294,7 @@ function explode(tile, lv, att) {
     if (t2.city && t2.city.pop > 0) {
       const c = t2.city, owner = G.nations[c.nation];
       let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * nukeMul());
-      if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
+      if (owner.shieldT > 0) frac *= 1 - shieldCut(owner);
       frac = Math.min(0.97, frac * (owner.mods.nukeArmor || 1) * takenMul(owner)); // 废土：皮糙肉厚；三体乱纪元：伤害加重
       const loss = c.pop * frac;
       c.pop -= loss;
@@ -309,17 +309,25 @@ function explode(tile, lv, att) {
   }
   applyLosses(losses, att, 1);
   Bus.emit('explode', { tile, lv, att });
+  // 分导东风：再分出 2 枚 3 级弹头，打向同一个国家的其他城市
+  if (lv === 5 && has(att, 'mirv') && tile.owner >= 0) {
+    const others = shuffle(G.nations[tile.owner].cities.filter((c) => c.tile !== tile && c.pop > 0)).slice(0, 2);
+    for (const c of others) explode(c.tile, 3, att);
+  }
   for (const n of G.nations) if (n.alive && totalPop(n) < CFG.DEATH_POP) eliminate(n);
 }
 
 // 记录“谁最近一次打了谁”：b.hostileAt[a] = a 最近一次攻击 b 的时间。
 // b 对 a 的怒气，只在 a 停手一段时间后才回落（b 自己还在打 a 不影响它冷静下来）
 // 核弹威力倍率：午夜 ×1.25，之后每 2 分钟 +10%，最多 ×2.5
+// 护盾减伤比例：刀盾 97%，其他 85%
+const shieldCut = (owner) => owner.mods.shield || SKILLS.shield.reduce;
 // 午夜后第几次末日升级
 const escLevel = () => Math.max(0, Math.floor((G.t - midAt()) / (CFG.ESC_EVERY * tScale())));
 function nukeMul() {
-  if (!G.midnight) return 1;
-  return Math.min(CFG.ESC_MAX, CFG.ESC_START + CFG.ESC_STEP * escLevel());
+  const treaty = G.treatyUntil > G.t ? 0.7 : 1; // 全球事件：限核倡议
+  if (!G.midnight) return treaty;
+  return Math.min(CFG.ESC_MAX, CFG.ESC_START + CFG.ESC_STEP * escLevel()) * treaty;
 }
 // 午夜后的核武产出倍率：×3.5，之后每次末日升级再 +10%（不封顶）
 function midnightProd() {

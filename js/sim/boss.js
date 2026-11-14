@@ -61,13 +61,12 @@ function dimCenter(tgt) {
   }
   return best;
 }
-// 降维打击打谁：和普通攻击一样看仇恨、威胁和距离（优先打掉正在围攻它的邻国），但对真人玩家留三条保护：
-// 每局第一次不打真人玩家；不连续两次打同一个国家；真人玩家的分数打七折（积极反击的玩家不会被反复点名）
+// 降维打击打谁：和普通攻击一样看仇恨、威胁和距离（优先打掉正在围攻它的邻国），但对真人玩家留两条保护：
+// 不连续两次打同一个国家；真人玩家的分数打七折（积极反击的玩家不会被反复点名）
 function pickDimTarget(n) {
   let c = G.nations.filter((x) => x.alive && x !== n && totalPop(x) > 25);
   if (!c.length) c = G.nations.filter((x) => x.alive && x !== n);
   const narrow = (f) => { const r = c.filter(f); if (r.length) c = r; };
-  if (!n.dimCount) narrow((x) => !x.isPlayer);
   narrow((x) => x.id !== n.lastDimTgt);
   const maxPop = Math.max(1, ...G.nations.map((x) => (x.alive ? totalPop(x) : 0)));
   let best = null, bs = -Infinity;
@@ -112,6 +111,10 @@ function stepDims() {
     const r = dimRadius(d);
     if (r < 0) continue;
     const att = G.nations[d.att], center = W.tiles[d.tile], losses = new Map();
+    if (!d.braced) { // 二维化展开的一刻：范围内的 AI 国家开护盾（外延区损失减半）
+      d.braced = true;
+      for (const x of G.nations) if (x.alive && !x.isPlayer && x !== att && x.cities.some((c) => hexDist(c.tile, center) <= B.dimOuter)) useShield(x);
+    }
     for (const t of W.tiles) {
       if (d.done.has(t.idx)) continue;
       const dist = hexDist(t, center);
