@@ -235,6 +235,8 @@ const UI = {
   // ---------- 天气：顶栏一个图标 + 效果 + 倒计时 ----------
   refreshWeather() {
     const el = $('weather'), w = G.weather;
+    document.body.classList.toggle('wx-truce', weatherIs('truce'));
+    document.body.classList.toggle('wx-dust', weatherIs('dust'));
     if (!w || w.until <= G.t || G.over) { if (!el.classList.contains('hidden')) el.classList.add('hidden'); return; }
     const d = WEATHERS[w.key];
     setHTML(el, `${d.icon} <b>${d.effect}</b> <span class="mono">${Math.ceil(w.until - G.t)}s</span>`);
@@ -306,7 +308,7 @@ const UI = {
       <div class="me-res"><span>💰 预算 <b class="mono">${Math.floor(p.bank)}</b></span><span>⚡ 能量 <b class="mono">${Math.floor(p.energy)}</b><small>/${CFG.ENERGY_CAP}</small></span></div>`);
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
-    setText($('energyTxt'), `⚡ ${Math.floor(p.energy)}/${CFG.ENERGY_CAP}`);
+    setText($('energyTxt'), this.mobile() ? `⚡${Math.floor(p.energy)}　🎯${Math.floor(p.netE)}` : `护盾 ⚡${Math.floor(p.energy)}/${CFG.ENERGY_CAP}　拦截 🎯${Math.floor(p.netE)}/${CFG.NET_E_CAP}`);
     if (p.hackT > 0) { this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); this.skillCard('net', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); }
     else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / shieldDur(p));
     else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
@@ -319,7 +321,11 @@ const UI = {
     if (p.hackT > 0) { /* 断网：上面已经处理 */ }
     else if (netOn) this.skillCard('net', `锁定中 · 剩 ${p.netCharges} 发`, 'active', p.netCharges / netMax(p));
     else if (p.netCd > 0) this.skillCard('net', `冷却 ${p.netCd.toFixed(0)}s`, 'cd', 1 - p.netCd / SKILLS.net.cd);
-    else if (p.energy < COSTS.net) this.skillCard('net', `需 ⚡${COSTS.net}`, 'poor', p.energy / COSTS.net);
+    else if (weatherIs('storm')) this.skillCard('net', '🌞 风暴中', 'poor', 0);
+    else if (p.netE < COSTS.net) {
+      const nRate = production(p) * p.alloc.def * CFG.NET_E_SHARE * (G.quick ? QUICK.energy : 1) + CFG.NET_E_BASE * (G.midnight ? 2 : 1);
+      this.skillCard('net', nRate > 0 ? `🎯 ${Math.ceil((COSTS.net - p.netE) / nRate)} 秒后可用` : `需 🎯${COSTS.net}`, 'poor', p.netE / COSTS.net);
+    }
     else this.skillCard('net', `就绪 · ${netMax(p)} 发 · ${Math.round(netChance(p) * 100)}%`, 'ready', 1);
     // 国家大招
     const U = p.race.ult, buffT = p.overtimeT || p.harpoonT;

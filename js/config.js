@@ -48,6 +48,8 @@ const CFG = {
   DEATH_POP: 3,           // 总人口低于 3M 即被核平
   POP_CAP_MUL: 1.6,
   ENERGY_CAP: 150,
+  // 拦截弹药：拦截单独的能量池（不再和护盾、重建抢能量）。来自三防分配的一部分，是额外给的，不从护盾能量里扣
+  NET_E_CAP: 60, NET_E_SHARE: 0.25, NET_E_BASE: 0.15, NET_E_START: 20,
   BANK_CAP: 400,
   MIRV_SPLIT: 0.42,       // 分弹头在 42% 航程处与母弹分离
   LOCK_RANGE: 3,          // 来袭目标进入本国领土，或距落点 3 格以内才会被锁定

@@ -594,3 +594,7 @@ body.compact #alloc .toggles .switch { font-size: 12px; }
 @keyframes wxpulse { from { box-shadow: 0 0 0 rgba(255,210,122,0); } to { box-shadow: 0 0 12px rgba(255,210,122,0.55); } }
 body.compact #weather { font-size: 11px; padding: 1px 6px; }
 body.portrait #weather { position: fixed; top: 48px; left: 6px; z-index: 6; font-size: 12px; padding: 3px 9px; background: rgba(20,16,6,0.9); }
+
+/* 天气禁止发射时：发射键上盖一个图标，说明为什么按不了 */
+body.wx-truce .fire::after, body.wx-dust #fire-drone::after, body.wx-dust #pfire-drone::after { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; background: rgba(6,10,18,0.72); border-radius: 50%; content: '🕊'; z-index: 2; }
+body.wx-dust:not(.wx-truce) #fire-drone::after, body.wx-dust:not(.wx-truce) #pfire-drone::after { content: '🌪'; }

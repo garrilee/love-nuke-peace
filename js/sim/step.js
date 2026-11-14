@@ -46,6 +46,7 @@ function stepNation(n, dt) {
   n.heat = clamp(n.heat + clamp(heatTarget - n.heat, -heatRate, heatRate), 0, 1);
   n.bank = Math.min(CFG.BANK_CAP, n.bank + prod * n.alloc.nuke * CFG.NUKE_MUL * heatEff(n) * midnightProd() * dt);
   n.energy = Math.min(CFG.ENERGY_CAP, n.energy + (prod * n.alloc.def * (G.quick ? QUICK.energy : 1) + CFG.ENERGY_BASE * (G.midnight ? 2 : 1)) * dt); // 午夜后基础回复翻倍
+  n.netE = Math.min(CFG.NET_E_CAP, n.netE + (prod * n.alloc.def * CFG.NET_E_SHARE * (G.quick ? QUICK.energy : 1) + CFG.NET_E_BASE * (G.midnight ? 2 : 1)) * dt);
   autoBuild(n);
 
   // 人口
@@ -215,7 +216,7 @@ function randomEvent() {
   const alive = G.nations.filter((n) => n.alive);
   if (alive.length < 2) return;
   const r = rand();
-  if (r < 0.25) {
+  if (r < 0.25 && !weatherIs('truce')) { // 全球停火期间不会有“迷路的包裹”
     const n = pick(alive.filter((x) => stock(x) > 0) || []);
     if (n) {
       const lv = takeParcel(n);

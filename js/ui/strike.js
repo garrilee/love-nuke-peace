@@ -48,6 +48,7 @@ const Fire = {
   // 按钮规则只有一条：有库存就能点（不够档位的数量就有几个发几个，没有装填间隔）。
   // 没选目标时也能点，点了提示先选目标
   canFire(ammo) {
+    if (weatherIs('truce') || (ammo === 'drone' && weatherIs('dust'))) return false; // 全球停火：都不能发；沙尘暴：小摩托停飞
     return G.player.alive && fireMax(ammo) >= 1;
   },
   btns(ammo) { return [$('fire-' + ammo), $('pfire-' + ammo)].filter(Boolean); },

@@ -14,7 +14,7 @@ const GEV = {
 // 补给箱：icon 画在地图上，give 发奖励
 const CRATES = {
   nuke:   { icon: '☢', color: '#ff6b5b', label: '+3 核包裹', give: (n) => { const lv = Math.max(1, bestLevel(n)); n.parcels[lv] = Math.min(CFG.STOCK_CAP, n.parcels[lv] + 3); } },
-  energy: { icon: '⚡', color: '#ffd23a', label: '能量加满', give: (n) => { n.energy = CFG.ENERGY_CAP; n.shieldCd = 0; } },
+  energy: { icon: '⚡', color: '#ffd23a', label: '能量加满', give: (n) => { n.energy = CFG.ENERGY_CAP; n.netE = CFG.NET_E_CAP; n.shieldCd = 0; } },
   tech:   { icon: '🔬', color: '#7fd6ff', label: '+70 科研', give: (n) => { n.techPts += 70; } },
 };
 // 天气：dur 持续秒数（快速局减半）

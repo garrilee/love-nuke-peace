@@ -104,9 +104,16 @@ Object.assign(Render, {
     const g = ctx.createLinearGradient(0, y - 90 * k, 0, y);
     g.addColorStop(0, rgba(d.color, 0)); g.addColorStop(1, rgba(d.color, 0.5));
     ctx.fillStyle = g; ctx.fillRect(x - 5 * k, y - 90 * k, 10 * k, 90 * k);
-    const ph = (T * 0.9) % 1; // 地面一圈圈扩散的波纹：提醒“这里有东西”
-    ctx.strokeStyle = rgba(d.color, (1 - ph) * 0.8); ctx.lineWidth = 2 * k;
-    ctx.beginPath(); ctx.ellipse(t.x, t.y, (10 + ph * 26) * k, (6 + ph * 15) * k, 0, 0, Math.PI * 2); ctx.stroke();
+    // 闪烁的光晕：一团忽明忽暗的光 + 三圈向外扩散的光圈，远远就能看到
+    const blink = 0.5 + 0.5 * Math.sin(T * 9), gs = (70 + 26 * blink) * k;
+    ctx.globalAlpha = 0.35 + 0.45 * blink;
+    ctx.drawImage(FX.S.white, x - gs / 2, y - gs / 2, gs, gs);
+    ctx.globalAlpha = 1;
+    for (let i = 0; i < 3; i++) {
+      const ph = (T * 0.8 + i / 3) % 1;
+      ctx.strokeStyle = rgba(i === 0 ? '#ffffff' : d.color, (1 - ph) * 0.9); ctx.lineWidth = (3 - ph * 2) * k;
+      ctx.beginPath(); ctx.arc(x, y, (14 + ph * 46) * k, 0, Math.PI * 2); ctx.stroke();
+    }
     ctx.globalCompositeOperation = 'source-over';
     ctx.shadowColor = d.color; ctx.shadowBlur = 16;
     ctx.fillStyle = 'rgba(10,16,28,0.92)';
@@ -119,6 +126,22 @@ Object.assign(Render, {
     ctx.fillStyle = d.color; ctx.fillText(d.icon, x, y + 1 * k);
     ctx.restore();
     ctx.textBaseline = 'alphabetic';
+    // 箱子在画面外：屏幕边缘一个闪烁的箭头指过去
+    const v = this.view;
+    if (t.x < v.left || t.x > v.right || t.y < v.top || t.y > v.bottom) {
+      const m = 26 * k, ax = clamp(t.x, v.left + m, v.right - m), ay = clamp(t.y, v.top + m * 3, v.bottom - m), ang = Math.atan2(t.y - ay, t.x - ax);
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.globalAlpha = 0.6 + 0.4 * blink;
+      ctx.fillStyle = 'rgba(10,16,28,0.9)'; ctx.strokeStyle = d.color; ctx.lineWidth = 2 * k;
+      ctx.beginPath(); ctx.arc(0, 0, 13 * k, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.font = `${Math.round(14 * k)}px "Microsoft YaHei", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = d.color; ctx.fillText(d.icon, 0, 1 * k);
+      ctx.rotate(ang); ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.moveTo(22 * k, 0); ctx.lineTo(15 * k, -5 * k); ctx.lineTo(15 * k, 5 * k); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.textBaseline = 'alphabetic';
+    }
   },
   // 点击位置是不是点中了补给箱（世界坐标）
   hitCrate(wx, wy) {
