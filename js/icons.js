@@ -98,14 +98,25 @@ const RACE_ICON_SVG = {
 };
 
 // 图标的 <svg> 字符串（size：显示尺寸 px）
-// 每个图标实例的渐变 id 加唯一后缀：同 id 的第一份如果在隐藏的元素里（比如开始界面），浏览器会画不出渐变
-let raceIconSeq = 0;
+// 渐变定义（<defs>）集中放进页面开头一个不占位的 <svg> 里，全页共用；
+// 图标本身只有图形，所以同一个种族、同一尺寸的图标字符串永远相同，界面刷新时不用重建
+const RACE_ICON_DEFS = {}, RACE_ICON_SHAPES = {};
+for (const id of Object.keys(RACE_ICON_SVG)) {
+  RACE_ICON_DEFS[id] = (RACE_ICON_SVG[id].match(/<defs>[\s\S]*?<\/defs>/g) || []).join('');
+  RACE_ICON_SHAPES[id] = RACE_ICON_SVG[id].replace(/<defs>[\s\S]*?<\/defs>/g, '');
+}
+(function mountIconDefs() {
+  const holder = document.createElement('div');
+  holder.innerHTML = `<svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">${Object.values(RACE_ICON_DEFS).join('')}</svg>`;
+  const add = () => document.body.insertBefore(holder.firstChild, document.body.firstChild);
+  if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+})();
+const raceIconCache = {};
 function raceIcon(id, size = 24, cls = 'ricon') {
-  const body = RACE_ICON_SVG[id];
-  if (!body) return '';
-  const k = '-' + (++raceIconSeq).toString(36);
-  const uniq = body.replace(/id="([^"]+)"/g, `id="$1${k}"`).replace(/url\(#([^)]+)\)/g, `url(#$1${k})`);
-  return `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">${uniq}</svg>`;
+  const key = id + ':' + size + ':' + cls;
+  if (raceIconCache[key]) return raceIconCache[key];
+  if (!RACE_ICON_SHAPES[id]) return '';
+  return (raceIconCache[key] = `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">${RACE_ICON_SHAPES[id]}</svg>`);
 }
 // Canvas 用：每个种族一张预先栅格化好的图片
 const RaceIconImg = {};

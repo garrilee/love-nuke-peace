@@ -18,6 +18,10 @@ Object.assign(UI, {
     const fold = (side) => { document.body.classList.toggle('fold' + side); this.syncFold(); Render.fit(); };
     $('foldL').onclick = () => fold('L'); $('foldR').onclick = () => fold('R');
     this.syncFold();
+    $('rankList').onclick = (e) => { // 点某一行：设为打击目标
+      const el = e.target.closest('.rk-row'), n = el && G.nations[+el.dataset.id];
+      if (n && n !== G.player && n.alive) setTarget(n.id);
+    };
     $('rankToggle').onclick = () => { box.classList.toggle('collapsed'); this.refreshRank(); };
     this.refreshRank();
   },
@@ -56,9 +60,5 @@ Object.assign(UI, {
         <div class="rk-bar"><i style="width:${n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0}%"></i></div>${sub}${extra}</div>`;
     };
     setHTML($('rankList'), alive.map(row).join('') + dead.map((n) => row(n, -1)).join(''));
-    for (const el of $('rankList').querySelectorAll('.rk-row')) {
-      const n = G.nations[+el.dataset.id];
-      el.onclick = () => { if (n !== G.player && n.alive) setTarget(n.id); };
-    }
   },
 });

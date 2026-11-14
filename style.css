@@ -44,19 +44,11 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 .sidecol > .panel { padding: 10px 12px; flex-shrink: 0; }
 #leftcol { left: 8px; }
 #rightcol { right: 8px; }
-#nations { flex-shrink: 1 !important; min-height: 120px; overflow-y: auto; }
-.nation { padding: 6px 8px; border-left: 3px solid var(--c); margin-bottom: 6px; border-radius: 4px; cursor: pointer; background: rgba(255,255,255,0.03); transition: background .15s; }
-.nation:hover { background: rgba(255,255,255,0.08); }
-.nation.sel { background: rgba(255, 60, 60, 0.18); box-shadow: 0 0 12px rgba(255,60,60,0.35); }
-.nation.me { cursor: default; background: rgba(95,200,255,0.08); }
-.nation.dead { opacity: 0.4; filter: grayscale(1); cursor: default; }
 .nh { display: flex; align-items: center; gap: 6px; }
 .nh b { color: var(--c); text-shadow: 0 0 6px var(--c); }
 .nh .emo { font-size: 16px; }
 .tag { font-size: 10px; background: var(--accent); color: #002; border-radius: 3px; padding: 0 4px; }
 .nl { font-size: 11px; color: var(--dim); }
-.anger { height: 3px; background: rgba(255,255,255,0.08); margin-top: 3px; border-radius: 2px; overflow: hidden; }
-.anger i { display: block; height: 100%; background: linear-gradient(90deg, #ffb35a, #ff3b3b); }
 
 .gold { color: var(--gold); }
 .small { font-size: 11px; }
@@ -82,7 +74,6 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 #stats > div { margin-bottom: 3px; }
 #stats .big { font-size: 18px; font-weight: bold; color: #fff; }
 #stats .big .dim { font-size: 12px; font-weight: normal; }
-.techline .bar { width: 120px; }
 #alloc label { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; }
 #alloc input { flex: 1; accent-color: var(--accent); }
 #alloc .pct { width: 36px; text-align: right; }
@@ -91,7 +82,6 @@ button.on, button.active { background: rgba(80, 170, 255, 0.45); border-color: v
 #alloc .rate small { font-size: 10px; color: var(--dim); margin-left: 2px; }
 #alloc .rate.bump { animation: bump .5s ease-out; }
 @keyframes bump { 0% { color: #fff; transform: scale(1.25); text-shadow: 0 0 12px #8fe3a0; } 100% { transform: scale(1); } }
-#allocHint { line-height: 1.5; }
 /* ===== 右侧操作区 ===== */
 .phead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2px; }
 .phead .sect-title { margin-bottom: 0; }
@@ -293,7 +283,6 @@ body.compact #btnInfo { padding: 2px 8px; }
 body.compact #leftcol { top: 46px; bottom: 26px; left: 0; width: min(300px, 86vw); padding: 0 4px; z-index: 12; transform: translateX(-105%); transition: transform .22s ease-out; }
 body.compact #leftcol.open { transform: none; }
 body.compact #leftcol .panel { background: rgba(6, 14, 26, 0.96); }
-body.compact #nations { min-height: 160px; }
 /* 右侧操作：横屏窄栏 */
 body.compact #rightcol { top: 46px; bottom: 26px; right: 4px; width: 210px; gap: 5px; }
 body.compact #rightcol .panel { padding: 6px; }
@@ -594,3 +583,7 @@ body.portrait #skills .toggles, body.portrait #rebuildStatus { display: none; }
 /* 自动拦截 / 自动重建开关：手机上放进 📊 抽屉 */
 #alloc .toggles { margin: 8px 0 2px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
 body.compact #alloc .toggles .switch { font-size: 12px; }
+
+/* 怒气条（地图上点开敌国的情报窗口里） */
+.anger { height: 3px; background: rgba(255,255,255,0.08); margin-top: 3px; border-radius: 2px; overflow: hidden; }
+.anger i { display: block; height: 100%; background: linear-gradient(90deg, #ffb35a, #ff3b3b); }

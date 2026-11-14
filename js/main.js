@@ -87,7 +87,9 @@ function simAdvance(real) {
 }
 
 function frame(ts) {
-  const real = clamp((ts - lastFrame) / 1000 || 0, 0, 0.1);
+  // 一帧最多推进 0.05 秒：慢帧之后不把落下的时间一次补回来（否则画面会“卡一下再跳一截”）。
+  // 联机房主保持 0.1 秒，尽量不拖慢所有人的世界
+  const real = clamp((ts - lastFrame) / 1000 || 0, 0, Net.role === 'host' ? 0.1 : 0.05);
   lastFrame = ts;
   if (running && G) {
     // 联机时不能暂停/加速，也不放慢镜头（慢镜头会拖慢所有人的世界）
@@ -102,7 +104,9 @@ function frame(ts) {
   }
   // 高刷新率屏幕（120/144Hz）上把绘制限制在约 60 帧；结算画面盖住地图时不画
   if (ts - lastDraw >= 13 && !(G && G.over && !$('end').classList.contains('hidden'))) {
+    const t0 = performance.now();
     Render.draw((ts - lastDraw) / 1000 > 0.1 ? real : Math.min(0.1, (ts - lastDraw) / 1000));
+    FX.tuneQuality(performance.now() - t0);
     lastDraw = ts;
   }
   requestAnimationFrame(frame);

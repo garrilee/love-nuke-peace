@@ -188,7 +188,6 @@ const UI = {
     for (const ammo of ['nuke', 'conv', 'drone']) { Fire.bind($('fire-' + ammo), ammo); $('lvl-' + ammo).onclick = () => Fire.cycle(ammo); }
     this.seenInc = new Set();
     $('chooser').onclick = (e) => { if (e.target.id === 'chooser') this.closeChooser(); };
-    this.buildNationList();
     this.refreshAll();
   },
 
@@ -269,20 +268,6 @@ const UI = {
     if (G.boss && G.boss.alive && p !== G.boss) chips.push(`<span class="chip bad" title="三体人活着时，其他国家科技速度 ×${BOSS_CFG.sophon}">👁 智子封锁 科技 ×${BOSS_CFG.sophon}</span>`);
     return chips.join('');
   },
-  buildNationList() {
-    const box = $('nations');
-    if (!box) return; // 已并入人口排行榜
-    box.innerHTML = '<div class="sect-title">世界各国</div>';
-    for (const n of G.nations) {
-      const d = document.createElement('div');
-      d.className = 'nation' + (n === G.player ? ' me' : '');
-      d.id = 'nat-' + n.id;
-      d.style.setProperty('--c', n.color);
-      d.onclick = () => { if (n !== G.player && n.alive) setTarget(n.id); };
-      box.appendChild(d);
-    }
-  },
-
   refreshAll() {
     const p = G.player;
     this.refreshRank();
@@ -304,21 +289,7 @@ const UI = {
     } else if (!cd.classList.contains('hidden')) cd.classList.add('hidden');
     document.querySelectorAll('#speed button').forEach((b) => b.classList.toggle('on', +b.dataset.speed === G.speed));
 
-    // 各国
-    for (const n of G.nations) {
-      const d = $('nat-' + n.id);
-      if (!d) continue;
-      const pop = totalPop(n);
-      const anger = n === G.player ? '' : G.mp && n.isPlayer ? '<div class="small dim">真人玩家</div>' : `<div class="anger" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[p.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></div>`;
-      d.classList.toggle('dead', !n.alive);
-      d.classList.toggle('sel', G.target === n.id);
-      setHTML(d, `<div class="nh"><span class="emo">${n.race.emoji}</span><b>${n.name}</b>${n === G.player ? '<span class="tag">你</span>' : G.mp && n.isPlayer ? '<span class="tag human">玩家</span>' : ''}${recentAttacker(n) ? '<span class="tag atk" title="最近攻击过你">⚔</span>' : ''}</div>
-        <div class="nl">${n.alive ? `👥 ${fmtPop(pop)} · 📦 ${stock(n)} · 🔬 ${n.techIdx}/${TECHS.length}` : '💀 已被核平'}</div>
-        ${n.alive ? anger : ''}`);
-    }
-
     // 我方数据
-    const prod = production(p);
     setHTML($('stats'), `
       <div class="me-head">${raceIcon(p.race.id, 34)}<b class="me-name">${p.name}</b><span class="me-pop mono">👥 ${fmtPop(totalPop(p))}</span></div>
       <div class="mods">${this.modChips(p)}</div>

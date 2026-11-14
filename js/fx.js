@@ -52,7 +52,7 @@ const FX = {
     Bus.on('intercept', (p) => this.onIntercept(p));
     Bus.on('fizzle', (p) => this.onFizzle(p));
     Bus.on('cityHit', (e) => this.pendHits.push(e));
-    Bus.on('explode', (e) => { this.flushBlast(e); if (e.lv >= 4 && G.player && ((e.att && e.att.id === G.player.id) || e.tile.owner === G.player.id)) Render.focusOn(e.tile.x, e.tile.y); });
+    Bus.on('explode', (e) => { this.flushBlast(e); if (e.lv >= 5 && G.player && ((e.att && e.att.id === G.player.id) || e.tile.owner === G.player.id)) Render.focusOn(e.tile.x, e.tile.y); });
     Bus.on('convExplode', () => this.flushSmall());
     Bus.on('droneExplode', () => this.flushSmall());
     Bus.on('facDown', (f) => this.text(f.tile.x, f.tile.y - 8, '宕机', '#ffaa55', 0.9));
@@ -76,11 +76,23 @@ const FX = {
     x.beginPath(); x.moveTo(0, 8); x.lineTo(128, 0); x.lineTo(128, 16); x.closePath(); x.fill();
     return c;
   },
-  reset() { this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
+  reset() { this.drawMs = 0; this.cineNext = 0; this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
+  // 自动画质：每帧绘制耗时的滑动平均超过预算就降一档（粒子、余火变少），有余量再慢慢升回来
+  quality: 1, drawMs: 0, MAX_FIRES: 360,
+  tuneQuality(ms) {
+    this.drawMs += (Math.min(ms, 60) - this.drawMs) * 0.08;
+    if (this.drawMs > 11) this.quality = Math.max(0.3, this.quality - 0.02);
+    else if (this.drawMs < 7) this.quality = Math.min(1, this.quality + 0.004);
+    // 超出当前上限的旧粒子直接丢掉一批（先丢普通粒子，蘑菇云本体留着）
+    const cap = Math.round(this.MAX_PARTS * this.quality);
+    if (this.parts.length > cap * 1.15) { let drop = this.parts.length - cap; this.parts = this.parts.filter((p) => p.fire || p.orbit || drop-- <= 0); }
+    const fcap = Math.round(this.MAX_FIRES * this.quality);
+    if (this.fires.length > fcap) this.fires.splice(0, this.fires.length - fcap);
+  },
   part(o) {
-    if (this.parts.length >= this.MAX_PARTS && !o.fire && !o.orbit) return;
+    if (this.parts.length >= this.MAX_PARTS * this.quality && !o.fire && !o.orbit) return;
     this.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, age: 0, size: 4, grow: 0, alpha: 1, add: true, drag: 0, grav: 0, delay: 0, fire: 0 }, o));
   },
   text(x, y, str, color, scale = 1) { this.texts.push({ x, y, str, color, age: 0, life: 1.8, scale }); },
@@ -275,7 +287,9 @@ const FX = {
       const a = rand() * Math.PI * 2, v = rnd(40, 110) * (0.7 + s * 0.3);
       this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.55 - rnd(30, 80), life: rnd(1, 2), size: rnd(1.5, 3), sprite: this.S.smoke, add: false, alpha: 0.9, grav: 90, drag: 0.6 });
     }
-    if (P.ultimate) { this.whiteout = 1.3; this.slowmo = 2.2; }
+    // 东风的全屏白光和慢放只跟着电影镜头走（镜头只给和玩家有关的东风，且 40 秒内最多一次）；其余东风照常爆炸
+    if (P.ultimate && this.cine) { this.whiteout = 1.3; this.slowmo = 1.2; }
+    else if (P.ultimate && near) this.flash = Math.max(this.flash, 0.6);
     SFX.boom(s, near);
     Render.addScorch(x, y, R * 1.15, lv);
     this.igniteArea(tile, P.r, lv);
@@ -307,14 +321,19 @@ const FX = {
 
   // 增强版蘑菇云：火柱 → 翻滚的云帽（内部火光）→ 冷凝裙边 → 逐渐冷却成烟
   mushroom(x, y, R, s, lv, P) {
-    const H = R * (2.2 + s * 0.12), capW = R * (1.25 + s * 0.06), life = CFG.SMOKE_LIFE + s * CFG.SMOKE_LIFE_PER;
+    const H = R * (2.2 + s * 0.12), capW = R * (1.25 + s * 0.06);
     const capY = y - H;
+    // 粒子密度：画质低、同屏蘑菇云多、爆炸在画面外时都少生成一些（大粒子的重叠绘制是最耗时的部分）
+    const seen = Render.visibleRect(x - capW * 2, capY - capW, capW * 4, H + capW * 2);
+    const den = clamp(this.quality, 0.45, 1) * (this.capGlows.length > 10 ? 0.55 : this.capGlows.length > 5 ? 0.75 : 1) * (seen ? 1 : 0.4);
+    const N = (n) => Math.max(3, Math.round(n * den));
+    const life = (CFG.SMOKE_LIFE + s * CFG.SMOKE_LIFE_PER) * (0.65 + 0.35 * den);
     // 火柱光（加色）
     this.columns.push({ x, y, top: capY, w: R * 0.45, age: -0.15, life: 2.6 + s * 0.4 });
     // 云帽中心的火光
     this.capGlows.push({ x, y: capY, R: capW * 1.25, age: -0.35, life: life * 0.55, rise: H * 0.12 });
     // 茎：底粗顶细，带火
-    const nStem = 12 + Math.round(s * 2);
+    const nStem = N(12 + Math.round(s * 2));
     for (let i = 0; i < nStem; i++) {
       const f = i / (nStem - 1);
       const w = R * (0.34 - 0.14 * f);
@@ -323,15 +342,17 @@ const FX = {
         add: false, alpha: 0.75, delay: 0.15 + f * 0.55, fire: 1, drag: 0.5 });
     }
     // 地面翻卷的底座
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
+    const nBase = N(10);
+    for (let i = 0; i < nBase; i++) {
+      const a = (i / nBase) * Math.PI * 2;
       this.part({ x: x + Math.cos(a) * R * 0.35, y: y + Math.sin(a) * R * 0.15, vx: Math.cos(a) * R * 0.35, vy: -R * 0.08,
         life: life * 0.8, size: R * 0.32, grow: R * 0.1, sprite: this.S.smoke, add: false, alpha: 0.6, delay: 0.2, fire: 1, drag: 0.9 });
     }
     // 云帽：三层翻滚的环 + 顶部穹顶
     const rings = [[0.25, 8, 0.55], [0.62, 12, 0.5], [0.98, 16, 0.42]];
     let hueI = 0;
-    for (const [rr, cnt, sz] of rings) {
+    for (const [rr, cnt0, sz] of rings) {
+      const cnt = N(cnt0);
       for (let i = 0; i < cnt; i++) {
         const a = (i / cnt) * Math.PI * 2 + rnd(0, 0.4);
         this.part({
@@ -349,7 +370,7 @@ const FX = {
     }
     // 冷凝裙边（2 级以上）
     if (lv >= 2) {
-      const n = 14 + lv * 2;
+      const n = N(14 + lv * 2);
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
         this.part({ orbit: true, cx: x, cy: y - H * 0.62, ang: a, rad: capW * 0.75, av: 0.15, rise: H * 0.02, expand: capW * 0.35,
@@ -361,7 +382,8 @@ const FX = {
   // ---------- 废墟余火：爆炸范围内的陆地会燃烧一段时间，地图越打越像末日 ----------
   addFire(x, y, life, s) {
     this.fires.push({ x, y, age: 0, life, s, ph: Math.random() * 6.28 });
-    if (this.fires.length > 360) this.fires.splice(0, this.fires.length - 360);
+    const cap = Math.round(this.MAX_FIRES * this.quality);
+    if (this.fires.length > cap) this.fires.splice(0, this.fires.length - cap);
   },
   igniteArea(tile, r, lv) {
     const vr = (lo, hi) => lo + Math.random() * (hi - lo);
@@ -438,9 +460,10 @@ const FX = {
 
   // ---------- 东风镜头：落地前慢放、压暗、天降光柱 ----------
   startCine(p) {
-    if (this.cine) return;
+    if (this.cine || Render.time < (this.cineNext || 0) || !this.involvesPlayer(p)) return;
+    this.cineNext = Render.time + 40;
     this.cine = { x: p.tx, y: p.ty, pid: p.id, age: 0, boom: -1 };
-    this.slowmo = Math.max(this.slowmo, 1.6);
+    this.slowmo = Math.max(this.slowmo, 1.2);
     SFX.riser();
   },
   cineDark() {

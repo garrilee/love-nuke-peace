@@ -253,11 +253,10 @@ const Render = {
     return x <= v.right && x + w >= v.left && y <= v.bottom && y + h >= v.top;
   },
 
-  // 大事件镜头：推近 0.15 秒、停 0.3 秒、0.45 秒拉回；同时顿帧（单机时短暂慢放）
+  // 大事件镜头（东风、降维打击）：推近 0.15 秒、停 0.3 秒、0.45 秒拉回；6 秒内不重复，避免后期镜头晃个不停
   focusOn(x, y) {
-    if (this.time - (this.fpT0 ?? -99) < 1.2) return;
+    if (this.time - (this.fpT0 ?? -99) < 6) return;
     this.fpT0 = this.time; this.fpX = x; this.fpY = y;
-    if (G && !G.mp) FX.slowmo = Math.max(FX.slowmo, 0.28);
   },
   focusW() {
     const t = this.time - (this.fpT0 ?? -99);

@@ -152,7 +152,6 @@ const SFX = {
       this._tone('square', t + i * 0.22 + 0.1, 740, 735, 0.12, 0.04);
     }
   },
-  siren() {}, // 兼容旧调用
   ciws(hit) { // 空战交火声（原近防炮音效）
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
