@@ -295,7 +295,7 @@ function explode(tile, lv, att) {
       const c = t2.city, owner = G.nations[c.nation];
       let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * nukeMul());
       if (owner.shieldT > 0) frac *= 1 - (owner.mods.shield || SKILLS.shield.reduce);
-      frac = Math.min(0.97, frac * (owner.mods.nukeArmor || 1) * takenMul(owner)); // 吃土：皮糙肉厚；三体乱纪元：伤害加重
+      frac = Math.min(0.97, frac * (owner.mods.nukeArmor || 1) * takenMul(owner)); // 废土：皮糙肉厚；三体乱纪元：伤害加重
       const loss = c.pop * frac;
       c.pop -= loss;
       if (owner.shieldT <= 0 && ((d === 0 && lv >= 2) || c.pop < c.basePop * 0.35)) { c.ruined = true; c.rebuild = 0; }

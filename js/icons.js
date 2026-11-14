@@ -40,18 +40,18 @@ const RACE_ICON_SVG = {
     <rect x="30.6" y="12" width="2.8" height="19" fill="url(#tr-octopus)"/>
     <path d="M32 6 L35.5 13.5 H28.5 Z M20.5 9 L24 16 H17 Z M43.5 9 L47 16 H40 Z" fill="#ffffff"/>`,
 
-  // 吃土：一勺土 + 土堆上冒出的嫩芽
+  // 废土：荒漠沙丘上升起一轮带辐射标志的落日
   mushroom: `${emblemFrame('mushroom', '#7a1f3e', '#2a0815', '#ff5e8a')}
-    <defs><linearGradient id="sp-mushroom" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ffb3c8"/></linearGradient></defs>
-    <path d="M10 52 Q32 34 54 52 V57 H10 Z" fill="#7a4a2a"/>
-    <path d="M14 52 Q32 38 50 52" stroke="#a8693d" stroke-width="1.6" fill="none"/>
-    <circle cx="22" cy="50" r="1.2" fill="#3a2010"/><circle cx="40" cy="47" r="1.3" fill="#3a2010"/><circle cx="31" cy="51" r="1" fill="#3a2010"/>
-    <path d="M44 40 Q44 33 49 31 Q49 37 44 40 Z M44 40 Q43 35 39 33.5 Q38.5 38 44 40 Z" fill="#7dff8a"/>
-    <path d="M44 40 V45" stroke="#5ad46a" stroke-width="1.6"/>
-    <line x1="27" y1="27" x2="44.5" y2="9.5" stroke="url(#sp-mushroom)" stroke-width="3.6" stroke-linecap="round"/>
-    <ellipse cx="22.5" cy="32" rx="8" ry="10.5" transform="rotate(45 22.5 32)" fill="url(#sp-mushroom)" stroke="#ff5e8a" stroke-width="1.4"/>
-    <ellipse cx="21.8" cy="32.8" rx="5" ry="6.5" transform="rotate(45 21.8 32.8)" fill="#7a4a2a"/>
-    <circle cx="20" cy="31" r="1.1" fill="#3a2010"/>`,
+    <defs><linearGradient id="sun-mushroom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff7a2a"/></linearGradient>
+    <linearGradient id="dune-mushroom" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c98a4a"/><stop offset="1" stop-color="#6b3f20"/></linearGradient></defs>
+    <circle cx="32" cy="29" r="16" fill="url(#sun-mushroom)"/>
+    <g fill="#3a1408"><circle cx="32" cy="29" r="3.2"/>
+      <path d="M29.75 25.1 L25.75 18.17 A12.5 12.5 0 0 1 38.25 18.17 L34.25 25.1 A4.5 4.5 0 0 0 29.75 25.1 Z"/>
+      <path d="M36.5 29 L44.5 29 A12.5 12.5 0 0 1 38.25 39.83 L34.25 32.9 A4.5 4.5 0 0 0 36.5 29 Z"/>
+      <path d="M29.75 32.9 L25.75 39.83 A12.5 12.5 0 0 1 19.5 29 L27.5 29 A4.5 4.5 0 0 0 29.75 32.9 Z"/></g>
+    <path d="M10.5 43 Q21 35.5 33 42 Q45 48.5 53.5 41 V45 L32 57 L10.5 45 Z" fill="url(#dune-mushroom)"/>
+    <path d="M10.5 47 Q24 42 38 48 Q46 51 53.5 46 L32 57 Z" fill="#8a5a2e"/>
+    <path d="M10.5 43 Q21 35.5 33 42 Q45 48.5 53.5 41" stroke="#ffe0a8" stroke-width="1.2" fill="none"/>`,
 
   // 赛博朋克：发光护目镜的机械头 + 电路纹
   ai: `${emblemFrame('ai', '#0d5a52', '#04201d', '#3ef0d0')}

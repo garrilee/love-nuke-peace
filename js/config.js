@@ -166,11 +166,11 @@ const RACES = [
     lines: { launch: '鱼叉已上膛，目标锁定。', hit: '浪再大，也掀不翻我们的船。', dead: '回归……大海……' },
   },
   {
-    id: 'mushroom', name: '吃土', emoji: '🥄', color: '#ff5e8a',
-    trait: '吃土长大：辐射灰地块人口反而增长；皮糙肉厚，受到核弹伤害 -3%', weak: '科技 -5%',
+    id: 'mushroom', name: '废土', emoji: '🏜️', color: '#ff5e8a',
+    trait: '废土求生：辐射灰地块人口反而增长；皮糙肉厚，受到核弹伤害 -3%', weak: '科技 -5%',
     mods: { tech: 0.95, dustLove: true, nukeArmor: 0.97 }, ult: { name: '扬沙', icon: '🌪', cd: 100, desc: '向所有敌国扬起辐射沙尘：敌国人口停止增长并缓慢流失，你在沙里长得更快' },
     cities: ['土坡村', '泥饼城', '月光镇', '尘埃港', '土豆岭', '灰原'],
-    lines: { launch: '反正已经在吃土了，不怕多吃一点。', hit: '谢谢投喂，再来点。', dead: '这次……真的只剩土了……' },
+    lines: { launch: '废土上什么都缺，就是不缺辐射。', hit: '这点辐射，还不够下饭。', dead: '尘归尘……土归土……' },
   },
   {
     id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
