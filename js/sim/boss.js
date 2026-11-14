@@ -61,9 +61,26 @@ function dimCenter(tgt) {
   }
   return best;
 }
+// 降维打击打谁：和普通攻击一样看仇恨、威胁和距离（优先打掉正在围攻它的邻国），但对真人玩家留三条保护：
+// 每局第一次不打真人玩家；不连续两次打同一个国家；真人玩家的分数打七折（积极反击的玩家不会被反复点名）
+function pickDimTarget(n) {
+  let c = G.nations.filter((x) => x.alive && x !== n && totalPop(x) > 25);
+  if (!c.length) c = G.nations.filter((x) => x.alive && x !== n);
+  const narrow = (f) => { const r = c.filter(f); if (r.length) c = r; };
+  if (!n.dimCount) narrow((x) => !x.isPlayer);
+  narrow((x) => x.id !== n.lastDimTgt);
+  const maxPop = Math.max(1, ...G.nations.map((x) => (x.alive ? totalPop(x) : 0)));
+  let best = null, bs = -Infinity;
+  for (const x of c) {
+    const sc = (n.anger[x.id] + threatOf(x, maxPop) + Math.max(0, BOSS_CFG.neighborHate - capDist(n, x) * 2) + rnd(0, 15)) * (x.isPlayer ? BOSS_CFG.dimPlayerWeight : 1);
+    if (sc > bs) { bs = sc; best = x; }
+  }
+  return best;
+}
 function startDim(n, tgt) {
   const center = tgt && tgt.alive ? dimCenter(tgt) : null;
   if (!center) return false;
+  n.dimCount = (n.dimCount || 0) + 1; n.lastDimTgt = tgt.id;
   const d = { att: n.id, tgt: tgt.id, tile: center.idx, t0: G.t, done: new Set() };
   (G.dims = G.dims || []).push(d);
   Bus.emit('dimStrike', d);

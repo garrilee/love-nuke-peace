@@ -32,8 +32,8 @@ function aiUlt(n, tgt, when) {
     || (id === 'roach' && when === 'think' && (totalPop(n) < n.stats.peakPop * 0.55 || n.cities.filter((c) => c.ruined).length >= 2))
     || (id === 'mole' && when === 'danger')
     || ((id === 'octopus' || id === 'ai') && when === 'fire')
-    || (id === 'trisolaris' && when === 'think' && tgt && totalPop(tgt) > 25);
-  return ok ? useUlt(n, tgt) : false;
+    || (id === 'trisolaris' && when === 'think');
+  return ok ? useUlt(n, id === 'trisolaris' ? pickDimTarget(n) : tgt) : false;
 }
 
 function aiStep(n, dt) {

@@ -13,16 +13,10 @@ function emblemFrame(id, c1, c2, rim) {
 }
 
 const RACE_ICON_SVG = {
-  // 卷王：深夜 996——亮着的笔记本电脑，屏幕上写着 996，窗外是月亮和星星
+  // 卷王：只突出一个大大的 996
   human: `${emblemFrame('human', '#1d4f8f', '#0b1f3d', '#4da3ff')}
-    <path d="M47 9 A6.5 6.5 0 1 0 51.5 19.5 A5 5 0 1 1 47 9 Z" fill="#ffe79a"/>
-    <path d="M14 12 l0.8 -2 l0.8 2 l2 0.8 l-2 0.8 l-0.8 2 l-0.8 -2 l-2 -0.8 Z M24 9 l0.5 -1.3 l0.5 1.3 l1.3 0.5 l-1.3 0.5 l-0.5 1.3 l-0.5 -1.3 l-1.3 -0.5 Z" fill="#ffffff"/>
-    <rect x="15" y="20" width="34" height="23" rx="2.5" fill="#06162c" stroke="#d4e6ff" stroke-width="1.8"/>
-    <rect x="17.5" y="22.5" width="29" height="18" rx="1" fill="#0f3a70"/>
-    <text x="32" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="12" fill="#ffe79a">996</text>
-    <path d="M20 26 H30 M34 26 H43" stroke="#7fd6ff" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
-    <path d="M9 46 H55 L51 52 H13 Z" fill="#d4e6ff" stroke="#4da3ff" stroke-width="1.2" stroke-linejoin="round"/>
-    <rect x="27" y="47.6" width="10" height="1.8" rx="0.9" fill="#7aa9de"/>`,
+    <text x="32" y="40.5" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="23" letter-spacing="-1" fill="#ffe79a" stroke="#0b1f3d" stroke-width="3" paint-order="stroke" stroke-linejoin="round">996</text>
+    <rect x="16" y="45" width="32" height="2.4" rx="1.2" fill="#4da3ff"/>`,
 
   // 刀盾：铜色鸢形盾 + 正中一柄银剑
   mole: `${emblemFrame('mole', '#6b4220', '#2a170a', '#d0965a')}
