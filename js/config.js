@@ -151,8 +151,8 @@ const SKILLS = {
 const RACES = [
   {
     id: 'human', name: '卷王', emoji: '📚', color: '#4da3ff',
-    trait: '全民内卷：科技 +10%', weak: '没有明显弱点，也没有明显优点',
-    mods: { tech: 1.1 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
+    trait: '全民内卷：科技 +5%', weak: '没有明显弱点，也没有明显优点',
+    mods: { tech: 1.05 }, ult: { name: '加班投送', icon: '⏰', cd: 120, dur: 15, desc: '全国加班 15 秒：总产出 ×1.7' },
     cities: ['996城', '加班港', '考研镇', '内卷市', '熬夜岭', '卷心湾'],
     lines: { launch: '你们下班了？我们还在研发。', hit: '这点伤害，加个班就补回来了。', dead: '卷……不动了……' },
   },
@@ -179,8 +179,8 @@ const RACES = [
   },
   {
     id: 'ai', name: '赛博朋克', emoji: '🤖', color: '#3ef0d0',
-    trait: '义体改造：科技 +10%，不怕辐射灰', weak: '人口增长 -30%',
-    mods: { tech: 1.1, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
+    trait: '义体改造：科技 +5%，不怕辐射灰', weak: '人口增长 -30%',
+    mods: { tech: 1.05, growth: 0.7, dustImmune: true }, ult: { name: '断网攻击', icon: '📡', cd: 110, dur: 15, desc: '让当前目标的护盾和拦截瘫痪 15 秒，并窃取它 30% 的预算' },
     cities: ['霓虹市', '义体街', '电子港', '节点-7', '矩阵城', '云端堡'],
     lines: { launch: '检测到你的城市即将离线。', hit: '义体受损……正在生成回礼……完成。', dead: 'ERROR 404：国家不存在。' },
   },

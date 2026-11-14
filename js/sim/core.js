@@ -147,7 +147,7 @@ function production(n) {
   if (isChaos(n)) return 0; // 三体乱纪元：停产
   return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n) * (n.mods.prod || 1)
     * (G.quick ? QUICK.prod : 1)               // 快速局：产出加倍
-    * (n.sanctionUntil > G.t ? 0.7 : 1)        // 全球事件：联合国制裁
+    * (weatherIs('boom') ? 1.5 : 1)            // 天气：军备竞赛
     * (n.overtimeT > 0 ? 1.7 : 1)              // 卷王大招：加班
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }

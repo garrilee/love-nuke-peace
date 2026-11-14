@@ -66,7 +66,7 @@ function pickTargetTile(tgt) {
 
 // count：指定发射数量（玩家点击发射）；不传则按 scale（AI 使用）
 function launch(att, tgt, scale, legs, count) {
-  if (!att.alive || !tgt.alive || att === tgt) return 0;
+  if (!att.alive || !tgt.alive || att === tgt || weatherIs('truce')) return 0; // 全球停火：谁都不能发射
   const D = deliverable(att, legs);
   if (D <= 0) return 0;
   let N = count ? Math.min(count, D) : sendCount(D, scale);
@@ -141,7 +141,7 @@ function launch(att, tgt, scale, legs, count) {
 // ---------- 常规导弹 ----------
 const convSalvo = (n, scale) => Math.min(n.conv, CONV.salvo[scale], CONV.perLaunch);
 function launchConv(att, tgt, scale, count) {
-  if (!att.alive || !tgt.alive || att === tgt || (att.convCd > 0 && !att.isPlayer)) return 0; // 人类玩家没有装填间隔：有库存就能发
+  if (!att.alive || !tgt.alive || att === tgt || weatherIs('truce') || (att.convCd > 0 && !att.isPlayer)) return 0; // 人类玩家没有装填间隔：有库存就能发
   const N = count ? Math.min(count, att.conv, CONV.perLaunch) : convSalvo(att, scale);
   if (N <= 0) return 0;
   // 从投送站或城市发射
@@ -197,7 +197,7 @@ function pickDroneTile(tgt) {
   return pickTargetTile(tgt);
 }
 function launchDrones(att, tgt, count) {
-  if (!att.alive || !tgt || !tgt.alive || att === tgt || (att.droneCd > 0 && !att.isPlayer)) return 0;
+  if (!att.alive || !tgt || !tgt.alive || att === tgt || weatherIs('truce') || weatherIs('dust') || (att.droneCd > 0 && !att.isPlayer)) return 0; // 沙尘暴：小摩托停飞
   const N = Math.min(count | 0, att.drones);
   if (N <= 0) return 0;
   // 从机场、投送站和城市成群起飞
@@ -325,9 +325,8 @@ const shieldCut = (owner) => owner.mods.shield || SKILLS.shield.reduce;
 // 午夜后第几次末日升级
 const escLevel = () => Math.max(0, Math.floor((G.t - midAt()) / (CFG.ESC_EVERY * tScale())));
 function nukeMul() {
-  const treaty = G.treatyUntil > G.t ? 0.7 : 1; // 全球事件：限核倡议
-  if (!G.midnight) return treaty;
-  return Math.min(CFG.ESC_MAX, CFG.ESC_START + CFG.ESC_STEP * escLevel()) * treaty;
+  if (!G.midnight) return 1;
+  return Math.min(CFG.ESC_MAX, CFG.ESC_START + CFG.ESC_STEP * escLevel());
 }
 // 午夜后的核武产出倍率：×3.5，之后每次末日升级再 +10%（不封顶）
 function midnightProd() {

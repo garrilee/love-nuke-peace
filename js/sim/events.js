@@ -1,125 +1,88 @@
-// ===================== 模拟·全球事件：每隔一段时间弹出一个事件，各国投票或各自二选一 =====================
-// 流程：事件开始 → AI 立刻表态，真人玩家在限时内选择（超时算默认选项）→ 到时间或所有真人都选完后结算。
-// G.gev = { key, t0, deadline, tgt（投票类事件针对的国家 id，没有为 -1）, votes: { 国家 id: 'a' | 'b' } }
+// ===================== 模拟·全球事件：地图空投 + 全局天气（不弹窗、不用读字）=====================
+// 空投：地图上随机落下一个补给箱，图标就是奖励，谁先点到（AI 按距离和运气）归谁。
+//   G.crate = { tile 地块序号, kind 'nuke' | 'energy' | 'tech', t0, until, aiAt AI 来拿的时刻, aiId }
+// 天气：直接生效的全局状态，顶栏显示图标和倒计时。
+//   G.weather = { key, until }
 'use strict';
 
 const GEV = {
-  first: 100,          // 第一次全球事件：开局 100 秒后
-  every: [110, 150],   // 之后每隔 110～150 秒一次
-  wait: 15,            // 真人玩家有 15 秒做选择
+  first: 60,           // 第一次事件：开局 60 秒后
+  every: [70, 100],    // 之后每隔 70～100 秒一次（空投和天气轮流来）
+  crateLife: 20,       // 补给箱在地图上停留 20 秒
+  aiGrab: [7, 16],     // AI 最快 7 秒后来拿；离箱子越远越慢
 };
-// kind：vote 多数通过才生效；pick 每个国家各自二选一；auto 没有选择、直接生效
-// a / b：两个选项的名字和说明；def：真人超时的默认选项；ai(n, ev)：AI 怎么选
-const GEVENTS = [
-  {
-    key: 'sanction', kind: 'vote', icon: '⚖', name: '联合国制裁',
-    target: (alive) => alive.slice().sort((x, y) => totalPop(y) - totalPop(x))[0],
-    desc: (t) => `人口第一的 ${t.name} 被提请制裁：通过后它的产出 -30%，持续 45 秒。`,
-    a: ['赞成制裁', '削弱领先者'], b: ['反对', '不干涉'], def: 'b',
-    ai: (n, ev) => (n.id === ev.tgt ? 'b' : n.race.boss ? 'b' : chance(0.8) ? 'a' : 'b'),
-    pass: (ev, t) => { t.sanctionUntil = G.t + 45 * tScale(); return `制裁通过：${t.race.emoji}${t.name} 产出 -30%，持续 ${Math.round(45 * tScale())} 秒`; },
-    fail: (ev, t) => `制裁被否决：${t.race.emoji}${t.name} 逃过一劫`,
-  },
-  {
-    key: 'aid', kind: 'vote', icon: '🚑', name: '人道救援',
-    target: (alive) => alive.slice().sort((x, y) => totalPop(x) - totalPop(y))[0],
-    desc: (t) => `人口最少的 ${t.name} 请求救援：通过后它的每座城市恢复 15% 人口、废墟立刻修好；每个投赞成的国家出 8 点预算。`,
-    a: ['赞成救援', '出 8 预算，扶一把最弱的'], b: ['反对', '一毛不拔'], def: 'b',
-    ai: (n, ev) => (n.id === ev.tgt ? 'a' : n.race.boss ? 'b' : chance(n.pers === 'zen' || n.pers === 'steady' ? 0.7 : 0.35) ? 'a' : 'b'),
-    pass: (ev, t) => {
-      for (const c of t.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.min(c.basePop, c.pop + c.basePop * 0.15); }
-      for (const n of G.nations) if (n.alive && n !== t && ev.votes[n.id] === 'a') n.bank = Math.max(0, n.bank - 8);
-      return `救援通过：${t.race.emoji}${t.name} 的城市恢复了 15% 人口`;
-    },
-    fail: (ev, t) => `救援被否决：${t.race.emoji}${t.name} 只能自求多福`,
-  },
-  {
-    key: 'treaty', kind: 'vote', icon: '🕊', name: '限核倡议',
-    target: () => null,
-    desc: () => '有国家提议限制核弹当量：通过后所有核弹威力 -30%，持续 45 秒。',
-    a: ['赞成限核', '大家都轻一点'], b: ['反对', '照常开打'], def: 'b',
-    ai: (n) => (n.race.boss ? 'b' : n.pers === 'zen' || n.pers === 'steady' ? 'a' : n.pers === 'grudge' ? (chance(0.5) ? 'a' : 'b') : 'b'),
-    pass: () => { G.treatyUntil = G.t + 45 * tScale(); return `限核倡议通过：核弹威力 -30%，持续 ${Math.round(45 * tScale())} 秒`; },
-    fail: () => '限核倡议被否决：该怎么炸还怎么炸',
-  },
-  {
-    key: 'arms', kind: 'pick', icon: '🧳', name: '黑市军火商',
-    desc: () => '军火商上门推销，二选一。',
-    a: ['买核弹', '花 25 能量，换 3 个当前最高级的核包裹'], b: ['买防御', '白送 40 能量，护盾冷却清零'], def: 'b',
-    ai: (n) => (n.race.boss || n.pers === 'hot' || n.pers === 'crazy' ? 'a' : 'b'),
-    apply: (n, v) => {
-      if (v === 'a') { if (n.energy >= 25) { n.energy -= 25; const lv = Math.max(1, bestLevel(n)); n.parcels[lv] = Math.min(CFG.STOCK_CAP, n.parcels[lv] + 3); } }
-      else { n.energy = Math.min(CFG.ENERGY_CAP, n.energy + 40); n.shieldCd = 0; }
-    },
-    done: (ev) => `黑市军火商收摊：${count(ev, 'a')} 国买了核弹，${count(ev, 'b')} 国买了防御`,
-  },
-  {
-    key: 'summit', kind: 'pick', icon: '🔬', name: '科研峰会',
-    desc: () => '各国受邀交流技术。共享的国家越多，共享者收益越高；但只要有人共享，窃取者拿得更多。',
-    a: ['共享', '至少两国共享：各得 60 科研点；只有你共享：10 点'], b: ['窃取', '有人共享：得 80 科研点；没人共享：0'], def: 'a',
-    ai: (n) => (n.race.boss || n.pers === 'hot' || n.pers === 'crazy' || n.pers === 'grudge' ? 'b' : 'a'),
-    resolve: (ev) => {
-      const share = count(ev, 'a');
-      for (const n of G.nations) {
-        if (!n.alive || !ev.votes[n.id]) continue;
-        const pts = ev.votes[n.id] === 'a' ? (share >= 2 ? 60 : 10) : (share >= 1 ? 80 : 0);
-        if (techDone(n)) n.energy = Math.min(CFG.ENERGY_CAP, n.energy + pts * 0.5); else n.techPts += pts;
-      }
-      return `科研峰会结束：${share} 国共享，${count(ev, 'b')} 国窃取`;
-    },
-  },
-  {
-    key: 'storm', kind: 'auto', icon: '🌞', name: '太阳风暴',
-    run: () => {
-      const d = 25 * tScale();
-      for (const n of G.nations) if (n.alive) { n.netT = 0; n.netCharges = 0; n.netCd = Math.max(n.netCd, d); }
-      return `太阳风暴来袭：所有国家的拦截系统瘫痪 ${Math.round(d)} 秒`;
-    },
-  },
-];
-const gevDef = (key) => GEVENTS.find((e) => e.key === key);
-const count = (ev, v) => Object.values(ev.votes).filter((x) => x === v).length;
+// 补给箱：icon 画在地图上，give 发奖励
+const CRATES = {
+  nuke:   { icon: '☢', color: '#ff6b5b', label: '+3 核包裹', give: (n) => { const lv = Math.max(1, bestLevel(n)); n.parcels[lv] = Math.min(CFG.STOCK_CAP, n.parcels[lv] + 3); } },
+  energy: { icon: '⚡', color: '#ffd23a', label: '能量加满', give: (n) => { n.energy = CFG.ENERGY_CAP; n.shieldCd = 0; } },
+  tech:   { icon: '🔬', color: '#7fd6ff', label: '+70 科研', give: (n) => { n.techPts += 70; } },
+};
+// 天气：dur 持续秒数（快速局减半）
+const WEATHERS = {
+  storm: { icon: '🌞', name: '太阳风暴', effect: '拦截失效', dur: 25, start: () => { for (const n of G.nations) if (n.alive) { n.netT = 0; n.netCharges = 0; } } },
+  dust:  { icon: '🌪', name: '沙尘暴', effect: '小摩托停飞', dur: 25 },
+  boom:  { icon: '🏭', name: '军备竞赛', effect: '产出 ×1.5', dur: 20 },
+  truce: { icon: '🕊', name: '全球停火', effect: '谁都不能发射', dur: 15 },
+};
+const weatherIs = (key) => !!(G.weather && G.weather.key === key && G.weather.until > G.t);
 
 function stepGlobalEvents() {
   if (G.nextGev === undefined) G.nextGev = GEV.first * tScale();
-  const ev = G.gev;
-  if (!ev) {
-    if (G.t < G.nextGev) return;
-    G.nextGev = G.t + rnd(...GEV.every) * tScale();
-    const alive = G.nations.filter((n) => n.alive), normal = alive.filter((n) => !n.race.boss);
-    if (alive.length < 3) return; // 只剩两个国家：不再有全球事件
-    let def = pick(GEVENTS.filter((e) => e.key !== G.lastGev));
-    G.lastGev = def.key;
-    if (def.kind === 'auto') { const msg = def.run(); news(`${def.icon} ${msg}`); Bus.emit('banner', `${def.icon} ${msg}`); return; }
-    const tgt = def.target ? def.target(normal) : null;
-    if (def.kind === 'vote' && def.target && !tgt && def.key !== 'treaty') return;
-    G.gev = { key: def.key, t0: G.t, deadline: G.t + GEV.wait, tgt: tgt ? tgt.id : -1, votes: {} };
-    for (const n of alive) if (!n.isPlayer) G.gev.votes[n.id] = def.ai(n, G.gev);
-    news(`${def.icon} 全球事件【${def.name}】：${def.desc(tgt)}`);
-    Bus.emit('gevent', G.gev.key);
-    return;
+  // 天气到期
+  if (G.weather && G.t >= G.weather.until) { const w = WEATHERS[G.weather.key]; G.weather = null; news(`${w.icon} ${w.name}结束`); }
+  // 补给箱：AI 来拿，或者过期消失
+  const c = G.crate;
+  if (c) {
+    const ai = G.nations[c.aiId];
+    if (ai && ai.alive && G.t >= c.aiAt) takeCrate(ai);
+    else if (G.t >= c.until) { G.crate = null; Bus.emit('crateGone', c.tile); }
   }
-  // 到时间，或所有活着的真人都选完了：结算
-  const humans = G.nations.filter((n) => n.alive && n.isPlayer);
-  if (G.t < ev.deadline && humans.some((n) => !ev.votes[n.id])) return;
-  resolveGlobalEvent(ev);
+  if (G.t < G.nextGev) return;
+  G.nextGev = G.t + rnd(...GEV.every) * tScale();
+  if (G.nations.filter((n) => n.alive).length < 2) return;
+  // 空投和天气轮流来（上一次是空投这次就是天气）；已有箱子或天气时不叠加
+  if (G.lastGev !== 'crate' && !G.crate) { G.lastGev = 'crate'; spawnCrate(); }
+  else if (!G.weather) { G.lastGev = 'weather'; startWeather(); }
 }
-function voteGlobalEvent(n, v) {
-  const ev = G.gev;
-  if (!ev || !n.alive || ev.votes[n.id] || (v !== 'a' && v !== 'b')) return 0;
-  ev.votes[n.id] = v;
+
+function spawnCrate() {
+  const W = G.world, alive = G.nations.filter((n) => n.alive);
+  // 落点：还活着的国家的国土上、不是城市也不是设施的地块
+  const tiles = W.tiles.filter((t) => t.owner >= 0 && G.nations[t.owner].alive && !t.city && !t.fac);
+  if (!tiles.length) return;
+  const tile = pick(tiles);
+  const kind = pick(Object.keys(CRATES).filter((k) => k !== 'tech' || alive.some((n) => !techDone(n))));
+  // AI 谁来拿、什么时候来：离得越近越快，再加一点运气；真人玩家至少有 7 秒
+  let aiId = -1, aiAt = Infinity;
+  for (const n of alive) {
+    if (n.isPlayer) continue;
+    const at = G.t + GEV.aiGrab[0] + capDist(n, { cities: [{ tile, isCapital: true }] }) * 0.6 + rnd(0, GEV.aiGrab[1] - GEV.aiGrab[0]);
+    if (at < aiAt) { aiAt = at; aiId = n.id; }
+  }
+  G.crate = { tile: tile.idx, kind, t0: G.t, until: G.t + GEV.crateLife, aiAt, aiId };
+  news(`📦 空投补给落在 ${G.nations[tile.owner].race.emoji}${G.nations[tile.owner].name} 境内，先到先得`);
+  Bus.emit('crate', G.crate);
+}
+// 领走补给箱（玩家点击，或 AI 到点来拿）
+function takeCrate(n) {
+  const c = G.crate;
+  if (!c || !n || !n.alive) return 0;
+  let kind = c.kind;
+  if (kind === 'tech' && techDone(n)) kind = 'nuke'; // 科技已经研发完：换成核包裹
+  CRATES[kind].give(n);
+  G.crate = null;
+  news(`📦 ${n.race.emoji}${n.name} 抢到了空投补给（${CRATES[kind].label}）`);
+  Bus.emit('crateTaken', { n, kind, tile: G.world.tiles[c.tile] });
   return 1;
 }
-function resolveGlobalEvent(ev) {
-  const def = gevDef(ev.key), tgt = G.nations[ev.tgt];
-  for (const n of G.nations) if (n.alive && !ev.votes[n.id]) ev.votes[n.id] = def.def; // 超时：默认选项
-  let msg;
-  if (def.kind === 'vote') {
-    if (tgt && !tgt.alive) msg = `${def.name}：对象已经不在了，议案作废`;
-    else { const yes = count(ev, 'a'), no = count(ev, 'b'); msg = (yes > no ? def.pass(ev, tgt) : def.fail(ev, tgt)) + `（${yes} 票赞成，${no} 票反对）`; }
-  } else if (def.resolve) msg = def.resolve(ev);
-  else { for (const n of G.nations) if (n.alive) def.apply(n, ev.votes[n.id]); msg = def.done(ev); }
-  G.gev = null;
-  news(`${def.icon} ${msg}`);
-  Bus.emit('banner', `${def.icon} ${msg}`);
+
+function startWeather() {
+  const key = pick(Object.keys(WEATHERS).filter((k) => k !== G.lastWeather));
+  const w = WEATHERS[key];
+  G.lastWeather = key;
+  G.weather = { key, until: G.t + w.dur * tScale() };
+  if (w.start) w.start();
+  news(`${w.icon} ${w.name}：${w.effect}，持续 ${Math.round(w.dur * tScale())} 秒`);
+  Bus.emit('banner', `${w.icon} ${w.name}：${w.effect}`);
+  Bus.emit('weather', key);
 }

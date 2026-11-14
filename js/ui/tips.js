@@ -27,6 +27,8 @@ Object.assign(UI, {
     if (p.ultCd <= 0 && t >= ULT_FIRST * tScale()) this.tip('ult', `✨ 国家大招就绪：<b>${U.icon} ${U.name}</b>（Q）<br>${U.desc}`, T);
     if (t > 40 && p.alloc.nuke > 0.35 && p.heat < 0.5) this.tip('heat', `🏭 <b>军工热度</b>低时核武产出打折（${mob ? '📊 里' : '左上角'}的「军工 ×」标签），持续投入约 100 秒才能升满，临时转产效率很低。`, T);
     if (t > 60) this.tip('rank', `🏆 ${mob ? '右上角的「人口排行」可以展开' : '左下的人口排行'}看各国人口和核弹数；地图上每个国家标签里的<b>人口条</b>越短，说明它越接近出局。点排行里的国家可以直接设为目标。`, T);
+    if (G.crate) this.tip('crate', '📦 地图上落下了<b>空投补给</b>（有光柱的箱子）：点一下就领走，图标就是奖励——☢ 核包裹、⚡ 能量、🔬 科研。手慢会被别国抢走。', T);
+    if (G.weather) this.tip('weather', '🌦 顶栏出现了<b>天气</b>图标：它对所有国家同时生效，过一会儿就结束，看图标旁的字和倒计时就行。', T);
     if (!G.midnight && underdog(p) > 1.3) this.tip('underdog', `📈 你的人口落后于平均，<b>弱势加成</b>让产出提高到 ×${underdog(p).toFixed(1)}，趁现在攒核弹反击！（午夜后取消）`, { cd: 150, life: 6 });
     if (!G.midnight && midAt() - t < 30) this.tip('midnight', `🕛 30 秒后<b>午夜狂欢</b>：核弹威力 ×${CFG.ESC_START}、核武产出 ×${CFG.MIDNIGHT_PROD}，之后每 ${Math.round(CFG.ESC_EVERY * tScale() / 60 * 10) / 10} 分钟再升级一次；人口不再加速恢复，弱势加成取消。`, T);
     if (G.midnight) this.tip('nolimit', '⏳ 没有时间限制，打到只剩一个国家。午夜后核弹威力和产出会一直升级，苟是苟不住的。', T);

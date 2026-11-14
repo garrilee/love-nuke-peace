@@ -21,11 +21,11 @@ const Store = {
 
 // 开始界面的国家卡片：只写加成和代价，一句话说清大招
 const RACE_CARD = {
-  human:    { plus: ['科技 +10%'], minus: [], ult: '15 秒内产出 ×1.7' },
+  human:    { plus: ['科技 +5%'], minus: [], ult: '15 秒内产出 ×1.7' },
   mole:     { plus: ['护盾减伤 97%', '护盾冷却 -28%'], minus: ['科技 -4%'], ult: '免费护盾 + 回敬 6 枚导弹' },
   octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -20%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
   mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -3%'], minus: ['科技 -5%'], ult: '敌国人口停止增长并流失' },
-  ai:       { plus: ['科技 +10%', '不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
+  ai:       { plus: ['科技 +5%', '不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
   roach:    { plus: ['人口恢复 ×1.33'], minus: ['科技 -10%'], ult: '废墟和宕机设施立即复原' },
 };
 const UI = {
@@ -232,23 +232,14 @@ const UI = {
     setText($('heatTxt'), `效率 ×${heatEff(p).toFixed(2)} · ${trend}`);
   },
 
-  // ---------- 全球事件弹窗：说明 + 两个选项 + 倒计时；选完显示“等待结果” ----------
-  refreshGev() {
-    const box = $('gevent'), ev = G.gev, p = G.player;
-    if (!ev || G.over) { if (!box.classList.contains('hidden')) { box.classList.add('hidden'); box._k = ''; } return; }
-    const def = gevDef(ev.key), tgt = G.nations[ev.tgt], mine = ev.votes[p.id];
-    const left = Math.max(0, Math.ceil(ev.deadline - G.t));
-    const key = ev.key + ':' + ev.t0 + ':' + (mine || '') + ':' + left + ':' + p.alive;
-    if (box._k === key) return;
-    if (!box._k || !box._k.startsWith(ev.key + ':' + ev.t0)) SFX.alert && SFX.alert();
-    box._k = key;
-    const act = !p.alive ? '<div class="ge-wait">你已出局，旁观各国表态…</div>'
-      : mine ? `<div class="ge-wait">已选择：<b>${def[mine][0]}</b> · 等待结果…</div>`
-      : `<div class="ge-btns"><button class="ge-btn a" data-v="a"><b>${def.a[0]}</b><small>${def.a[1]}</small></button><button class="ge-btn b" data-v="b"><b>${def.b[0]}</b><small>${def.b[1]}</small></button></div>`;
-    setHTML(box, `<div class="ge-head"><span class="ge-ic">${def.icon}</span><b>全球事件 · ${def.name}</b><span class="ge-t mono">${left}s</span></div>
-      <div class="ge-desc">${def.desc(tgt)}${def.kind === 'vote' ? ' 多数赞成才生效。' : ''}</div>${act}`);
-    box.classList.remove('hidden');
-    for (const b of box.querySelectorAll('.ge-btn')) b.onclick = () => { Act.do({ a: 'vote', v: b.dataset.v }); SFX.click && SFX.click(); if (Net.role === 'client') ev.votes[p.id] = b.dataset.v; this.refreshGev(); };
+  // ---------- 天气：顶栏一个图标 + 效果 + 倒计时 ----------
+  refreshWeather() {
+    const el = $('weather'), w = G.weather;
+    if (!w || w.until <= G.t || G.over) { if (!el.classList.contains('hidden')) el.classList.add('hidden'); return; }
+    const d = WEATHERS[w.key];
+    setHTML(el, `${d.icon} <b>${d.effect}</b> <span class="mono">${Math.ceil(w.until - G.t)}s</span>`);
+    el.title = d.name;
+    el.classList.remove('hidden');
   },
   // ---------- 研发区：科技路线 + 当前研发进度 + 第 4 级二选一 ----------
   refreshResearch() {
@@ -284,8 +275,6 @@ const UI = {
     const he = heatEff(p);
     chips.push(`<span class="chip ${he >= 1 ? 'good' : 'bad'}" title="军工热度：持续投入核武越来越高效（×${CFG.HEAT_MIN}～×${CFG.HEAT_MAX}）">🏭 军工 ×${he.toFixed(2)}</span>`);
     if (G.midnight) chips.push(`<span class="chip bad" title="午夜后核弹威力和核武产出都在升级">🕛 核弹威力 ×${nukeMul().toFixed(2)} · 产出 ×${midnightProd().toFixed(1)}</span>`);
-    if (p.sanctionUntil > G.t) chips.push(`<span class="chip bad" title="联合国制裁：产出 -30%">⚖ 被制裁 产出 -30% · ${Math.ceil(p.sanctionUntil - G.t)}s</span>`);
-    if (G.treatyUntil > G.t) chips.push(`<span class="chip" title="限核倡议：所有核弹威力 -30%">🕊 限核 核弹 -30% · ${Math.ceil(G.treatyUntil - G.t)}s</span>`);
     if (G.boss && G.boss.alive && p !== G.boss) chips.push(`<span class="chip bad" title="三体人活着时，其他国家科技速度 ×${BOSS_CFG.sophon}">👁 智子封锁 科技 ×${BOSS_CFG.sophon}</span>`);
     return chips.join('');
   },
@@ -389,7 +378,12 @@ const UI = {
   },
 
   tick(dt) {
-    if (G) { this.recordPop(); this.refreshGev(); }
+    if (G) { this.recordPop(); this.refreshWeather(); }
+    if (G && G.crate && G.crate.t0 !== this.crateSeen && !G.over) { // 新的空投：横幅 + 提示音；镜头不动，靠地图上的光柱和波纹找
+      this.crateSeen = G.crate.t0;
+      this.banner(`📦 空投！点地图上的 ${CRATES[G.crate.kind].icon} 箱子领取`);
+      SFX.alert && SFX.alert();
+    }
     if (G && G.boss) { const c = isChaos(G.boss); if (c && !this.wasChaos) SFX.chaos(); this.wasChaos = c; } // 乱纪元开始的音效
     if (G && !G.over) {
       this.tipCheckT -= dt;

@@ -163,7 +163,7 @@ function useShield(n) {
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
 const netMax = (n) => (has(n, 'net') ? SKILLS.net.chargesUp : SKILLS.net.charges);
 function useNet(n) {
-  if (!n.alive || n.hackT > 0 || isChaos(n) || n.netCd > 0 || n.energy < COSTS.net) return false;
+  if (!n.alive || n.hackT > 0 || isChaos(n) || weatherIs('storm') || n.netCd > 0 || n.energy < COSTS.net) return false; // 太阳风暴：拦截失效
   n.energy -= COSTS.net; n.netT = SKILLS.net.dur; n.netCd = SKILLS.net.cd;
   n.netCharges = netMax(n);
   Bus.emit('skill', { n, kind: 'net' }); return true;

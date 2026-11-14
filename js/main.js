@@ -51,7 +51,7 @@ function execCmd(n, c) {
       return 1;
     }
     case 'research': { const t = availTechs(n).find((x) => x.id === c.id); if (!t || n.research) return 0; n.techPick = t.id; pickResearch(n); return 1; }
-    case 'vote': return voteGlobalEvent(n, c.v);
+    case 'crate': return takeCrate(n);
     case 'toggle': if (['autoNet', 'autoRebuild', 'autoScramble'].includes(c.k)) n[c.k] = !!c.v; return 1;
   }
   return 0;
@@ -154,6 +154,11 @@ Bus.on('gameover', (kind) => {
   setTimeout(() => UI.showEnd(kind), 2500);
 });
 Bus.on('dimStrike', () => SFX.dimWarn());
+Bus.on('crateTaken', ({ n, kind, tile }) => {
+  const d = CRATES[kind], me = n === G.player;
+  FX.bigText(tile.x, tile.y - 20, `${d.icon} ${me ? d.label : n.name + ' 抢到了'}`, me ? d.color : '#c9d6e6', me ? 30 : 18, me ? 10 : 0);
+  if (me) { SFX.techDone(false); UI.banner(`📦 抢到空投：${d.label}`); }
+});
 Bus.on('tech', ({ n, tech }) => {
   if (n !== G.player) { if (tech.id === 'lv5' && running) SFX.threat(); return; }
   SFX.techDone(tech.id === 'lv5');
@@ -220,6 +225,8 @@ function setupInput() {
     if (pts.size < 2) pinch = null;
     if (pts.size === 0) {
       if (down && !dragging && G && e.type === 'pointerup') {
+        const wp = Render.screenToWorld(e.clientX, e.clientY);
+        if (G.player.alive && Render.hitCrate(wp.x, wp.y)) { Act.do({ a: 'crate' }); SFX.click(); down = null; return; } // 点中补给箱：领取
         const t = Render.tileAt(e.clientX, e.clientY);
         const popped = onMapClick(t, e.clientX, e.clientY);
         if (e.pointerType !== 'mouse' && !popped) { // 触屏：轻点后显示 2.5 秒地块信息（弹出国家浮窗时不显示）

@@ -92,6 +92,41 @@ Object.assign(Render, {
       ctx.restore();
     }
   },
+  // 空投补给箱：从天而降的光柱、一个发光的箱子，箱子上的大图标就是奖励；外圈是剩余时间
+  drawCrate(ctx, z, T) {
+    const c = G.crate;
+    if (!c || c.until <= G.t) return;
+    const t = G.world.tiles[c.tile], d = CRATES[c.kind], k = 1 / Math.max(0.7, z);
+    const left = clamp((c.until - G.t) / (c.until - c.t0), 0, 1), bob = Math.sin(T * 3) * 2 * k;
+    const x = t.x, y = t.y - 6 * k + bob, R = 15 * k;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(0, y - 90 * k, 0, y);
+    g.addColorStop(0, rgba(d.color, 0)); g.addColorStop(1, rgba(d.color, 0.5));
+    ctx.fillStyle = g; ctx.fillRect(x - 5 * k, y - 90 * k, 10 * k, 90 * k);
+    const ph = (T * 0.9) % 1; // 地面一圈圈扩散的波纹：提醒“这里有东西”
+    ctx.strokeStyle = rgba(d.color, (1 - ph) * 0.8); ctx.lineWidth = 2 * k;
+    ctx.beginPath(); ctx.ellipse(t.x, t.y, (10 + ph * 26) * k, (6 + ph * 15) * k, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowColor = d.color; ctx.shadowBlur = 16;
+    ctx.fillStyle = 'rgba(10,16,28,0.92)';
+    this.roundRect(ctx, x - R, y - R, R * 2, R * 2, 5 * k); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = d.color; ctx.lineWidth = 2 * k; ctx.stroke();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.6 * k; // 倒计时圈
+    ctx.beginPath(); ctx.arc(x, y, R + 5 * k, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left); ctx.stroke();
+    ctx.font = `${Math.round(19 * k)}px "Microsoft YaHei", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = d.color; ctx.fillText(d.icon, x, y + 1 * k);
+    ctx.restore();
+    ctx.textBaseline = 'alphabetic';
+  },
+  // 点击位置是不是点中了补给箱（世界坐标）
+  hitCrate(wx, wy) {
+    const c = G.crate;
+    if (!c || c.until <= G.t) return false;
+    const t = G.world.tiles[c.tile], r = 28 / Math.max(0.7, this.cam.zoom);
+    return Math.hypot(wx - t.x, wy - (t.y - 6)) < r;
+  },
   // 乱纪元：三体人国土忽明忽暗的橙红色闪烁
   drawChaos(ctx, z, T) {
     const b = G.boss;
