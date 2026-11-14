@@ -13,14 +13,16 @@ function emblemFrame(id, c1, c2, rim) {
 }
 
 const RACE_ICON_SVG = {
-  // 卷王：挑灯夜读——摊开的书 + 书上燃着的灯焰
+  // 卷王：深夜 996——亮着的笔记本电脑，屏幕上写着 996，窗外是月亮和星星
   human: `${emblemFrame('human', '#1d4f8f', '#0b1f3d', '#4da3ff')}
-    <defs><linearGradient id="fl-human" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c2"/><stop offset="0.5" stop-color="#ffc23d"/><stop offset="1" stop-color="#ff7a1a"/></linearGradient></defs>
-    <path d="M32 11 C39.5 19 40 26 32 32 C24 26 24.5 19 32 11 Z" fill="url(#fl-human)"/>
-    <path d="M32 19 C35 23 35 27 32 29.5 C29 27 29 23 32 19 Z" fill="#fffbe6"/>
-    <path d="M13 38 Q22.5 33 31 38 L31 50 Q22.5 45 13 50 Z" fill="#eaf3ff" stroke="#4da3ff" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M51 38 Q41.5 33 33 38 L33 50 Q41.5 45 51 50 Z" fill="#d4e6ff" stroke="#4da3ff" stroke-width="1.6" stroke-linejoin="round"/>
-    <path d="M16.5 41.5 Q22.5 38.8 28 41.5 M16.5 45 Q22.5 42.3 28 45 M36 41.5 Q41.5 38.8 47.5 41.5 M36 45 Q41.5 42.3 47.5 45" stroke="#7aa9de" stroke-width="1.1" fill="none"/>`,
+    <path d="M47 9 A6.5 6.5 0 1 0 51.5 19.5 A5 5 0 1 1 47 9 Z" fill="#ffe79a"/>
+    <path d="M14 12 l0.8 -2 l0.8 2 l2 0.8 l-2 0.8 l-0.8 2 l-0.8 -2 l-2 -0.8 Z M24 9 l0.5 -1.3 l0.5 1.3 l1.3 0.5 l-1.3 0.5 l-0.5 1.3 l-0.5 -1.3 l-1.3 -0.5 Z" fill="#ffffff"/>
+    <rect x="15" y="20" width="34" height="23" rx="2.5" fill="#06162c" stroke="#d4e6ff" stroke-width="1.8"/>
+    <rect x="17.5" y="22.5" width="29" height="18" rx="1" fill="#0f3a70"/>
+    <text x="32" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="12" fill="#ffe79a">996</text>
+    <path d="M20 26 H30 M34 26 H43" stroke="#7fd6ff" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+    <path d="M9 46 H55 L51 52 H13 Z" fill="#d4e6ff" stroke="#4da3ff" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="27" y="47.6" width="10" height="1.8" rx="0.9" fill="#7aa9de"/>`,
 
   // 刀盾：铜色鸢形盾 + 正中一柄银剑
   mole: `${emblemFrame('mole', '#6b4220', '#2a170a', '#d0965a')}
@@ -71,16 +73,15 @@ const RACE_ICON_SVG = {
     <path d="M25 40 H39 M25 43 H39" stroke="#2b5a54" stroke-width="1.6" stroke-linecap="round"/>
     <path d="M24 39 V44 M28.6 39 V44 M33.2 39 V44 M37.8 39 V44" stroke="#2b5a54" stroke-width="1"/>`,
 
-  // 青铜：缎带奖牌 + 牌面燃烧的小宇宙
+  // 青铜：带翼的青铜头盔，额前一颗宝石
   roach: `${emblemFrame('roach', '#6e5a12', '#241c04', '#e8d04a')}
-    <defs><radialGradient id="md-roach" cx="0.38" cy="0.32" r="0.75"><stop offset="0" stop-color="#ffd9a0"/><stop offset="0.55" stop-color="#c47d36"/><stop offset="1" stop-color="#6b3a12"/></radialGradient>
-    <linearGradient id="fl-roach" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c2"/><stop offset="0.5" stop-color="#ffb02e"/><stop offset="1" stop-color="#ff5a1a"/></linearGradient></defs>
-    <path d="M22 8 H30 L34 24 H26 Z" fill="#c8323a"/><path d="M42 8 H34 L30 24 H38 Z" fill="#2f6fd0"/>
-    <path d="M22 8 H30 L34 24 H26 Z" fill="#000" opacity="0.12"/>
-    <circle cx="32" cy="38" r="15" fill="url(#md-roach)" stroke="#ffe7b8" stroke-width="1.8"/>
-    <circle cx="32" cy="38" r="11.5" fill="none" stroke="#5a2e0c" stroke-width="1" opacity="0.6"/>
-    <path d="M32 27 C38.5 33 38.5 40 32 46 C25.5 40 26.5 35 29 32 C29.5 35 31 36 32 35.5 C30.5 32.5 31 29.5 32 27 Z" fill="url(#fl-roach)"/>
-    <path d="M32 35 C34.5 37.5 34.5 41 32 43.5 C29.5 41 29.8 38.5 32 35 Z" fill="#fffbe6"/>`,
+    <defs><linearGradient id="hm-roach" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe0a8"/><stop offset="0.5" stop-color="#c98a3a"/><stop offset="1" stop-color="#6b3a12"/></linearGradient></defs>
+    <path d="M22 33 C15 31 10 25 9 14 C14 18 17 20 20 21 C18 18 17 15 17 11 C21 16 24 20 25 27 Z" fill="#fff0c8" stroke="#8a5320" stroke-width="1"/>
+    <path d="M42 33 C49 31 54 25 55 14 C50 18 47 20 44 21 C46 18 47 15 47 11 C43 16 40 20 39 27 Z" fill="#fff0c8" stroke="#8a5320" stroke-width="1"/>
+    <path d="M20 42 C20 26 25.5 18 32 18 C38.5 18 44 26 44 42 L44 49 L38.5 49 L38.5 39 L32 44 L25.5 39 L25.5 49 L20 49 Z" fill="url(#hm-roach)" stroke="#fff0c8" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M32 18 V30" stroke="#6b3a12" stroke-width="1.2"/>
+    <circle cx="32" cy="27" r="3.2" fill="#5ad0ff" stroke="#ffffff" stroke-width="1"/>
+    <path d="M32 9 L34 15 H30 Z" fill="#ffd27a"/>`,
 
   // 三体人：三颗太阳在混乱的轨道上环绕一只竖瞳之眼
   trisolaris: `${emblemFrame('trisolaris', '#14402a', '#04120b', '#9dffb0')}
