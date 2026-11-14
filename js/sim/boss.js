@@ -11,8 +11,7 @@ function sophonMul(n) {
   return b && b.alive && n !== b ? BOSS_CFG.sophon : 1;
 }
 // 受到的伤害倍率：三体人恒纪元时有高阶防御（伤害打折），乱纪元期间防御瘫痪、伤害加重
-// 快速局里三体人没有平时的减伤（免费重建已经让它够硬了）
-const takenMul = (owner) => (isChaos(owner) ? BOSS_CFG.chaosDmg : G.quick ? 1 : owner.mods.armor || 1);
+const takenMul = (owner) => (isChaos(owner) ? BOSS_CFG.chaosDmg : owner.mods.armor || 1);
 
 // 开局：科技、人口已在种族数值里；这里设科技进度、大招冷却、乱纪元计时、对真人玩家的敌意
 function setupBoss(n) {
@@ -21,6 +20,30 @@ function setupBoss(n) {
   n.chaosT = 0; n.chaosNext = BOSS_CFG.chaosFirst * tScale(); n.chaosWarned = false;
   n.pers = 'hot'; // 好战
   for (const x of G.nations) if (x.isPlayer) n.anger[x.id] = BOSS_CFG.playerAnger;
+}
+
+// 三体人的核包裹按“波次”打：对一个国家开打后的 6 秒内算同一波，之后 35 秒内不再对它发射核包裹（导弹、小摩托照常）。
+// 否则它每隔 8 秒就来一发，对方的护盾（持续 8 秒、冷却 30 秒）只挡得住第一发，前期被盯上的国家必死
+const bossLimited = (n, x) => { const dt = G.t - ((n.waveAt || (n.waveAt = {}))[x.id] ?? -999); return dt > BOSS_CFG.waveLen * tScale() && dt < BOSS_CFG.waveGap * tScale(); }; // 快速局：间隔减半
+// 主动出手时：首选目标还在两波之间，就改打怒气最高的另一个国家（火力分散到各国）
+function bossTarget(n, tgt) {
+  if (!bossLimited(n, tgt)) return tgt;
+  let best = null, bs = -Infinity;
+  for (const x of G.nations) {
+    if (!x.alive || x === n || bossLimited(n, x)) continue;
+    const s = n.anger[x.id] + Math.max(0, BOSS_CFG.neighborHate - capDist(n, x) * 2) + rnd(0, 15);
+    if (s > bs) { bs = s; best = x; }
+  }
+  return best || tgt;
+}
+function bossLaunch(n, tgt, scale) {
+  if (bossLimited(n, tgt)) return 0;
+  const sent = launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
+  if (sent && G.t - (n.waveAt[tgt.id] ?? -999) >= BOSS_CFG.waveGap * tScale()) { // 新的一波：记下开始时间，消一些怒气
+    n.waveAt[tgt.id] = G.t;
+    n.anger[tgt.id] = Math.max(0, n.anger[tgt.id] - BOSS_CFG.waveCalm);
+  }
+  return sent;
 }
 
 // ---------- 乱纪元：周期性进入，生产停止、护盾和拦截失效 ----------

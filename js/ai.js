@@ -44,7 +44,7 @@ function aiStep(n, dt) {
     n.retaliate = null;
     if (tgt && tgt.alive && G.t - n.lastStrike > 6) {
       const scale = n.pers === 'grudge' || n.pers === 'hot' ? 2 : n.pers === 'zen' ? 0 : 1;
-      let sent = launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
+      let sent = n.race.boss ? bossLaunch(n, tgt, scale) : launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
       if (!sent) sent = launchConv(n, tgt, n.pers === 'zen' ? 0 : 1); // 没有核包裹就先用常规导弹还击
       if (!sent && n.drones >= 3) sent = launchDrones(n, tgt, Math.ceil(n.drones * 0.6)); // 再不行就放无人机
       if (sent) hitPlayer(n, tgt, 'revenge');
@@ -112,7 +112,8 @@ function aiStep(n, dt) {
   // 不许一直按兵不动：超过一段时间没出手、手里有弹药，就必须打一轮（佛系也一样，只是打得少）
   const myIdle = G.t - Math.max(n.lastAttack, 60);
   if (G.t > 90 && myIdle > G.diff.idle) {
-    let sent = D > 0 ? launch(n, tgt, n.pers === 'zen' ? 0 : 1, { pad: true, sea: true, ufo: true }) : 0;
+    if (n.race.boss) tgt = bossTarget(n, tgt);
+    let sent = D <= 0 ? 0 : n.race.boss ? bossLaunch(n, tgt, 1) : launch(n, tgt, n.pers === 'zen' ? 0 : 1, { pad: true, sea: true, ufo: true });
     if (!sent && n.convCd <= 0) sent = launchConv(n, tgt, 1);
     if (!sent && n.drones >= 3) sent = launchDrones(n, tgt, Math.ceil(n.drones / 2));
     if (sent) { hitPlayer(n, tgt, 'idle'); return; }
@@ -131,8 +132,9 @@ function aiStep(n, dt) {
   else if (G.t > P.start && D >= 2 && chance(0.35 * aggro)) { fire = true; scale = D >= 8 || n.race.boss ? 2 : 1; }
 
   if (fire) {
+    if (n.race.boss) tgt = bossTarget(n, tgt);
     if (D >= 3) aiUlt(n, tgt, 'fire'); // 鱼叉、赛博朋克：开火前先放大招
-    const sent = launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
+    const sent = n.race.boss ? bossLaunch(n, tgt, scale) : launch(n, tgt, scale, { pad: true, sea: true, ufo: true });
     if (sent) hitPlayer(n, tgt, kind);
   }
 }
