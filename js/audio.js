@@ -185,6 +185,44 @@ const SFX = {
     this._tone('sawtooth', t, 120, 900, 1.3, 0.05, 1.0, this.sfxBus, 0.4);
   },
   // 国家大招：上行的三音
+  // ---------- 大事件专属音效 ----------
+  // 降维打击预警：两条不和谐的锯齿波慢慢爬升，越来越紧
+  dimWarn() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._tone('sawtooth', t, 70, 210, 3.2, 0.07, 1.6, this.sfxBus, 0.6);
+    this._tone('sawtooth', t, 74.5, 233, 3.2, 0.06, 1.6, this.sfxBus, 0.6);
+    for (let i = 0; i < 5; i++) this._tone('square', t + 0.4 + i * 0.55, 1244, 1244, 0.12, 0.035, 0.004, this.sfxBus, 0.5);
+  },
+  // 二维化展开：一声向下压平的长啸 + 低频轰鸣
+  dimSpread() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._tone('sawtooth', t, 1800, 40, 2.6, 0.09, 0.02, this.sfxBus, 0.7);
+    this._tone('sine', t, 90, 28, 3.4, 0.4, 0.05, this.sfxBus, 0.5);
+    this._noise(this.white, t, 3.0, 'lowpass', 6000, 120, 0.2, 0.05, this.sfxBus, 0.6);
+  },
+  // 乱纪元开始：忽高忽低的失稳警报
+  chaos() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [392, 554.4, 370, 587.3, 349.2, 622.3].forEach((f, i) => this._tone('triangle', t + i * 0.16, f, f * (i % 2 ? 0.94 : 1.06), 0.3, 0.07, 0.005, this.sfxBus, 0.6));
+    this._noise(this.white, t, 1.2, 'bandpass', 800, 3200, 0.07, 0.3, this.sfxBus, 0.5);
+  },
+  // 研发完成：上行琶音；东风额外加一声低沉的铜管和长尾
+  techDone(big) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    (big ? [261.6, 329.6, 392, 523.3, 659.3, 784] : [392, 523.3, 659.3]).forEach((f, i) => this._tone('triangle', t + i * 0.09, f, f, big ? 0.9 : 0.4, 0.07, 0.005, this.sfxBus, 0.6));
+    if (big) { this._tone('sawtooth', t, 65.4, 65.4, 1.8, 0.12, 0.08, this.sfxBus, 0.7); this._tone('sawtooth', t, 98, 98, 1.8, 0.07, 0.08, this.sfxBus, 0.7); }
+  },
+  // 别的国家造出东风：一声低沉的不祥警示
+  threat() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._tone('sawtooth', t, 110, 104, 1.4, 0.1, 0.05, this.sfxBus, 0.7);
+    this._tone('sawtooth', t, 155.6, 147, 1.4, 0.07, 0.05, this.sfxBus, 0.7);
+  },
   ult() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

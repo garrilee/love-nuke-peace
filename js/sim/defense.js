@@ -205,7 +205,7 @@ function useUlt(n, tgt) {
     for (const c of n.cities) { c.ruined = false; c.rebuild = 0; c.pop = Math.max(c.pop, c.basePop * 0.35); }
     for (const f of n.facilities) if (!f.alive) { f.alive = true; f.rebuild = 0; Bus.emit('rebuilt', f); }
   }
-  n.ultCd = U.cd; n.stats.ult++;
+  n.ultCd = U.cd * tScale(); n.stats.ult++;
   news(`${U.icon} ${n.race.emoji}${n.name} 发动大招【${U.name}】${tgt && ultNeedsTarget(n) ? ' → ' + tgt.race.emoji + tgt.name : ''}`);
   Bus.emit('ult', { n, tgt });
   return true;

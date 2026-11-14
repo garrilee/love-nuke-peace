@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>热爱核平 · 平衡测试</title>
+<style>
+  body { margin: 0; padding: 20px 16px 40px; background: #050b16; color: #e8eef7; font: 14px/1.6 "Microsoft YaHei", sans-serif; }
+  h2 { font-weight: 600; margin: 0 0 12px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 14px; }
+  select, input, button { background: #0c1626; color: #e8eef7; border: 1px solid #2a3c58; border-radius: 6px; padding: 5px 10px; font: inherit; }
+  button { cursor: pointer; background: #1d4f8f; border-color: #4da3ff; font-weight: 700; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #prog { height: 6px; background: #12203a; border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+  #prog i { display: block; height: 100%; width: 0; background: #4da3ff; transition: width .2s; }
+  table { border-collapse: collapse; margin: 6px 0 18px; min-width: 320px; }
+  th, td { border: 1px solid #1d2c44; padding: 4px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #0c1626; color: #9fb2c6; font-weight: 600; }
+  .dim { color: #7f93aa; } .warn { color: #ffb35a; } .bad { color: #ff6b5b; }
+  h3 { margin: 16px 0 4px; font-size: 15px; color: #9fb2c6; font-weight: 600; }
+</style></head>
+<body>
+<h2>平衡测试</h2>
+<div class="bar">
+  <label>模式 <select id="mode"><option value="normal">普通</option><option value="survival">生存（三体人）</option></select></label>
+  <label><input type="checkbox" id="quick"> 快速局</label>
+  <label>玩家打法 <select id="play"><option value="ai">和 AI 一样</option><option value="aggr">开局就集中猛攻最弱的国家</option></select></label>
+  <label>AI 数量 <select id="ai"><option>3</option><option>4</option><option>5</option></select></label>
+  <label>局数 <input id="n" type="number" value="96" min="6" max="600" step="6" style="width:70px"></label>
+  <button id="run">开始</button> <span id="status" class="dim"></span>
+</div>
+<div id="prog"><i></i></div>
+<div id="out" class="dim">选好参数后点「开始」。每个国家轮流当玩家席位；胜率后面的 ± 是 1 个标准误差。</div>
+
+<script>
+const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/end', 'ai'];
+const base = new URL('../js/', location.href).href;
+// 后台线程：加载模拟代码，逐局运行，把每局的结果发回来
+const workerSrc = `
+importScripts(${FILES.map((f) => JSON.stringify(base + f + '.js?t=' + Date.now())).join(',')});
+checkEnd = function () { const alive = G.nations.filter((n) => n.alive); if (alive.length <= 1) endGame(alive.length ? 'last' : 'earth'); };
+let pend = 0; const loss = { nuke: 0, conv: 0, drone: 0, dim: 0 }; let nukes = 0, dims = 0;
+Bus.on('cityHit', (e) => { pend += e.loss; });
+Bus.on('explode', () => { loss.nuke += pend; pend = 0; });
+Bus.on('convExplode', () => { loss.conv += pend; pend = 0; });
+Bus.on('droneExplode', () => { loss.drone += pend; pend = 0; });
+Bus.on('dimStrike', () => { dims++; });
+Bus.on('launchOrder', (e) => { if (!e.drone && !e.conv) nukes += e.sent; });
+onmessage = (ev) => {
+  const o = ev.data, pers = Object.keys(PERSONALITIES);
+  for (let g = 0; g < o.n; g++) {
+    for (const k in loss) loss[k] = 0; nukes = 0; dims = 0; pend = 0;
+    newGame(RACES[g % RACES.length].id, o.ai, 'normal', null, { survival: o.survival, quick: o.quick });
+    const p = G.player; p.pers = pers[g % pers.length];
+    const last = G.nations.map((n) => n.techMask), reach = {}; let fd = null, bd = null;
+    for (let i = 0; i < 60000 && !G.over; i++) {
+      simStep(0.1);
+      loss.dim += pend; pend = 0; // 没有爆炸事件的损失 = 降维打击
+      if (p.alive) {
+        aiStep(p, 0.1);
+        if (o.aggr && i % 10 === 0) {
+          const foe = G.nations.filter((n) => n !== p && n.alive).sort((a, b) => totalPop(a) - totalPop(b))[0];
+          if (foe) { launch(p, foe, 0, G.legs, 99); launchConv(p, foe, 0, 99); launchDrones(p, foe, 99); }
+        }
+      }
+      G.nations.forEach((n, j) => { if (n.techMask !== last[j]) { const add = n.techMask & ~last[j]; last[j] = n.techMask; TECHS.forEach((t, k) => { if ((add & (1 << k)) && !n.race.boss) (reach[t.id] = reach[t.id] || []).push(G.t / 60); }); } });
+      if (fd === null && G.nations.some((n) => !n.alive && !n.race.boss)) fd = G.t / 60;
+      if (bd === null && G.boss && !G.boss.alive) bd = G.t / 60;
+    }
+    const alive = G.nations.filter((n) => n.alive);
+    postMessage({ g, len: G.t / 60, stalled: !G.over, fd, bd, reach, nukes, dims, loss: Object.assign({}, loss),
+      races: G.nations.map((n) => n.race.name), normalNations: G.nations.filter((n) => !n.race.boss).length,
+      winner: alive.length === 1 ? alive[0].race.name : null, playerWon: alive.length === 1 && alive[0] === p, bossWon: alive.length === 1 && !!alive[0].race.boss,
+      techNames: TECHS.map((t) => [t.id, t.name]) });
+  }
+  postMessage({ done: true });
+};`;
+const $ = (id) => document.getElementById(id);
+const med = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
+const f1 = (v) => (v === null || v === undefined ? '-' : v.toFixed(1));
+let worker = null;
+$('run').onclick = () => {
+  if (worker) worker.terminate();
+  const N = Math.max(6, +$('n').value | 0), R = [];
+  worker = new Worker(URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' })));
+  const t0 = performance.now();
+  $('run').disabled = true; $('status').textContent = '运行中…'; $('out').innerHTML = '';
+  worker.onerror = (e) => { $('status').textContent = '出错：' + e.message; $('status').className = 'bad'; $('run').disabled = false; };
+  worker.onmessage = (ev) => {
+    const d = ev.data;
+    if (d.done) { $('run').disabled = false; $('status').textContent = `完成 ${R.length} 局，用时 ${((performance.now() - t0) / 1000).toFixed(0)} 秒`; $('status').className = 'dim'; report(R, true); window.RESULT = summarize(R); return; }
+    R.push(d);
+    document.querySelector('#prog i').style.width = (R.length / N * 100) + '%';
+    if (R.length % 6 === 0) { $('status').textContent = `运行中… ${R.length}/${N}`; report(R, false); }
+  };
+  worker.postMessage({ n: N, ai: +$('ai').value, survival: $('mode').value === 'survival', quick: $('quick').checked, aggr: $('play').value === 'aggr' });
+};
+function summarize(R) {
+  const app = {}, win = {};
+  for (const r of R) { for (const nm of r.races) app[nm] = (app[nm] || 0) + 1; if (r.winner) win[r.winner] = (win[r.winner] || 0) + 1; }
+  const len = R.map((r) => r.len), nat = R.reduce((s, r) => s + r.normalNations, 0);
+  const lossT = { nuke: 0, conv: 0, drone: 0, dim: 0 }; for (const r of R) for (const k in lossT) lossT[k] += r.loss[k];
+  const lt = Object.values(lossT).reduce((a, b) => a + b, 0) || 1;
+  const techs = (R[0] ? R[0].techNames : []).map(([id, name]) => { const a = R.flatMap((r) => r.reach[id] || []); return { name, pct: Math.round(100 * a.length / nat), med: med(a) }; });
+  return {
+    games: R.length, medianMin: med(len), maxMin: Math.max(...len), stalled: R.filter((r) => r.stalled).length,
+    firstDeathMin: med(R.filter((r) => r.fd !== null).map((r) => r.fd)),
+    nukesPerGame: Math.round(R.reduce((s, r) => s + r.nukes, 0) / R.length), dimsPerGame: +(R.reduce((s, r) => s + r.dims, 0) / R.length).toFixed(1),
+    playerWin: Math.round(100 * R.filter((r) => r.playerWon).length / R.length), bossWin: Math.round(100 * R.filter((r) => r.bossWon).length / R.length),
+    bossDeathMin: med(R.filter((r) => r.bd !== null).map((r) => r.bd)),
+    win: Object.fromEntries(Object.keys(app).map((k) => { const p = (win[k] || 0) / app[k]; return [k, { pct: Math.round(100 * p), se: Math.round(100 * Math.sqrt(p * (1 - p) / app[k])), n: app[k] }]; })),
+    loss: Object.fromEntries(Object.entries(lossT).map(([k, v]) => [k, Math.round(100 * v / lt)])), techs,
+  };
+}
+function report(R) {
+  const S = summarize(R), fair = Math.round(100 / (R[0].races.length));
+  const rows = Object.entries(S.win).sort((a, b) => b[1].pct - a[1].pct).map(([k, v]) => `<tr><td>${k}</td><td class="${Math.abs(v.pct - fair) > 2 * v.se + 3 ? 'warn' : ''}">${v.pct}% <span class="dim">±${v.se}</span></td><td class="dim">${v.n}</td></tr>`).join('');
+  $('out').innerHTML = `
+    <h3>节奏</h3><table>
+      <tr><th>对局时长中位数</th><td>${f1(S.medianMin)} 分</td></tr><tr><th>最长一局</th><td class="${S.maxMin > 30 ? 'warn' : ''}">${f1(S.maxMin)} 分</td></tr>
+      <tr><th>僵持未结束（超过 100 分钟）</th><td class="${S.stalled ? 'bad' : ''}">${S.stalled} 局</td></tr>
+      <tr><th>第一个普通国家倒下</th><td>${f1(S.firstDeathMin)} 分</td></tr>
+      <tr><th>每局核弹数</th><td>${S.nukesPerGame}</td></tr>
+      <tr><th>玩家席位胜率</th><td>${S.playerWin}%</td></tr>
+      ${S.dimsPerGame ? `<tr><th>三体人胜率</th><td>${S.bossWin}%</td></tr><tr><th>三体人倒下时间（倒下的局）</th><td>${f1(S.bossDeathMin)} 分</td></tr><tr><th>每局降维打击</th><td>${S.dimsPerGame}</td></tr>` : ''}
+    </table>
+    <h3>胜率（平均应为 ${fair}%）</h3><table><tr><th>国家</th><th>胜率</th><th>出场</th></tr>${rows}</table>
+    <h3>科技（普通国家造出的比例和时间中位数）</h3><table><tr><th>科技</th><th>造出</th><th>时间</th></tr>${S.techs.map((t) => `<tr><td>${t.name}</td><td>${t.pct}%</td><td>${f1(t.med)} 分</td></tr>`).join('')}</table>
+    <h3>人口损失来源</h3><table><tr><th>核弹</th><th>导弹</th><th>小摩托</th><th>降维打击</th></tr><tr><td>${S.loss.nuke}%</td><td>${S.loss.conv}%</td><td>${S.loss.drone}%</td><td>${S.loss.dim}%</td></tr></table>`;
+}
+</script>
+</body></html>

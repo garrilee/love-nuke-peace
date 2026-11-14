@@ -98,7 +98,7 @@ Bus.emit = (type, data) => {
 const Net = {
   role: 'solo',           // solo | host | client
   peer: null, conns: new Map(), hostConn: null,
-  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', speed: 1, survival: false, started: false,
+  code: '', myId: 'host', players: [], aiCount: 3, diff: 'normal', speed: 1, survival: false, quick: false, started: false,
   evQ: [], snapT: 0, ticker: null, allocHold: 0, lastTick: 0, lastFrameAt: 0,
 
   loadLib() {
@@ -191,7 +191,7 @@ const Net = {
   },
   broadcastLobby() {
     const players = this.players.map((p) => ({ id: p.id, race: p.race, host: !!p.host, name: p.name || '', back: !!p.back }));
-    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, survival: this.survival, you: c.peer });
+    for (const c of this.conns.values()) if (c.open) c.send({ type: 'lobby', players, aiCount: this.aiCount, diff: this.diff, speed: this.speed, survival: this.survival, quick: this.quick, you: c.peer });
     Lobby.render();
   },
   hostPick(race) {
@@ -204,7 +204,7 @@ const Net = {
     return name && this.players.some((p) => p !== pl && p.name === name) ? '' : name;
   },
   hostName(name) { this.players[0].name = this.uniqueName(this.players[0], name); this.broadcastLobby(); },
-  setOpts(aiCount, diff, speed = this.speed, survival = this.survival) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.survival = survival; this.broadcastLobby(); },
+  setOpts(aiCount, diff, speed = this.speed, survival = this.survival, quick = this.quick) { this.aiCount = aiCount; this.diff = diff; this.speed = speed; this.survival = survival; this.quick = quick; this.broadcastLobby(); },
   canStart() { return !this.started && this.players.length > 0 && this.players.every((p) => p.race && p.back); },
   hostStart(tutorial) {
     const players = this.players.map((p) => ({ race: p.race, id: p.id, name: p.name || '' }));
@@ -212,9 +212,9 @@ const Net = {
     this.started = true;
     for (const p of this.players) p.back = false;
     this.evQ = []; this.snapT = 0;
-    startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' }, this.survival);
+    startGame(this.players[0].race, aiCount, this.diff, tutorial, { players, me: 'host' }, { survival: this.survival, quick: this.quick });
     G.speed = this.speed;
-    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, owners: G.owners, names: G.names, diff: this.diff, speed: this.speed };
+    const msg = { type: 'start', seed: G.seed, raceIds: G.raceIds, owners: G.owners, names: G.names, diff: this.diff, speed: this.speed, quick: this.quick };
     for (const c of this.conns.values()) if (c.open) c.send(msg);
     this.startTicker();
   },
@@ -313,7 +313,7 @@ const Net = {
   onClientMsg(m) {
     if (!m) return;
     if (m.type === 'lobby') {
-      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff, speed: m.speed || 1, survival: !!m.survival });
+      Object.assign(this, { players: m.players, myId: m.you, aiCount: m.aiCount, diff: m.diff, speed: m.speed || 1, survival: !!m.survival, quick: !!m.quick });
       Lobby.checkName();
       Lobby.render();
     } else if (m.type === 'reject') {
@@ -322,7 +322,7 @@ const Net = {
       const me = this.players.find((p) => p.id === this.myId);
       if (!me || !me.race || this.started) return;
       this.started = true;
-      startGame(me.race, 0, m.diff, Lobby.tutorial(), { seed: m.seed, raceIds: m.raceIds, owners: m.owners, names: m.names, me: this.myId });
+      startGame(me.race, 0, m.diff, Lobby.tutorial(), { seed: m.seed, raceIds: m.raceIds, owners: m.owners, names: m.names, me: this.myId, quick: !!m.quick });
     } else if (m.type === 'snap') {
       if (G && this.started) this.applySnap(m.s);
     } else if (m.type === 'ev') {
@@ -405,8 +405,8 @@ const Lobby = {
       if (navigator.clipboard) navigator.clipboard.writeText(link).then(ok, () => prompt('复制这个链接发给朋友：', link));
       else prompt('复制这个链接发给朋友：', link);
     };
-    const opts = () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value, +$('mpSpeed').value, $('survival').checked); };
-    for (const id of ['aiCount', 'aiDiff', 'mpSpeed', 'survival']) $(id).addEventListener('change', opts);
+    const opts = () => { if (Net.role === 'host') Net.setOpts(+$('aiCount').value, $('aiDiff').value, +$('mpSpeed').value, $('survival').checked, $('quick').checked); };
+    for (const id of ['aiCount', 'aiDiff', 'mpSpeed', 'survival', 'quick']) $(id).addEventListener('change', opts);
     $('mpSpeed').value = String(Store.get('mpSpeed', 1));
     $('mpSpeed').addEventListener('change', () => Store.set('mpSpeed', +$('mpSpeed').value));
     // 通过邀请链接打开：自动加入房间
@@ -452,7 +452,7 @@ const Lobby = {
     this.resetName();
     try {
       await Net.createRoom(UI.pickedRace);
-      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value; Net.speed = +$('mpSpeed').value; Net.survival = $('survival').checked;
+      Net.aiCount = +$('aiCount').value; Net.diff = $('aiDiff').value; Net.speed = +$('mpSpeed').value; Net.survival = $('survival').checked; Net.quick = $('quick').checked;
       history.replaceState(null, '', `?room=${Net.code}`);
     } catch (e) { this.error(e.message); }
     this.busy = false; $('mpCreate').textContent = '🌐 创建房间';
@@ -491,7 +491,7 @@ const Lobby = {
     if (!inRoom) {
       btn.textContent = '按下按钮，开始核平';
       btn.disabled = !UI.pickedRace;
-      $('aiCount').disabled = $('aiDiff').disabled = $('survival').disabled = false;
+      $('aiCount').disabled = $('aiDiff').disabled = $('survival').disabled = $('quick').disabled = false;
       return;
     }
     $('mpCodeTxt').textContent = Net.code;
@@ -504,8 +504,8 @@ const Lobby = {
     }).join('');
     const humans = Net.players.length;
     const ai = clamp(Net.aiCount, humans > 1 || Net.survival ? 0 : 1, MAX_NATIONS - humans - (Net.survival ? 1 : 0));
-    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed); $('survival').checked = Net.survival;
-    $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = $('survival').disabled = Net.role !== 'host';
+    $('aiCount').value = String(Net.aiCount); $('aiDiff').value = Net.diff; $('mpSpeed').value = String(Net.speed); $('survival').checked = Net.survival; $('quick').checked = Net.quick;
+    $('aiCount').disabled = $('aiDiff').disabled = $('mpSpeed').disabled = $('survival').disabled = $('quick').disabled = Net.role !== 'host';
     if (Net.role === 'host') {
       const ok = Net.canStart();
       btn.disabled = !ok;
@@ -514,7 +514,7 @@ const Lobby = {
     } else {
       btn.disabled = true;
       btn.textContent = mine && mine.race ? '等待房主开始…' : '先选一个国家';
-      $('mpHint').textContent = `已加入房间，AI ${ai} 个${Net.survival ? ' + 👽三体人（生存模式）' : ''} · 难度 ${DIFFS[Net.diff].name} · 速度 ${Net.speed}×`;
+      $('mpHint').textContent = `已加入房间，AI ${ai} 个${Net.survival ? ' + 👽三体人（生存模式）' : ''}${Net.quick ? ' · ⚡快速局' : ''} · 难度 ${DIFFS[Net.diff].name} · 速度 ${Net.speed}×`;
     }
   },
 };

@@ -57,12 +57,12 @@ function execCmd(n, c) {
 }
 const chooserOpen = () => !$('chooser').classList.contains('hidden');
 
-function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null, survival = false) {
+function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null, opts = {}) {
   SFX.init();
   SFX.setMuted(Store.get('muted', false));
   FX.reset();
   Render.resetScorch();
-  newGame(raceId, aiCount, diff, mp, survival);
+  newGame(raceId, aiCount, diff, mp, opts);
   G.tutorial = tutorial;
   document.body.classList.toggle('mp', G.mp);
   document.body.classList.toggle('mphost', G.mp && Net.role === 'host');
@@ -148,8 +148,10 @@ Bus.on('gameover', (kind) => {
   SFX.music(false);
   setTimeout(() => UI.showEnd(kind), 2500);
 });
+Bus.on('dimStrike', () => SFX.dimWarn());
 Bus.on('tech', ({ n, tech }) => {
-  if (n !== G.player) return;
+  if (n !== G.player) { if (tech.id === 'lv5' && running) SFX.threat(); return; }
+  SFX.techDone(tech.id === 'lv5');
   UI.banner(`🔬 解锁：${tech.name}`);
   UI.addFeed(`你解锁了【${tech.name}】：${tech.desc}`);
 });

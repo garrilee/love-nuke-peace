@@ -571,3 +571,26 @@ body.compact #popChart { height: 150px; }
 .race .rp { color: #8fe3a0; font-size: 13px; line-height: 1.6; }
 .race .rm { color: #ff9a8a; font-size: 13px; line-height: 1.6; }
 .race .ru { color: #ffd27a; font-size: 12px; margin-top: 4px; line-height: 1.5; }
+
+/* ---------- 手机竖屏：底部操作区压成一条——三种武器横排，护盾/拦截/大招在右边 ---------- */
+body.portrait #rightcol { gap: 4px; }
+body.portrait #strike { flex: 1.5; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 6px; padding: 5px 6px 7px; }
+body.portrait #strike .targetbtn { grid-column: 1 / -1; padding: 3px 8px; min-height: 26px; flex-direction: row; align-items: center; }
+body.portrait .firerow { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: 0; }
+body.portrait .ammoinfo { display: flex; align-items: center; gap: 3px; justify-content: center; }
+body.portrait .ammoinfo .ic { width: auto; font-size: 13px; }
+body.portrait .ammoinfo .stock { font-size: 16px; }
+body.portrait .fire { width: 54px; height: 54px; order: 2; }
+body.portrait .lvl { order: 3; width: 46px; height: 24px; font-size: 11px; border-radius: 7px; }
+body.portrait .fire .fic { font-size: 24px; }
+body.portrait .fire .fic svg.paper { width: 26px; height: 26px; }
+body.portrait .fire .fic svg.msl { width: 28px; height: 28px; }
+body.portrait #skills { flex: 1; padding: 5px 6px 7px; display: flex; flex-direction: column; }
+body.portrait #skills .phead .sect-title { display: none; }
+body.portrait #skills .phead { justify-content: flex-end; min-height: 26px; align-items: center; }
+body.portrait .skillgrid { flex: 1; grid-template-rows: 1fr 1fr; margin-top: 3px; }
+body.portrait .skill { height: auto; min-height: 40px; }
+body.portrait #skills .toggles, body.portrait #rebuildStatus { display: none; }
+/* 自动拦截 / 自动重建开关：手机上放进 📊 抽屉 */
+#alloc .toggles { margin: 8px 0 2px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+body.compact #alloc .toggles .switch { font-size: 12px; }

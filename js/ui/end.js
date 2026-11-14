@@ -58,10 +58,10 @@ Object.assign(UI, {
     for (let k = 0; k <= 4; k++) { const v = pMax * k / 4, y = Y(v); x.beginPath(); x.moveTo(pl, y); x.lineTo(W - pr, y); x.stroke(); x.textAlign = 'right'; x.fillText(fmtPop(v), pl - 4, y + 4); }
     x.textAlign = 'center';
     for (let m = 0; m * 60 <= tMax; m += tMax > 900 ? 5 : 2) x.fillText(m + '分', X(m * 60), Hh - 6);
-    if (tMax > CFG.MIDNIGHT) { // 午夜狂欢分界
+    if (tMax > midAt()) { // 午夜狂欢分界
       x.strokeStyle = 'rgba(255,60,40,0.55)'; x.setLineDash([4, 4]);
-      x.beginPath(); x.moveTo(X(CFG.MIDNIGHT), pt); x.lineTo(X(CFG.MIDNIGHT), Hh - pb); x.stroke(); x.setLineDash([]);
-      x.fillStyle = '#ff6b5b'; x.textAlign = 'left'; x.fillText('🕛 午夜', X(CFG.MIDNIGHT) + 4, pt + 10);
+      x.beginPath(); x.moveTo(X(midAt()), pt); x.lineTo(X(midAt()), Hh - pb); x.stroke(); x.setLineDash([]);
+      x.fillStyle = '#ff6b5b'; x.textAlign = 'left'; x.fillText('🕛 午夜', X(midAt()) + 4, pt + 10);
     }
     const order = G.nations.slice().sort((a, b) => (a === G.player) - (b === G.player)); // 你的线最后画、在最上面
     for (const n of order) {

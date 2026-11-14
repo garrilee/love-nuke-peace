@@ -10,6 +10,9 @@ Object.assign(UI, {
     const docked = !this.mobile();
     if (docked) $('leftcol').appendChild(box); else $('hud').appendChild(box);
     box.classList.toggle('docked', docked);
+    // 手机：自动拦截 / 自动重建开关收进 📊 抽屉（国力分配下面），底部操作区只留发射和防御按钮
+    const tg = document.querySelector('.toggles');
+    if (tg) { if (docked) $('skills').insertBefore(tg, $('rebuildStatus')); else $('alloc').appendChild(tg); }
     box.classList.toggle('collapsed', !docked);
     // 两侧栏折叠（只在电脑上）
     const fold = (side) => { document.body.classList.toggle('fold' + side); this.syncFold(); Render.fit(); };

@@ -25,7 +25,7 @@ function hitPlayer(n, tgt, kind, line = true) {
 }
 // AI 用大招：每个国家的大招在合适的时机放
 function aiUlt(n, tgt, when) {
-  if (n.ultCd > 0 || G.t < ULT_FIRST || !chance(G.diff.ult)) return false;
+  if (n.ultCd > 0 || G.t < ULT_FIRST * tScale() || !chance(G.diff.ult)) return false;
   const id = n.race.id;
   const ok = (id === 'human' && when === 'think')
     || (id === 'mushroom' && when === 'think' && chance(0.4))

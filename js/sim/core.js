@@ -12,7 +12,11 @@ let G = null;
 // 每个国家占一个“席位”：raceIds[i] 国家类型（可以重复），owners[i] 玩家连接 id（AI 为 null），names[i] 自定义国家名
 // mp（联机）：房主传 { players: [{race, id, name}], me }，由这里排好席位；
 //             客户端传房主发来的 { seed, raceIds, owners, names, me }，生成一模一样的世界
-function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = false) {
+// opts：{ survival 生存模式（三体人降临）, quick 快速局 }；也兼容旧的布尔参数（只表示生存模式）
+function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
+  const survival = typeof opts === 'object' ? !!opts.survival : !!opts;
+  const quick = !!((typeof opts === 'object' && opts.quick) || (mp && mp.quick));
+  const ts = quick ? QUICK.time : 1;
   let raceIds = mp && mp.raceIds, owners = mp && mp.owners, names = mp && mp.names, seed = mp && mp.seed;
   if (!raceIds) {
     const humans = mp ? mp.players : [{ race: playerRaceId, id: 'local', name: '' }];
@@ -48,7 +52,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = f
       lastHit: -99, lastAttacker: -1, retaliate: null, lastStrike: -99,
       aiNext: rnd(1, 3),
       autoNet: true, autoRebuild: true,
-      ultCd: ULT_FIRST, overtimeT: 0, harpoonT: 0, hackT: 0,
+      ultCd: ULT_FIRST * ts, overtimeT: 0, harpoonT: 0, hackT: 0,
       stats: { dronesSent: 0, dogKills: 0, ult: 0, sent: 0, delivered: 0, caused: 0, lost: 0, intercepted: 0, rebuilt: 0, peakPop: 0 },
     });
     n.anger[i] = -1e9;
@@ -61,7 +65,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = f
   G = {
     t: 0, speed: 1, world, nations, projectiles: [],
     player: mp ? nations.find((n) => n.netId === mp.me) : nations.find((n) => n.isPlayer),
-    mp: !!mp, seed, raceIds, owners, names,
+    mp: !!mp, quick, seed, raceIds, owners, names,
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
@@ -69,11 +73,14 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, survival = f
   G.boss = bossOf(); G.dims = [];
   if (G.boss) setupBoss(G.boss);
   news(`${fmtDate(0)}：世界和平，一切安好。暂时。`);
-  if (G.boss) news(`👽 ${G.boss.name}降临：它的科技远超所有国家。开局 ${BOSS_CFG.chaosFirst / 60} 分钟后，它每 ${BOSS_CFG.chaosEvery} 秒会进入一次乱纪元，那是反击的窗口。`);
+  if (G.boss) news(`👽 ${G.boss.name}降临：它的科技远超所有国家。开局 ${BOSS_CFG.chaosFirst * tScale() / 60} 分钟后，它每 ${Math.round(BOSS_CFG.chaosEvery * tScale())} 秒会进入一次乱纪元，那是反击的窗口。`);
   return G;
 }
 
 // ---------- 工具 ----------
+// 快速局：午夜时刻、时间类参数的缩放
+const midAt = () => (G && G.quick ? QUICK.midnight : CFG.MIDNIGHT);
+const tScale = () => (G && G.quick ? QUICK.time : 1);
 const techIndex = (id) => TECHS.findIndex((t) => t.id === id);
 // 是否拥有某项科技：1 级包裹人人都有；2 级包裹已从科技树去掉；海底仓只有鱼叉天生拥有
 function has(n, id) {
@@ -139,6 +146,7 @@ function production(n) {
   for (const c of n.cities) p += c.pop * (c.ruined ? CFG.RUIN_PROD : 1);
   if (isChaos(n)) return 0; // 三体乱纪元：停产
   return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n) * (n.mods.prod || 1)
+    * (G.quick ? QUICK.prod : 1)               // 快速局：产出加倍
     * (n.overtimeT > 0 ? 1.7 : 1)              // 卷王大招：加班
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度
 }

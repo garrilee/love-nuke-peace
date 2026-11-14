@@ -16,8 +16,8 @@ const takenMul = (owner) => (isChaos(owner) ? BOSS_CFG.chaosDmg : owner.mods.arm
 // 开局：科技、人口已在种族数值里；这里设科技进度、大招冷却、乱纪元计时、对真人玩家的敌意
 function setupBoss(n) {
   for (const id of BOSS_CFG.startTechs) grantTech(n, id);
-  n.ultCd = BOSS_CFG.firstUlt;
-  n.chaosT = 0; n.chaosNext = BOSS_CFG.chaosFirst; n.chaosWarned = false;
+  n.ultCd = BOSS_CFG.firstUlt * tScale();
+  n.chaosT = 0; n.chaosNext = BOSS_CFG.chaosFirst * tScale(); n.chaosWarned = false;
   n.pers = 'hot'; // 好战
   for (const x of G.nations) if (x.isPlayer) n.anger[x.id] = BOSS_CFG.playerAnger;
 }
@@ -28,21 +28,22 @@ function stepBoss(n, dt) {
     n.chaosT = Math.max(0, n.chaosT - dt);
     n.shieldT = 0; n.netT = 0; n.netCharges = 0;
     if (n.chaosT <= 0) {
-      n.chaosNext = BOSS_CFG.chaosEvery; n.chaosWarned = false;
+      n.chaosNext = BOSS_CFG.chaosEvery * tScale(); n.chaosWarned = false;
       news(`🌞 ${n.race.emoji}${n.name} 回到恒纪元，防御恢复`);
     }
     return;
   }
   n.chaosNext -= dt;
-  if (!n.chaosWarned && n.chaosNext <= BOSS_CFG.chaosWarn) {
+  const warn = Math.round(BOSS_CFG.chaosWarn * tScale()), dur = Math.round(BOSS_CFG.chaosDur * tScale()); // 快速局：预警和持续时间也减半
+  if (!n.chaosWarned && n.chaosNext <= warn) {
     n.chaosWarned = true;
-    Bus.emit('banner', `🌪 ${BOSS_CFG.chaosWarn} 秒后三体进入乱纪元：准备集中火力！`);
+    Bus.emit('banner', `🌪 ${warn} 秒后三体进入乱纪元：准备集中火力！`);
   }
   if (n.chaosNext <= 0) {
-    n.chaosT = BOSS_CFG.chaosDur;
+    n.chaosT = dur;
     n.shieldT = 0; n.netT = 0; n.netCharges = 0;
-    news(`🌪 ${n.race.emoji}${n.name} 进入乱纪元：${BOSS_CFG.chaosDur} 秒内停产，护盾和拦截失效，受到伤害 ×${BOSS_CFG.chaosDmg}`);
-    Bus.emit('banner', `🌪 三体进入乱纪元！${BOSS_CFG.chaosDur} 秒内防御瘫痪`);
+    news(`🌪 ${n.race.emoji}${n.name} 进入乱纪元：${dur} 秒内停产，护盾和拦截失效，受到伤害 ×${BOSS_CFG.chaosDmg}`);
+    Bus.emit('banner', `🌪 三体进入乱纪元！${dur} 秒内防御瘫痪`);
   }
 }
 

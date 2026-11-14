@@ -166,7 +166,7 @@ function stepTiles(dt) {
 
 // ---------- 随机事件与阶段 ----------
 function stepEvents() {
-  if (!G.midnight && G.t >= CFG.MIDNIGHT) {
+  if (!G.midnight && G.t >= midAt()) {
     G.midnight = true;
     news('🕛 午夜钟声敲响！全球进入“午夜狂欢”：包裹威力 ×1.25，人口不再加速恢复，所有仓库清仓甩卖！');
     Bus.emit('banner', '🕛 午夜狂欢');
@@ -174,7 +174,7 @@ function stepEvents() {
     G.escLevel = 0;
   }
   if (G.midnight) { // 末日升级：午夜后每 2 分钟核弹威力再上升
-    const lvl = Math.floor((G.t - CFG.MIDNIGHT) / CFG.ESC_EVERY);
+    const lvl = escLevel();
     if (lvl > (G.escLevel || 0) && nukeMul() > CFG.ESC_START) {
       G.escLevel = lvl;
       news(`☢ 末日升级：核弹威力提升到 ×${nukeMul().toFixed(2)}，再拖下去谁都跑不掉`);

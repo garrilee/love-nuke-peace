@@ -78,6 +78,8 @@ const TECHS = [
   { id: 'net',   name: '拦截网升级',       cost: 110, req: ['multi'], branch: 'def', desc: '主防：拦截弹 3 → 6 枚，命中率 60% → 75%。' },
   { id: 'lv5',   name: '终极核平·东风',   cost: 230, reqAny: ['lv4', 'net'], desc: '5 级包裹“东风”。全屏白光，使命必达。' },
 ];
+// 快速局：午夜提前、产出加倍，各种计时（末日升级、大招冷却、三体人的乱纪元等）减半，一局约 6 分钟
+const QUICK = { midnight: 240, prod: 2, time: 0.5 };
 const TECH_PICK_WAIT = 20; // 第 4 级二选一：玩家 20 秒不选，按当前核武/三防分配自动选
 
 // 包裹等级（纯游戏数值）

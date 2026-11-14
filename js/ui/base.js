@@ -61,10 +61,12 @@ const UI = {
     $('tutorial').checked = !Store.get('tutorialDone', false);
     $('survival').checked = !!Store.get('survival', false);
     $('survival').addEventListener('change', () => Store.set('survival', $('survival').checked));
+    $('quick').checked = !!Store.get('quick', false);
+    $('quick').addEventListener('change', () => Store.set('quick', $('quick').checked));
     this.startSolo = () => {
       const cnt = Math.max(1, +$('aiCount').value), diff = $('aiDiff').value;
       Store.set('race', this.pickedRace); Store.set('aiCount', cnt); Store.set('diff', diff);
-      onStart(this.pickedRace, cnt, diff, $('tutorial').checked, null, $('survival').checked);
+      onStart(this.pickedRace, cnt, diff, $('tutorial').checked, null, { survival: $('survival').checked, quick: $('quick').checked });
     };
     $('startBtn').onclick = () => Lobby.start();
     Lobby.init();
@@ -290,12 +292,12 @@ const UI = {
     const mob = this.mobile();
     const spdTxt = G.mp && Net.role !== 'host' ? ` · ${G.speed}×` : ''; // 联机玩家看到房主设定的速度
     setText($('timer'), fmtTime(G.t) + spdTxt);
-    const mins = Math.max(0, Math.ceil(17 * (1 - G.t / CFG.MIDNIGHT)));
+    const mins = Math.max(0, Math.ceil(17 * (1 - G.t / midAt())));
     setHTML($('doom'), G.midnight ? `🕛 <b class="red">${mob ? '' : '午夜狂欢 · '}☢×${nukeMul().toFixed(2)}</b>` : `🕐 ${mob ? '' : '距午夜 '}<b>${mins}</b> 分`);
     document.body.classList.toggle('midnight', G.midnight);
     $('timer').classList.toggle('urgent', nukeMul() >= CFG.ESC_MAX);
     // 午夜前 10 秒倒计时
-    const toMid = CFG.MIDNIGHT - G.t, cd = $('countdown');
+    const toMid = midAt() - G.t, cd = $('countdown');
     if (!G.midnight && toMid <= 10 && toMid > 0) {
       const k = String(Math.ceil(toMid));
       if (cd.textContent !== k) { cd.textContent = k; cd.classList.remove('hidden'); cd.style.animation = 'none'; void cd.offsetWidth; cd.style.animation = ''; SFX.tick(); }
@@ -396,6 +398,7 @@ const UI = {
 
   tick(dt) {
     if (G) this.recordPop();
+    if (G && G.boss) { const c = isChaos(G.boss); if (c && !this.wasChaos) SFX.chaos(); this.wasChaos = c; } // 乱纪元开始的音效
     if (G && !G.over) {
       this.tipCheckT -= dt;
       if (this.tipCheckT <= 0) { this.tipCheckT = 0.5; this.checkTips(); }
