@@ -90,7 +90,7 @@ const FX = {
   reset() { this.drawMs = 0; this.gapMs = this.gapBase; this.cineNext = 0; this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
-  maxParts() { return Gl.on ? 4500 : this.MAX_PARTS; }, // 显卡合批时粒子便宜得多，上限放宽
+  maxParts() { return Gl.on ? 2600 : this.MAX_PARTS; }, // 显卡合批时粒子便宜得多，上限放宽
   // 自动画质：画面掉帧就降一档（粒子、余火变少），有余量再慢慢升回来。
   // 掉帧看两个数：绘制代码本身的耗时 ms，和相邻两帧的真实间隔 gap（显卡出图慢时只有间隔会变长）。
   // gapBase 是这台设备流畅时的帧间隔（60Hz 屏约 16.7 毫秒），间隔比它长三成以上算掉帧
@@ -101,9 +101,11 @@ const FX = {
       this.gapMs += (gap - this.gapMs) * 0.08;
       this.gapBase = Math.max(13, Math.min(this.gapMs, this.gapBase + 0.002));
     }
-    const slow = this.drawMs > 11 || this.gapMs > Math.max(21, this.gapBase * 1.3);
+    // 显卡画法下绘制代码不含出图时间，预算可以放宽一些（实际掉没掉帧由帧间隔把关）
+    const hi = Gl.on ? 13 : 11, lo = Gl.on ? 9.5 : 7;
+    const slow = this.drawMs > hi || this.gapMs > Math.max(21, this.gapBase * 1.3);
     if (slow) this.quality = Math.max(0.3, this.quality - 0.02);
-    else if (this.drawMs < 7) this.quality = Math.min(1, this.quality + 0.004);
+    else if (this.drawMs < lo) this.quality = Math.min(1, this.quality + 0.004);
     // 超出当前上限的旧粒子直接丢掉一批（先丢普通粒子，蘑菇云本体留着）
     const cap = Math.round(this.maxParts() * this.quality);
     if (this.parts.length > cap * 1.15) { let drop = this.parts.length - cap; this.parts = this.parts.filter((p) => p.fire || p.orbit || drop-- <= 0); }
@@ -339,15 +341,15 @@ const FX = {
   // 4、5 级核弹的加料（只在显卡画法下）：大量高速火星、拖着尾巴下落的碎片、贴地向外滚的尘浪
   bigBlastExtras(x, y, R, lv, P) {
     const vr = (lo, hi) => lo + Math.random() * (hi - lo), big = lv >= 5;
-    const nSpark = big ? 220 : 120, nDebris = big ? 60 : 34, nDust = big ? 56 : 36;
+    const nSpark = big ? 150 : 85, nDebris = big ? 40 : 24, nDust = big ? 44 : 28;
     for (let i = 0; i < nSpark; i++) { // 火星：向四面八方高速飞溅，很快减速熄灭
       const a = vr(0, Math.PI * 2), v = vr(60, 260) * (big ? 1.25 : 1);
       const spr = P.rainbow ? this.hue[(Math.random() * 12) | 0] : Math.random() < 0.35 ? this.S.warm : this.S.orange;
-      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.62 - vr(0, 50), life: vr(0.5, 1.5), size: vr(0.8, 2.2), sprite: spr, grav: 30, drag: 2.2 });
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.62 - vr(0, 50), life: vr(0.7, 1.9), size: vr(1.6, 3.6), sprite: spr, grav: 30, drag: 2.0 });
     }
     for (let i = 0; i < nDebris; i++) { // 碎片：抛得更高，带着火光划弧线落下
       const a = vr(0, Math.PI * 2), v = vr(50, 150);
-      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - vr(70, 190), life: vr(1.4, 2.8), size: vr(1.6, 3.2), sprite: Math.random() < 0.5 ? this.S.warm : this.S.orange, grav: 150, drag: 0.5 });
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - vr(70, 190), life: vr(1.4, 2.8), size: vr(2.4, 4.6), sprite: Math.random() < 0.5 ? this.S.warm : this.S.orange, grav: 150, drag: 0.5 });
     }
     for (let i = 0; i < nDust; i++) { // 尘浪：贴着地面一圈向外滚，越滚越大越淡
       const a = (i / nDust) * Math.PI * 2 + vr(-0.06, 0.06), v = R * vr(1.5, 2.3);

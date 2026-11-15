@@ -24,10 +24,9 @@ Object.assign(Render, {
   glDraw(camX, camY, pz, sx, sy, z, T) {
     Gl.begin(camX, camY, pz, sx, sy);
     const L = Gl.L, g = Gl.g;
-    // 底图和焦痕（焦痕画布被新的爆炸改过：隔一小会儿重新上传一次，不是每次爆炸都传）
+    // 底图和焦痕
     Gl.mapSprite(Gl.baseSpr, this.base);
-    Gl.mapSprite(Gl.scorchSpr, this.scorch);
-    if (this.scorchDirty && T - (this.scorchUp || 0) > 0.12) { this.scorchDirty = false; this.scorchUp = T; Gl.touch(this.scorch); }
+    Gl.syncScorch(this.scorch);
 
     this.glNations(z, T);
     // 辐射尘

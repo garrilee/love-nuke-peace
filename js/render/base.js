@@ -240,7 +240,7 @@ const Render = {
   },
   addScorch(wx, wy, R, lv) {
     if (!this.scorch) return;
-    this.scorchDirty = true;
+    if (Gl.on) Gl.scorch(wx, wy, R, lv); // WebGL 画法另有一张焦痕贴图，同步盖一个印（下面照常画到 2D 画布，退回时用）
     const x = this.scorch.getContext('2d');
     x.save(); x.scale(this.BS, this.BS);
     const g = x.createRadialGradient(wx, wy, 0, wx, wy, R);

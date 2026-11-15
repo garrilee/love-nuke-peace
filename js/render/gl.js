@@ -58,6 +58,8 @@ const Gl = {
       this.initPost();
       Render.canvas.after(this.view);
       this.resize();
+      // 预热：先空画一帧带火球和冲击波的画面，让着色器现在就编译好，免得第一次大爆炸时卡一下
+      this.begin(0, 0, 1, 0, 0); this.fireball(0, 0, 1, 0.5, 0, true); this.shock(0, 0, 10, 1); this.end();
       this.on = true;
     } catch (e) {
       console.warn('WebGL 层不可用，使用 Canvas 2D：', e);
@@ -227,15 +229,53 @@ const Gl = {
     this.trailN++;
   },
 
+  // ---------- 焦痕：一张和地图一样大的离屏贴图，每次爆炸只往上盖一个焦痕印，不用整张重新上传 ----------
+  scorch(x, y, R, lv) { (this.scorchQ || (this.scorchQ = [])).push([x, y, R, lv]); },
+  syncScorch(canvas) {
+    const P = window.PIXI;
+    if (!this.scorchRT) {
+      this.scorchRT = P.RenderTexture.create({ width: Math.ceil(WORLD_W), height: Math.ceil(WORLD_H), resolution: 2 });
+      this.scorchSpr.texture = this.scorchRT; this.scorchSpr.width = WORLD_W; this.scorchSpr.height = WORLD_H; this.scorchSpr.visible = true;
+      this.scorchLayer = this.spriteLayer(P.BLEND_MODES.NORMAL);
+    }
+    const L = this.scorchLayer;
+    if (this.scorchSrc !== canvas) { // 新的一局，或中途才启用这一层：把 2D 焦痕画布现有的内容搬进来
+      this.scorchSrc = canvas; this.scorchQ = [];
+      const t = P.Texture.from(canvas);
+      L.img(t, 0, 0, WORLD_W, WORLD_H, 1); L.end();
+      this.renderer.render(L.c, { renderTexture: this.scorchRT, clear: true });
+      L.end(); t.destroy(true);
+    }
+    if (!this.scorchQ || !this.scorchQ.length) return;
+    const burn = this.made('scorch', 2, 2, 32, (cx) => {
+      const g = cx.createRadialGradient(1, 1, 0, 1, 1, 1);
+      g.addColorStop(0, 'rgba(8,5,4,0.75)'); g.addColorStop(0.5, 'rgba(30,16,10,0.45)'); g.addColorStop(1, 'rgba(30,16,10,0)');
+      cx.fillStyle = g; cx.fillRect(0, 0, 2, 2);
+    });
+    const dot = this.made('scorchDot', 2, 2, 16, (cx) => { cx.fillStyle = '#000'; cx.beginPath(); cx.arc(1, 1, 1, 0, 6.2832); cx.fill(); });
+    for (const [x, y, R, lv] of this.scorchQ) {
+      L.img(burn, x - R, y - R * 0.8, R * 2, R * 1.6, 1);
+      for (let i = 0; i < 6 + lv * 3; i++) {
+        const a = Math.random() * 6.28, d = Math.random() * R * 0.7, r = Math.random() * 3 + 1;
+        L.img(dot, x + Math.cos(a) * d - r, y + Math.sin(a) * d * 0.8 - r, r * 2, r * 2, 0.35);
+      }
+    }
+    this.scorchQ.length = 0;
+    L.end();
+    this.renderer.render(L.c, { renderTexture: this.scorchRT, clear: false });
+    L.end();
+  },
+
   // ---------- 后期效果：泛光、冲击波扭曲、着色器火球 ----------
   initPost() {
     const P = window.PIXI, ADD = P.BLEND_MODES.ADD;
     // 泛光：把高亮的几层（尾迹、弹头、火球、火星、光柱）单独画到一张低分辨率的图上，模糊后加亮叠回画面
-    this.bright = new Set([this.L.head.c, this.L.air.c, this.fb, this.L.glow.c, this.L.pillar.c, this.g.lines]);
+    // （火星那层粒子多、个头小，泛光里几乎看不出，不参加，省掉一半的粒子绘制）
+    this.bright = new Set([this.L.head.c, this.L.air.c, this.fb, this.L.pillar.c, this.g.lines]);
     this.bloomRT = P.RenderTexture.create({ width: Math.max(1, Render.w), height: Math.max(1, Render.h), resolution: 0.3 });
     this.bloomSpr = new P.Sprite(this.bloomRT);
     const blur = new P.BlurFilter(9, 3, 0.3); blur.blendMode = ADD;
-    this.bloomSpr.filters = [blur]; this.bloomSpr.alpha = 0.7;
+    this.bloomSpr.filters = [blur]; this.bloomSpr.alpha = 0.42;
     this.screen.addChildAt(this.bloomSpr, 0);
     // 冲击波扭曲：整幅画面过一遍着色器，冲击环扫过的地方像隔着热浪一样被向外推开。最多同时 6 道
     this.waves = new Float32Array(24); this.waveN = 0;
@@ -275,16 +315,17 @@ const Gl = {
       void main() {
         float r = length(vP);
         if (r > 1.0) discard;
-        // 火焰向外翻滚：噪声沿半径方向流动
-        vec2 q = vP * 2.6 + uSeed;
-        float n = fbm(q - normalize(vP + 0.0001) * uTime * 0.9 + vec2(0.0, -uTime * 0.5));
+        // 翻滚的火焰：纹理随火球膨胀一起向外撑开，再叠一层缓慢的扭动和上升
+        vec2 q = vP * 2.4 / (0.55 + uAge * 1.1) + uSeed;
+        q += 0.55 * vec2(fbm(q + uTime * 0.35), fbm(q + 5.2 - uTime * 0.3));
+        float n = fbm(q + vec2(0.0, -uTime * 0.4));
         float grow = min(1.0, uAge * 5.0);                       // 开头迅速膨胀
         float cool = pow(1.0 - uAge, 1.3);                       // 之后慢慢冷却
-        float body = smoothstep(1.0, 0.15, r / (0.35 + 0.65 * grow) + (0.5 - n) * 0.9);
-        float I = body * (0.55 + 1.1 * n) * (0.25 + 1.6 * cool);
-        vec3 c = mix(vec3(0.45, 0.04, 0.0), vec3(1.0, 0.42, 0.08), smoothstep(0.05, 0.45, I));
-        c = mix(c, vec3(1.0, 0.86, 0.45), smoothstep(0.45, 0.85, I));
-        c = mix(c, vec3(1.0), smoothstep(0.85, 1.35, I));
+        float body = smoothstep(1.0, 0.1, r / (0.35 + 0.65 * grow) + (0.5 - n) * 1.1);
+        float I = body * (0.5 + 1.2 * n) * (0.2 + 1.25 * cool);
+        vec3 c = mix(vec3(0.4, 0.03, 0.0), vec3(1.0, 0.4, 0.07), smoothstep(0.05, 0.45, I));
+        c = mix(c, vec3(1.0, 0.84, 0.42), smoothstep(0.45, 0.9, I));
+        c = mix(c, vec3(1.0), smoothstep(1.0, 1.5, I));
         if (uRainbow > 0.5) { // 4 级：边缘带一圈流动的彩虹色
           float h = atan(vP.y, vP.x) / 6.2832 + uTime * 0.25 + n * 0.4;
           vec3 rb = 0.55 + 0.45 * cos(6.2832 * (h + vec3(0.0, 0.33, 0.67)));
@@ -331,7 +372,7 @@ const Gl = {
     this.trailMesh.size = this.trailN * (this.NP - 1) * 6;
     this.trailMesh.visible = this.trailN > 0;
     for (let i = this.fbN; i < this.fbPool.length; i++) this.fbPool[i].visible = false;
-    const fancy = FX.quality > 0.6; // 掉帧降画质时先关掉后期效果
+    const fancy = FX.quality > 0.45; // 画质降到一半以下才关掉后期效果（它们主要耗显卡，粒子多才是拖慢的主因）
     // 泛光：只画高亮的几层到低分辨率图上
     this.bloomSpr.visible = fancy;
     if (fancy) {
