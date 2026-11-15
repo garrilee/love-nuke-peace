@@ -1,0 +1,236 @@
+{
+  "date": "2026-11-09",
+  "refs": {
+    "main": "73375a2",
+    "dev": "888788d"
+  },
+  "records": [
+    {
+      "phase": "pipeline",
+      "round": 0,
+      "branch": "main",
+      "viewport": "desktop",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 1.1090000092983245,
+        "median": 1.0999999046325684,
+        "p95": 1.8000000715255737
+      },
+      "frame": {
+        "mean": 16.6661101836394,
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272
+      },
+      "metrics": {
+        "TaskDuration": 1.260429,
+        "ScriptDuration": 0.005426,
+        "LayoutDuration": 0.028392999999999998,
+        "RecalcStyleDuration": 0.076154,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.012670000083745,
+      "heap": 4165584
+    },
+    {
+      "phase": "pipeline",
+      "round": 0,
+      "branch": "dev",
+      "viewport": "desktop",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 0.9438333316644033,
+        "median": 0.8999999761581421,
+        "p95": 1.4000000953674316
+      },
+      "frame": {
+        "mean": 16.665943238731217,
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272
+      },
+      "metrics": {
+        "TaskDuration": 1.05352,
+        "ScriptDuration": 0.004418,
+        "LayoutDuration": 0.013705,
+        "RecalcStyleDuration": 0.058665999999999996,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.010615999926813,
+      "heap": 7344564
+    },
+    {
+      "phase": "pipeline",
+      "round": 0,
+      "branch": "main",
+      "viewport": "mobile",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 0.8848333338896434,
+        "median": 0.8000000715255737,
+        "p95": 1.5
+      },
+      "frame": {
+        "mean": 16.66594323873122,
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728
+      },
+      "metrics": {
+        "TaskDuration": 1.1017519999999998,
+        "ScriptDuration": 0.005481,
+        "LayoutDuration": 0.025861,
+        "RecalcStyleDuration": 0.075894,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.0095980000915,
+      "heap": 4731856
+    },
+    {
+      "phase": "pipeline",
+      "round": 0,
+      "branch": "dev",
+      "viewport": "mobile",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 0.8973333338896433,
+        "median": 0.8000000715255737,
+        "p95": 1.5
+      },
+      "frame": {
+        "mean": 16.665943238731217,
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728
+      },
+      "metrics": {
+        "TaskDuration": 1.0596619999999999,
+        "ScriptDuration": 0.005405,
+        "LayoutDuration": 0.010807,
+        "RecalcStyleDuration": 0.072243,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.009626999963075,
+      "heap": 4385884
+    },
+    {
+      "phase": "pipeline",
+      "round": 1,
+      "branch": "dev",
+      "viewport": "desktop",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 1.2099999952316285,
+        "median": 1.100000023841858,
+        "p95": 2.0999999046325684
+      },
+      "frame": {
+        "mean": 16.665943238731217,
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728
+      },
+      "metrics": {
+        "TaskDuration": 1.316659,
+        "ScriptDuration": 0.005705,
+        "LayoutDuration": 0.014184,
+        "RecalcStyleDuration": 0.07828099999999999,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.011343999998644,
+      "heap": 7070196
+    },
+    {
+      "phase": "pipeline",
+      "round": 1,
+      "branch": "main",
+      "viewport": "desktop",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 1.0998333366711934,
+        "median": 1,
+        "p95": 2.0999999046325684
+      },
+      "frame": {
+        "mean": 16.665943238731217,
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728
+      },
+      "metrics": {
+        "TaskDuration": 1.264801,
+        "ScriptDuration": 0.005737,
+        "LayoutDuration": 0.030104999999999996,
+        "RecalcStyleDuration": 0.076411,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.010097000049427,
+      "heap": 4096052
+    },
+    {
+      "phase": "pipeline",
+      "round": 1,
+      "branch": "dev",
+      "viewport": "mobile",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 0.931000003417333,
+        "median": 0.8999999761581421,
+        "p95": 1.600000023841858
+      },
+      "frame": {
+        "mean": 16.665943238731217,
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728
+      },
+      "metrics": {
+        "TaskDuration": 1.144217,
+        "ScriptDuration": 0.006138000000000001,
+        "LayoutDuration": 0.011552999999999999,
+        "RecalcStyleDuration": 0.080652,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.008425000007264,
+      "heap": 5260876
+    },
+    {
+      "phase": "pipeline",
+      "round": 1,
+      "branch": "main",
+      "viewport": "mobile",
+      "hash": "b41ed582c23d422b8cc48948093f51f389d75331305970ce1c95fda74dcd4be4",
+      "endHash": "13d23d265d0f7a29336f126fce4c95f2a8fde5c3123dde4f6d9a88e5156b6773",
+      "cpu": {
+        "mean": 0.7423333358764649,
+        "median": 0.6999999284744263,
+        "p95": 1.1999999284744263
+      },
+      "frame": {
+        "mean": 16.6661101836394,
+        "median": 16.69999999999891,
+        "p95": 16.799999999999272
+      },
+      "metrics": {
+        "TaskDuration": 0.896954,
+        "ScriptDuration": 0.004416,
+        "LayoutDuration": 0.023572000000000003,
+        "RecalcStyleDuration": 0.063299,
+        "LayoutCount": 62,
+        "RecalcStyleCount": 600
+      },
+      "elapsed": 10.009284999920055,
+      "heap": 5126344
+    }
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55",
+  "renderer": "ANGLE (AMD, AMD Radeon 780M Graphics (0x000015BF) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}
