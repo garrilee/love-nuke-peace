@@ -291,6 +291,7 @@ function onMapClick(tile, sx, sy) {
 window.addEventListener('DOMContentLoaded', () => {
   Render.init($('game'));
   FX.init();
+  Gl.load(); // WebGL 特效层（PixiJS）：后台加载，加载好之前和不支持的设备上用 Canvas 2D
   setupInput();
   UI.initStart(startGame);
   requestAnimationFrame(frame);

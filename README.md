@@ -89,6 +89,7 @@ python -m http.server 8765
 - 代码按职责分文件（普通脚本，按 `index.html` 里的顺序加载，不需要打包）：
   - `js/sim/`：模拟。`core` 开局与工具，`step` 每步推进与生产，`strike` 核包裹/导弹/小摩托与命中，`defense` 空战/拦截/护盾/大招/重建，`boss` 三体人（智子、乱纪元、降维打击），`events` 全球事件，`end` 胜负判定
   - `js/ui/`：界面。`base` 面板与通用，`strike` 发射按钮/选目标/地图浮窗，`rank` 人口排行榜，`tips` 新手引导与局势提示，`end` 结算与人口走势图
+  - `js/render/gl.js`：WebGL 特效层（PixiJS 7，从 unpkg 动态加载）。粒子、火焰、爆炸、飞弹尾迹、小摩托由显卡合批绘制；加载失败或设备不支持 WebGL 时自动退回 Canvas 2D。网址加 `?nogl` 可强制用 Canvas 2D
   - `js/render/`：绘制。`base` 地图与城市，`units` 飞行物与来袭准星，`labels` 国家标签，`boss` 降维打击与乱纪元
   - `js/icons.js` 种族徽章（SVG）
   - `tools/balance.html` 平衡测试页：在后台线程批量跑对局，输出时长、胜率、科技时间线（本地起服务器后打开 `/tools/balance.html`）

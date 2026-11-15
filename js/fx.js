@@ -731,6 +731,120 @@ const FX = {
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   },
 
+  // ---------- WebGL 版本（Gl.on 时使用）：画法和上面三个函数一一对应，只是交给显卡合批 ----------
+  glGround() {
+    const L = Gl.L.ground, red = Gl.tex(this.S.red), warm = Gl.tex(this.S.warm);
+    for (const g of this.glows) {
+      if (!Render.visibleRect(g.x - g.R, g.y - g.R * 0.7, g.R * 2, g.R * 1.4)) continue;
+      L.img(red, g.x - g.R, g.y - g.R * 0.7, g.R * 2, g.R * 1.4, (1 - g.age / g.life) * 0.7 * (0.85 + Math.sin(g.age * 9 + g.x) * 0.15));
+    }
+    for (const g of this.groundFlash) {
+      if (!Render.visibleRect(g.x - g.R, g.y - g.R * 0.75, g.R * 2, g.R * 1.5)) continue;
+      L.img(warm, g.x - g.R, g.y - g.R * 0.75, g.R * 2, g.R * 1.5, Math.pow(1 - g.age / g.life, 2) * 0.9);
+    }
+  },
+  glFires() {
+    const T = Render.time, L = Gl.L.ground, fire = Gl.tex(this.S.fire), hot = Gl.tex(this.S.fireHot);
+    for (const f of this.fires) {
+      const s = f.s;
+      if (!Render.visibleRect(f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s)) continue;
+      const k = f.age / f.life, it = Math.min(1, f.age / 1.2) * Math.pow(1 - k, 0.6);
+      const fl = 0.65 + 0.35 * Math.sin(T * 11 + f.ph) * Math.sin(T * 6.7 + f.ph * 1.7);
+      L.img(fl > 0.85 ? hot : fire, f.x - 7 * s, f.y - 5 * s, 14 * s, 10 * s, it * fl);
+    }
+  },
+  glAir() {
+    const S = this.S, A = Gl.L.air, g = Gl.lines, tx = (c) => Gl.tex(c);
+    // 空战曳光弹
+    for (const t of this.tracers) {
+      const k = t.age / t.life, e = Math.min(1, k * 3);
+      g.lineStyle(1, 0xffeb96, 0.9 * (1 - k));
+      g.moveTo(t.x1, t.y1); g.lineTo(lerp(t.x1, t.x2, e), lerp(t.y1, t.y2, e));
+    }
+    // 冲击波
+    for (const r of this.rings) {
+      if (r.age < 0) continue;
+      const k = r.age / r.life, rad = r.R * (1 - Math.pow(1 - k, r.fast ? 3 : 2.2));
+      const pad = Math.max(r.w * (1 - k) + 0.5, r.fast ? 0 : r.w * 4 * (1 - k)) / 2;
+      if (!Render.visibleRect(r.x - rad - pad, r.y - rad * 0.62 - pad, 2 * (rad + pad), 2 * (rad * 0.62 + pad))) continue;
+      let col = 0xc8e6ff, a = (1 - k) * 0.75;
+      if (r.rainbow) { const c = hslToRgb(((r.age * 400) % 360) / 360, 1, 0.7); col = (c[0] << 16) | (c[1] << 8) | c[2]; a = (1 - k) * 0.8; }
+      else if (r.shield) { col = 0x78e6ff; a = (1 - k) * 0.95; }
+      else if (r.fast) { col = 0xfff0d2; a = (1 - k) * 0.9; }
+      g.lineStyle(r.w * (1 - k) + 0.5, col, a);
+      g.drawEllipse(r.x, r.y, rad, rad * 0.62);
+      if (!r.fast) { // 冲击波内侧的光晕带
+        g.lineStyle(r.w * 4 * (1 - k), 0xffc88c, (1 - k) * 0.12);
+        g.drawEllipse(r.x, r.y, rad * 0.97, rad * 0.6);
+      }
+    }
+    // 光芒（压扁成椭圆透视：方向的纵向分量 ×0.62）
+    const ray = tx(S.ray);
+    for (const r of this.rays) {
+      const k = r.age / r.life, a = Math.pow(1 - k, 1.6);
+      const len = r.R * (0.4 + 0.6 * Math.min(1, r.age / 0.15));
+      const bound = len * Math.hypot(1, 0.07);
+      if (!Render.visibleRect(r.x - bound, r.y - bound * 0.62, bound * 2, bound * 1.24)) continue;
+      for (let i = 0; i < r.n; i++) {
+        const ang = r.rot + (i / r.n) * Math.PI * 2 + Math.sin(i * 7.3) * 0.15;
+        const L = len * (0.6 + 0.4 * Math.abs(Math.sin(i * 3.7)));
+        const dx = Math.cos(ang), dy = Math.sin(ang) * 0.62;
+        A.rot(ray, r.x, r.y, L * Math.hypot(dx, dy), L * 0.14, a, Math.atan2(dy, dx), 0, 0.5);
+      }
+    }
+    // 火球
+    const orange = tx(S.orange), warm = tx(S.warm), white = tx(S.white);
+    for (const b of this.balls) {
+      const k = b.age / b.life, grow = Math.min(1, b.age / 0.5);
+      const R = b.R * (0.3 + 0.7 * grow);
+      if (!Render.visibleRect(b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2)) continue;
+      A.img(orange, b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2, Math.pow(1 - k, 1.5));
+      A.img(warm, b.x - R, b.y - R, R * 2, R * 2, Math.pow(1 - k, 3));
+      if (k < 0.25) A.img(white, b.x - R * 0.7, b.y - R * 0.7, R * 1.4, R * 1.4, 1 - k * 4);
+    }
+    // 火柱：下宽上窄、下亮上暗的一张贴图
+    const colTex = Gl.made('column', 2, 1, 32, (cx) => {
+      const gr = cx.createLinearGradient(0, 1, 0, 0);
+      gr.addColorStop(0, 'rgba(255,220,150,0.75)'); gr.addColorStop(0.5, 'rgba(255,140,50,0.55)'); gr.addColorStop(1, 'rgba(255,90,30,0.15)');
+      cx.fillStyle = gr;
+      cx.beginPath(); cx.moveTo(0, 1); cx.lineTo(0.55, 0); cx.lineTo(1.45, 0); cx.lineTo(2, 1); cx.closePath(); cx.fill();
+    });
+    for (const c of this.columns) {
+      if (c.age < 0) continue;
+      const k = c.age / c.life, grow = Math.min(1, c.age / 0.6);
+      const top = lerp(c.y, c.top, grow), w = c.w * (1 - k * 0.4);
+      if (!Render.visibleRect(c.x - w, Math.min(top, c.y), w * 2, Math.abs(c.y - top))) continue;
+      A.img(colTex, c.x - w, top, w * 2, c.y - top, Math.pow(1 - k, 1.4));
+    }
+    // 云帽内部的火光
+    for (const q of this.capGlows) {
+      if (q.age < 0 || !Render.visibleRect(q.x - q.R, q.y - q.R * 0.6, q.R * 2, q.R * 1.2)) continue;
+      const k = q.age / q.life, a = Math.min(1, q.age / 0.3) * Math.pow(1 - k, 1.2);
+      A.img(orange, q.x - q.R, q.y - q.R * 0.6, q.R * 2, q.R * 1.2, a * 0.9);
+      A.img(warm, q.x - q.R * 0.55, q.y - q.R * 0.3, q.R * 1.1, q.R * 0.6, a * 0.6);
+    }
+    // 粒子：烟（普通混合）一层，火光和火星（加色混合）一层
+    const crowd = clamp(1.1 - this.capGlows.length * CFG.SMOKE_CROWD, CFG.SMOKE_MIN_ALPHA, 1);
+    const SM = Gl.L.smoke, GW = Gl.L.glow;
+    for (const p of this.parts) {
+      const s = p.size;
+      if (p.delay > 0 || !Render.visibleRect(p.x - s, p.y - s, s * 2, s * 2)) continue;
+      const k = p.age / p.life;
+      if (p.add) { GW.img(tx(p.sprite), p.x - s, p.y - s, s * 2, s * 2, p.alpha * Math.min(1, p.age / 0.25) * (1 - k * k)); continue; }
+      const late = clamp((k - 0.35) / 0.65, 0, 1);
+      SM.img(tx(p.sprite), p.x - s, p.y - s, s * 2, s * 2, p.alpha * Math.min(1, p.age / 0.25) * Math.pow(1 - late, 1.4) * lerp(1, crowd, late));
+      if (!p.fire) continue;
+      // 烟被火光从内部照亮，逐渐冷却
+      const fire = Math.max(0, 1 - k * 1.7);
+      if (fire > 0) {
+        const under = p.orbit ? clamp(0.5 + (p.y - p.cy) / (s + 1), 0.25, 1) : 1;
+        GW.img(k < 0.1 ? warm : orange, p.x - s * 0.85, p.y - s * 0.7, s * 1.7, s * 1.7, fire * 0.7 * under);
+        if (k < 0.08) GW.img(white, p.x - s * 0.5, p.y - s * 0.5, s, s, (1 - k / 0.08) * 0.5);
+      }
+      if (p.hue >= 0) GW.img(tx(this.hue[(p.hue + Math.floor(p.age * 6)) % 12]), p.x - s, p.y - s, s * 2, s * 2, 0.35 * (1 - k));
+    }
+  },
+
   drawTexts(ctx, zoom) {
     ctx.textAlign = 'center';
     for (const t of this.texts) {

@@ -31,6 +31,7 @@ const Render = {
     document.body.classList.toggle('portrait', compact && this.h > this.w);
     this.canvas.width = this.w * this.dpr; this.canvas.height = this.h * this.dpr;
     this.canvas.style.width = this.w + 'px'; this.canvas.style.height = this.h + 'px';
+    if (typeof Gl !== 'undefined') Gl.resize();
     if (typeof G !== 'undefined' && G && this.base) this.fit(); // 窗口变化时地图重新居中
   },
   fit() {
@@ -293,9 +294,11 @@ const Render = {
     v.top = camY + (-this.h / 2 - sy) / pz - pad;
     v.bottom = camY + (this.h / 2 - sy) / pz + pad;
 
+    // WebGL 特效层可用时：特效和飞弹交给它画，标签、文字、屏幕效果画到最上层的 2D 画布（top）
+    const gl = Gl.on, top = gl ? Gl.begin(camX, camY, pz, sx, sy) : ctx;
+
     ctx.drawImage(this.base, 0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
-    const S = FX.S;
 
     // 我方国土：更亮的底色 + 呼吸发光的金色国境线（发光层预先画好，每帧只调透明度）
     const me = G.player;
@@ -335,37 +338,39 @@ const Render = {
 
     this.drawDust(ctx, T);
     if (G.boss) { this.drawFlat(ctx, z, T); this.drawChaos(ctx, z, T); }
-    FX.drawGround(ctx);
-    FX.drawFires(ctx);
+    if (gl) { FX.glGround(); FX.glFires(); }
+    else { FX.drawGround(ctx); FX.drawFires(ctx); }
 
     this.drawCities(ctx, z, T);
     this.drawFacilities(ctx, z, T);
     FX.drawCineDark(ctx);   // 东风镜头：先压暗地面，飞弹和光柱在上面
     if (G.dims && G.dims.length) this.drawDims(ctx, z, T);
-    this.drawProjectiles(ctx, z, T);
-    FX.drawAir(ctx);
-    FX.drawCinePillar(ctx, z);
-    this.drawLabels(ctx, z);
-    this.drawMarkers(ctx, z, T);
-    this.drawCrate(ctx, z, T);
-    FX.drawTexts(ctx, z);
-    FX.drawCombos(ctx, z);
+    if (gl) ctx.restore();  // 底层画布到此为止，以下画到最上层
+    this.drawProjectiles(top, z, T);
+    if (gl) FX.glAir(); else FX.drawAir(ctx);
+    FX.drawCinePillar(top, z);
+    this.drawLabels(top, z);
+    this.drawMarkers(top, z, T);
+    this.drawCrate(top, z, T);
+    FX.drawTexts(top, z);
+    FX.drawCombos(top, z);
 
     if (this.hoverTile) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.2 / z;
-      this.hexPath(ctx, this.hoverTile.x, this.hoverTile.y, CFG.HEX); ctx.stroke();
+      top.strokeStyle = 'rgba(255,255,255,0.7)'; top.lineWidth = 1.2 / z;
+      this.hexPath(top, this.hoverTile.x, this.hoverTile.y, CFG.HEX); top.stroke();
     }
-    ctx.restore();
+    top.restore();
 
     // ---- 屏幕层 ----
     const w = this.w, h = this.h;
-    ctx.drawImage(this.vignette('black'), 0, 0, w, h);
+    top.drawImage(this.vignette('black'), 0, 0, w, h);
     if (G.player.alive && incomingFor(G.player).some((x) => isThreat(x.p))) {
-      ctx.globalAlpha = 0.18 + 0.12 * Math.sin(T * 7);
-      ctx.drawImage(this.vignette('red'), 0, 0, w, h);
-      ctx.globalAlpha = 1;
+      top.globalAlpha = 0.18 + 0.12 * Math.sin(T * 7);
+      top.drawImage(this.vignette('red'), 0, 0, w, h);
+      top.globalAlpha = 1;
     }
-    FX.drawScreen(ctx, w, h);
+    FX.drawScreen(top, w, h);
+    if (gl) Gl.end();
   },
 
   // ---------- 灰尘（辐射）层：后期有几百个地块带辐射，光斑每 0.25 秒画到一张小图上，每帧只贴这一张图 ----------
