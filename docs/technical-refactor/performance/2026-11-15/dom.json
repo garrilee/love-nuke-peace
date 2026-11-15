@@ -1,0 +1,56 @@
+{
+  "main": {
+    "ms": 17.200000047683716,
+    "counts": {
+      "rankList": {
+        "mutations": 36,
+        "addedElements": 144,
+        "removedElements": 144,
+        "added": 144,
+        "removed": 144
+      },
+      "stats": {
+        "mutations": 100,
+        "addedElements": 300,
+        "removedElements": 300,
+        "added": 600,
+        "removed": 600
+      },
+      "research": {
+        "mutations": 45,
+        "addedElements": 135,
+        "removedElements": 135,
+        "added": 135,
+        "removed": 135
+      }
+    },
+    "errors": []
+  },
+  "dev": {
+    "ms": 5.5,
+    "counts": {
+      "rankList": {
+        "mutations": 53,
+        "addedElements": 0,
+        "removedElements": 0,
+        "added": 52,
+        "removed": 52
+      },
+      "stats": {
+        "mutations": 113,
+        "addedElements": 0,
+        "removedElements": 0,
+        "added": 113,
+        "removed": 113
+      },
+      "research": {
+        "mutations": 90,
+        "addedElements": 0,
+        "removedElements": 0,
+        "added": 45,
+        "removed": 45
+      }
+    },
+    "errors": []
+  }
+}

@@ -1,0 +1,6186 @@
+{
+  "errors": [],
+  "initialHashesEqual": true,
+  "runs": [
+    {
+      "branch": "baseline",
+      "elapsed": 120.011,
+      "frames": 7201,
+      "fps": 60.00283307363492,
+      "cpuMean": 2.1384391056599013,
+      "cpuP95": 3.799999952316284,
+      "drawMean": 1.9037633653879662,
+      "frameP95": 16.70000000001164,
+      "frameP99": 16.80000000000291,
+      "gapsOver25": 0,
+      "gapsOver50": 0,
+      "taskMsPerSecond": 201.90908958863977,
+      "layoutMsPerSecond": 4.448119555942236,
+      "attacks": 36,
+      "aiToAiAttacks": 4,
+      "munitions": 84,
+      "explosions": 76,
+      "intercepts": 9,
+      "meanParticles": 303.4181363699486,
+      "peakParticles": 1669,
+      "meanProjectiles": 5.551728926537981,
+      "peakProjectiles": 24,
+      "simStart": 179.99999999999406,
+      "simEnd": 299.9999999999997,
+      "over": null,
+      "eliminations": 0,
+      "bins": [
+        {
+          "second": 1,
+          "frames": 60,
+          "cpu": 2.9533333400885264,
+          "p95": 4.600000023841858,
+          "draw": 2.611666679382324,
+          "particles": 674.55,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 2,
+          "frames": 60,
+          "cpu": 2.498333332935969,
+          "p95": 3.899999976158142,
+          "draw": 2.1083333253860475,
+          "particles": 472.25,
+          "projectiles": 7.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 3,
+          "frames": 60,
+          "cpu": 2.49500000278155,
+          "p95": 4.100000023841858,
+          "draw": 2.1766666730244952,
+          "particles": 371.25,
+          "projectiles": 7,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 4,
+          "frames": 60,
+          "cpu": 2.5533333440621693,
+          "p95": 3.600000023841858,
+          "draw": 2.2166666785875955,
+          "particles": 305.26666666666665,
+          "projectiles": 7.2,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 5,
+          "frames": 60,
+          "cpu": 2.7816666662693024,
+          "p95": 4.5,
+          "draw": 2.474999996026357,
+          "particles": 311.9166666666667,
+          "projectiles": 6.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 6,
+          "frames": 60,
+          "cpu": 2.4049999992052715,
+          "p95": 3.8000000715255737,
+          "draw": 2.0866666615009306,
+          "particles": 274.1,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 7,
+          "frames": 60,
+          "cpu": 2.144999998807907,
+          "p95": 2.9000000953674316,
+          "draw": 1.8833333373069763,
+          "particles": 198.85,
+          "projectiles": 4.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 8,
+          "frames": 60,
+          "cpu": 1.9866666654745737,
+          "p95": 3.200000047683716,
+          "draw": 1.8216666599114737,
+          "particles": 120.68333333333334,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 9,
+          "frames": 60,
+          "cpu": 1.7783333301544189,
+          "p95": 2.399999976158142,
+          "draw": 1.6366666615009309,
+          "particles": 69.18333333333334,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 10,
+          "frames": 60,
+          "cpu": 1.8916666626930236,
+          "p95": 2.6999999284744263,
+          "draw": 1.719999998807907,
+          "particles": 85.08333333333333,
+          "projectiles": 4.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 11,
+          "frames": 60,
+          "cpu": 1.7016666650772094,
+          "p95": 2.5,
+          "draw": 1.5650000075499217,
+          "particles": 108.36666666666666,
+          "projectiles": 6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 12,
+          "frames": 60,
+          "cpu": 1.699999996026357,
+          "p95": 2.600000023841858,
+          "draw": 1.5366666555404662,
+          "particles": 174,
+          "projectiles": 5.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 13,
+          "frames": 60,
+          "cpu": 1.974999992052714,
+          "p95": 2.9000000953674316,
+          "draw": 1.7799999952316283,
+          "particles": 417.96666666666664,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 14,
+          "frames": 60,
+          "cpu": 2.3150000095367433,
+          "p95": 3.700000047683716,
+          "draw": 2.028333334128062,
+          "particles": 497.1,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 15,
+          "frames": 60,
+          "cpu": 2.355000007152557,
+          "p95": 3.299999952316284,
+          "draw": 2.1166666726271313,
+          "particles": 718.8,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 16,
+          "frames": 60,
+          "cpu": 2.2483333349227905,
+          "p95": 3.1999999284744263,
+          "draw": 1.9649999976158141,
+          "particles": 566.5833333333334,
+          "projectiles": 4.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 17,
+          "frames": 60,
+          "cpu": 2.290000001589457,
+          "p95": 3.399999976158142,
+          "draw": 2.031666660308838,
+          "particles": 580.9833333333333,
+          "projectiles": 16,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 18,
+          "frames": 60,
+          "cpu": 2.6900000015894574,
+          "p95": 3.899999976158142,
+          "draw": 2.344999998807907,
+          "particles": 609.6833333333333,
+          "projectiles": 17.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 19,
+          "frames": 60,
+          "cpu": 2.706666652361552,
+          "p95": 3.6999999284744263,
+          "draw": 2.3399999916553496,
+          "particles": 496.55,
+          "projectiles": 19,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 20,
+          "frames": 59,
+          "cpu": 2.857627127130153,
+          "p95": 4.400000095367432,
+          "draw": 2.4932203373666537,
+          "particles": 378.3728813559322,
+          "projectiles": 19,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 21,
+          "frames": 61,
+          "cpu": 2.9524590148300422,
+          "p95": 4,
+          "draw": 2.6672131194443,
+          "particles": 306.44262295081967,
+          "projectiles": 20.9672131147541,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 22,
+          "frames": 60,
+          "cpu": 2.6516666809717813,
+          "p95": 3.600000023841858,
+          "draw": 2.45,
+          "particles": 219.66666666666666,
+          "projectiles": 23,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 23,
+          "frames": 60,
+          "cpu": 2.2199999888738,
+          "p95": 2.9000000953674316,
+          "draw": 2.0499999980131784,
+          "particles": 152.4,
+          "projectiles": 22.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 24,
+          "frames": 60,
+          "cpu": 2.6233333309491473,
+          "p95": 3.899999976158142,
+          "draw": 2.408333335320155,
+          "particles": 267.51666666666665,
+          "projectiles": 21.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 25,
+          "frames": 60,
+          "cpu": 2.7433333337306975,
+          "p95": 3.6999999284744263,
+          "draw": 2.4583333233992257,
+          "particles": 443.85,
+          "projectiles": 21.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 26,
+          "frames": 60,
+          "cpu": 3.2116666634877524,
+          "p95": 4.399999976158142,
+          "draw": 2.8116666714350385,
+          "particles": 1020.1,
+          "projectiles": 17.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 27,
+          "frames": 60,
+          "cpu": 4.270000004768372,
+          "p95": 5.599999904632568,
+          "draw": 3.6116666555404664,
+          "particles": 1555.8333333333333,
+          "projectiles": 13,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 28,
+          "frames": 60,
+          "cpu": 3.9116666694482167,
+          "p95": 5.400000095367432,
+          "draw": 3.263333340485891,
+          "particles": 1356.25,
+          "projectiles": 11.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 29,
+          "frames": 60,
+          "cpu": 3.8233333349227907,
+          "p95": 5.200000047683716,
+          "draw": 3.2616666674613954,
+          "particles": 1305.8166666666666,
+          "projectiles": 9.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 30,
+          "frames": 60,
+          "cpu": 3.6733333349227903,
+          "p95": 5.700000047683716,
+          "draw": 3.1666666587193806,
+          "particles": 1282.5333333333333,
+          "projectiles": 7.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 31,
+          "frames": 60,
+          "cpu": 3.4149999916553497,
+          "p95": 5.600000023841858,
+          "draw": 2.9316666603088377,
+          "particles": 1126.9666666666667,
+          "projectiles": 9.2,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 32,
+          "frames": 60,
+          "cpu": 3.0866666694482165,
+          "p95": 4.399999976158142,
+          "draw": 2.559999986489614,
+          "particles": 863.6166666666667,
+          "projectiles": 13,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 33,
+          "frames": 60,
+          "cpu": 2.8983333309491477,
+          "p95": 4,
+          "draw": 2.451666667064031,
+          "particles": 660.7,
+          "projectiles": 12,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 34,
+          "frames": 60,
+          "cpu": 3.0799999992052713,
+          "p95": 4.599999904632568,
+          "draw": 2.6583333293596905,
+          "particles": 606.0833333333334,
+          "projectiles": 10.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 35,
+          "frames": 60,
+          "cpu": 3.37000000278155,
+          "p95": 4.399999976158142,
+          "draw": 2.8350000023841857,
+          "particles": 755.7666666666667,
+          "projectiles": 8.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 36,
+          "frames": 59,
+          "cpu": 3.7322033886182107,
+          "p95": 4.800000071525574,
+          "draw": 3.1542372885396923,
+          "particles": 647.2542372881356,
+          "projectiles": 6.11864406779661,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 37,
+          "frames": 61,
+          "cpu": 4.275409829421122,
+          "p95": 5.600000023841858,
+          "draw": 3.7049180269241333,
+          "particles": 672.1639344262295,
+          "projectiles": 4.114754098360656,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 38,
+          "frames": 60,
+          "cpu": 3.796666669845581,
+          "p95": 4.899999976158142,
+          "draw": 3.3216666618982953,
+          "particles": 519.9666666666667,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 39,
+          "frames": 60,
+          "cpu": 3.0299999892711638,
+          "p95": 3.799999952316284,
+          "draw": 2.6399999896685284,
+          "particles": 400.51666666666665,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 40,
+          "frames": 60,
+          "cpu": 2.3500000019868215,
+          "p95": 3.5,
+          "draw": 2.0699999928474426,
+          "particles": 335.26666666666665,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 41,
+          "frames": 60,
+          "cpu": 1.9233333269755046,
+          "p95": 2.600000023841858,
+          "draw": 1.7433333158493043,
+          "particles": 264.45,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 42,
+          "frames": 60,
+          "cpu": 1.7399999996026356,
+          "p95": 2.5,
+          "draw": 1.5849999964237214,
+          "particles": 175.91666666666666,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 43,
+          "frames": 60,
+          "cpu": 1.856666668256124,
+          "p95": 2.5,
+          "draw": 1.67666667898496,
+          "particles": 311.98333333333335,
+          "projectiles": 4.7,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 44,
+          "frames": 60,
+          "cpu": 2.173333336909612,
+          "p95": 3.299999952316284,
+          "draw": 1.9716666797796885,
+          "particles": 402.46666666666664,
+          "projectiles": 6.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 45,
+          "frames": 60,
+          "cpu": 2.028333330154419,
+          "p95": 2.399999976158142,
+          "draw": 1.8433333337306976,
+          "particles": 388.76666666666665,
+          "projectiles": 6.3,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 46,
+          "frames": 60,
+          "cpu": 1.9583333373069762,
+          "p95": 2.5,
+          "draw": 1.7850000083446502,
+          "particles": 293.15,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 47,
+          "frames": 60,
+          "cpu": 1.8566666781902312,
+          "p95": 2.200000047683716,
+          "draw": 1.6983333468437194,
+          "particles": 263.1,
+          "projectiles": 6.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 48,
+          "frames": 60,
+          "cpu": 1.8650000015894572,
+          "p95": 2.700000047683716,
+          "draw": 1.6916666686534882,
+          "particles": 250.06666666666666,
+          "projectiles": 7.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 49,
+          "frames": 60,
+          "cpu": 1.8333333293596903,
+          "p95": 2.6999999284744263,
+          "draw": 1.6449999968210856,
+          "particles": 241.75,
+          "projectiles": 6.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 50,
+          "frames": 60,
+          "cpu": 1.9900000075499216,
+          "p95": 3,
+          "draw": 1.7983333309491476,
+          "particles": 286.55,
+          "projectiles": 4.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 51,
+          "frames": 60,
+          "cpu": 2.283333341280619,
+          "p95": 3.299999952316284,
+          "draw": 2.0316666702429456,
+          "particles": 411.6,
+          "projectiles": 3.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 52,
+          "frames": 60,
+          "cpu": 2.626666671037674,
+          "p95": 3.600000023841858,
+          "draw": 2.3383333325386046,
+          "particles": 368.81666666666666,
+          "projectiles": 1.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 53,
+          "frames": 60,
+          "cpu": 2.6283333202203116,
+          "p95": 3.700000047683716,
+          "draw": 2.3583333214124043,
+          "particles": 297.98333333333335,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 54,
+          "frames": 60,
+          "cpu": 2.428333326180776,
+          "p95": 3.5,
+          "draw": 2.183333343267441,
+          "particles": 254.2,
+          "projectiles": 1.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 55,
+          "frames": 60,
+          "cpu": 2.003333334128062,
+          "p95": 2.899999976158142,
+          "draw": 1.7866666654745738,
+          "particles": 239.51666666666668,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 56,
+          "frames": 60,
+          "cpu": 1.8066666543483734,
+          "p95": 2.6999999284744263,
+          "draw": 1.6399999996026358,
+          "particles": 200.73333333333332,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 57,
+          "frames": 60,
+          "cpu": 1.921666673819224,
+          "p95": 2.799999952316284,
+          "draw": 1.7316666742165883,
+          "particles": 230.35,
+          "projectiles": 1.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 58,
+          "frames": 60,
+          "cpu": 1.893333327770233,
+          "p95": 3.100000023841858,
+          "draw": 1.7166666547457377,
+          "particles": 258.23333333333335,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 59,
+          "frames": 60,
+          "cpu": 1.756666660308838,
+          "p95": 2.4000000953674316,
+          "draw": 1.603333342075348,
+          "particles": 189.38333333333333,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 60,
+          "frames": 60,
+          "cpu": 1.7649999956289928,
+          "p95": 2.4000000953674316,
+          "draw": 1.6116666773955026,
+          "particles": 162.23333333333332,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 61,
+          "frames": 60,
+          "cpu": 1.6349999765555063,
+          "p95": 2.399999976158142,
+          "draw": 1.476666659116745,
+          "particles": 149.41666666666666,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 62,
+          "frames": 60,
+          "cpu": 1.6066666781902312,
+          "p95": 2.299999952316284,
+          "draw": 1.4550000091393789,
+          "particles": 133.66666666666666,
+          "projectiles": 1.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 63,
+          "frames": 60,
+          "cpu": 1.6116666575272878,
+          "p95": 2.1999999284744263,
+          "draw": 1.4649999896685282,
+          "particles": 132.05,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 64,
+          "frames": 60,
+          "cpu": 1.5099999984105428,
+          "p95": 2.299999952316284,
+          "draw": 1.4099999924500783,
+          "particles": 91.98333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 65,
+          "frames": 60,
+          "cpu": 1.5366666694482167,
+          "p95": 2.200000047683716,
+          "draw": 1.406666672229767,
+          "particles": 64.23333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 66,
+          "frames": 60,
+          "cpu": 1.5066666682561238,
+          "p95": 2.399999976158142,
+          "draw": 1.3850000023841857,
+          "particles": 58.96666666666667,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 67,
+          "frames": 60,
+          "cpu": 1.7633333285649617,
+          "p95": 2.5,
+          "draw": 1.604999993244807,
+          "particles": 75.68333333333334,
+          "projectiles": 2.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 68,
+          "frames": 60,
+          "cpu": 2.1883333285649615,
+          "p95": 3,
+          "draw": 1.9599999964237214,
+          "particles": 226.13333333333333,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 69,
+          "frames": 60,
+          "cpu": 2.061666657527288,
+          "p95": 2.899999976158142,
+          "draw": 1.866666664679845,
+          "particles": 189.83333333333334,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 70,
+          "frames": 60,
+          "cpu": 1.9516666491826375,
+          "p95": 3,
+          "draw": 1.7816666583220164,
+          "particles": 186.36666666666667,
+          "projectiles": 1.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 71,
+          "frames": 60,
+          "cpu": 1.8433333297570547,
+          "p95": 2.899999976158142,
+          "draw": 1.6466666678587596,
+          "particles": 179.15,
+          "projectiles": 3.5,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 72,
+          "frames": 60,
+          "cpu": 1.8266666690508524,
+          "p95": 3,
+          "draw": 1.6333333373069763,
+          "particles": 145.28333333333333,
+          "projectiles": 4.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 73,
+          "frames": 60,
+          "cpu": 1.7666666686534882,
+          "p95": 2.5,
+          "draw": 1.6116666773955026,
+          "particles": 167.3,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 74,
+          "frames": 60,
+          "cpu": 1.6183333317438762,
+          "p95": 2.399999976158142,
+          "draw": 1.4716666678587595,
+          "particles": 99.7,
+          "projectiles": 5.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 75,
+          "frames": 60,
+          "cpu": 1.5516666571299236,
+          "p95": 2.200000047683716,
+          "draw": 1.4299999932448069,
+          "particles": 55.65,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 76,
+          "frames": 60,
+          "cpu": 1.5616666773955028,
+          "p95": 2.200000047683716,
+          "draw": 1.4216666797796884,
+          "particles": 62.833333333333336,
+          "projectiles": 5.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 77,
+          "frames": 60,
+          "cpu": 1.6949999968210856,
+          "p95": 2.4000000953674316,
+          "draw": 1.5216666777928671,
+          "particles": 233.9,
+          "projectiles": 3.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 78,
+          "frames": 60,
+          "cpu": 1.553333326180776,
+          "p95": 2.100000023841858,
+          "draw": 1.4216666758060454,
+          "particles": 198.86666666666667,
+          "projectiles": 2.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 79,
+          "frames": 60,
+          "cpu": 1.556666664282481,
+          "p95": 2.100000023841858,
+          "draw": 1.3983333349227904,
+          "particles": 197.31666666666666,
+          "projectiles": 1.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 80,
+          "frames": 60,
+          "cpu": 1.521666685740153,
+          "p95": 2.100000023841858,
+          "draw": 1.376666671037674,
+          "particles": 161.73333333333332,
+          "projectiles": 4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 81,
+          "frames": 60,
+          "cpu": 1.476666659116745,
+          "p95": 2.100000023841858,
+          "draw": 1.325000003973643,
+          "particles": 123.6,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 82,
+          "frames": 60,
+          "cpu": 1.451666667064031,
+          "p95": 2.200000047683716,
+          "draw": 1.2866666694482167,
+          "particles": 115.71666666666667,
+          "projectiles": 4.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 83,
+          "frames": 60,
+          "cpu": 1.8183333237965902,
+          "p95": 3,
+          "draw": 1.6516666650772094,
+          "particles": 113.06666666666666,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 84,
+          "frames": 60,
+          "cpu": 1.8683333277702332,
+          "p95": 2.799999952316284,
+          "draw": 1.7066666563351949,
+          "particles": 69.06666666666666,
+          "projectiles": 4.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 85,
+          "frames": 60,
+          "cpu": 2.0633333325386047,
+          "p95": 3,
+          "draw": 1.9033333301544189,
+          "particles": 102.6,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 86,
+          "frames": 60,
+          "cpu": 1.718333327770233,
+          "p95": 2.899999976158142,
+          "draw": 1.601666659116745,
+          "particles": 52.81666666666667,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 87,
+          "frames": 60,
+          "cpu": 1.5283333361148834,
+          "p95": 2.100000023841858,
+          "draw": 1.4100000063578289,
+          "particles": 56.86666666666667,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 88,
+          "frames": 60,
+          "cpu": 1.4950000127156575,
+          "p95": 2.299999952316284,
+          "draw": 1.383333335320155,
+          "particles": 71.63333333333334,
+          "projectiles": 1.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 89,
+          "frames": 60,
+          "cpu": 1.751666671037674,
+          "p95": 2.5,
+          "draw": 1.5866666714350381,
+          "particles": 221.75,
+          "projectiles": 1.8,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 90,
+          "frames": 60,
+          "cpu": 1.719999998807907,
+          "p95": 2.399999976158142,
+          "draw": 1.5183333297570547,
+          "particles": 188.56666666666666,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 91,
+          "frames": 60,
+          "cpu": 1.8750000019868216,
+          "p95": 2.799999952316284,
+          "draw": 1.67833331823349,
+          "particles": 137.53333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 92,
+          "frames": 60,
+          "cpu": 1.8616666654745737,
+          "p95": 2.799999952316284,
+          "draw": 1.6933333377043407,
+          "particles": 232.83333333333334,
+          "projectiles": 2.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 93,
+          "frames": 60,
+          "cpu": 1.7616666674613952,
+          "p95": 2.600000023841858,
+          "draw": 1.5749999900658926,
+          "particles": 277.3,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 94,
+          "frames": 60,
+          "cpu": 1.680000009139379,
+          "p95": 2.5,
+          "draw": 1.501666667064031,
+          "particles": 219.61666666666667,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 95,
+          "frames": 60,
+          "cpu": 1.4016666650772094,
+          "p95": 2,
+          "draw": 1.2599999924500784,
+          "particles": 173.18333333333334,
+          "projectiles": 2.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 96,
+          "frames": 60,
+          "cpu": 1.3716666797796886,
+          "p95": 1.7999999523162842,
+          "draw": 1.2633333384990693,
+          "particles": 135.43333333333334,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 97,
+          "frames": 60,
+          "cpu": 1.4649999856948852,
+          "p95": 2.100000023841858,
+          "draw": 1.29833332101504,
+          "particles": 138.41666666666666,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 98,
+          "frames": 60,
+          "cpu": 1.6566666622956594,
+          "p95": 2.5,
+          "draw": 1.4599999884764354,
+          "particles": 141.8,
+          "projectiles": 4.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 99,
+          "frames": 60,
+          "cpu": 1.7549999912579854,
+          "p95": 3.1999999284744263,
+          "draw": 1.6016666491826375,
+          "particles": 114.56666666666666,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 100,
+          "frames": 60,
+          "cpu": 1.9333333373069763,
+          "p95": 3.100000023841858,
+          "draw": 1.755000001192093,
+          "particles": 65.95,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 101,
+          "frames": 60,
+          "cpu": 2.0983333269755047,
+          "p95": 3.100000023841858,
+          "draw": 1.9216666658719381,
+          "particles": 79.93333333333334,
+          "projectiles": 4.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 102,
+          "frames": 60,
+          "cpu": 1.8516666650772096,
+          "p95": 2.6999999284744263,
+          "draw": 1.6816666622956593,
+          "particles": 214.18333333333334,
+          "projectiles": 3.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 103,
+          "frames": 60,
+          "cpu": 2.0150000035762785,
+          "p95": 3,
+          "draw": 1.7949999908606211,
+          "particles": 222.43333333333334,
+          "projectiles": 3.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 104,
+          "frames": 60,
+          "cpu": 1.6783333202203115,
+          "p95": 2.299999952316284,
+          "draw": 1.4966666579246521,
+          "particles": 190.36666666666667,
+          "projectiles": 1.9,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 105,
+          "frames": 60,
+          "cpu": 1.749999992052714,
+          "p95": 2.600000023841858,
+          "draw": 1.5766666571299235,
+          "particles": 164.2,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 106,
+          "frames": 60,
+          "cpu": 1.7266666750113169,
+          "p95": 2.4000000953674316,
+          "draw": 1.5549999992052714,
+          "particles": 132.56666666666666,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 107,
+          "frames": 60,
+          "cpu": 1.7216666718324025,
+          "p95": 2.399999976158142,
+          "draw": 1.5533333400885263,
+          "particles": 127.73333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 108,
+          "frames": 60,
+          "cpu": 1.65,
+          "p95": 2.200000047683716,
+          "draw": 1.4766666690508525,
+          "particles": 119.95,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 109,
+          "frames": 60,
+          "cpu": 1.5816666781902313,
+          "p95": 2.399999976158142,
+          "draw": 1.4483333468437194,
+          "particles": 79.31666666666666,
+          "projectiles": 6,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 110,
+          "frames": 60,
+          "cpu": 1.5600000063578288,
+          "p95": 2.399999976158142,
+          "draw": 1.4149999956289927,
+          "particles": 107.91666666666667,
+          "projectiles": 5.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 111,
+          "frames": 60,
+          "cpu": 1.553333338101705,
+          "p95": 2.3000000715255737,
+          "draw": 1.4266666611035665,
+          "particles": 76.55,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 112,
+          "frames": 60,
+          "cpu": 1.4150000154972076,
+          "p95": 2.299999952316284,
+          "draw": 1.3033333400885263,
+          "particles": 65.91666666666667,
+          "projectiles": 5.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 113,
+          "frames": 60,
+          "cpu": 1.5016666769981384,
+          "p95": 2.5,
+          "draw": 1.3566666702429453,
+          "particles": 93.43333333333334,
+          "projectiles": 4.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 114,
+          "frames": 60,
+          "cpu": 1.6700000087420146,
+          "p95": 2.600000023841858,
+          "draw": 1.473333336909612,
+          "particles": 276.6,
+          "projectiles": 4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 115,
+          "frames": 60,
+          "cpu": 2.136666661500931,
+          "p95": 2.899999976158142,
+          "draw": 1.8499999940395355,
+          "particles": 260.7,
+          "projectiles": 3.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 116,
+          "frames": 60,
+          "cpu": 2.4150000075499216,
+          "p95": 4.100000023841858,
+          "draw": 2.14166667064031,
+          "particles": 325.25,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 117,
+          "frames": 60,
+          "cpu": 2.6550000071525575,
+          "p95": 4,
+          "draw": 2.3116666694482166,
+          "particles": 258.93333333333334,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 118,
+          "frames": 60,
+          "cpu": 2.2316666722297667,
+          "p95": 3.5999999046325684,
+          "draw": 2.0150000055631003,
+          "particles": 218.63333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 119,
+          "frames": 60,
+          "cpu": 1.9816666801770528,
+          "p95": 2.8000000715255737,
+          "draw": 1.7433333277702332,
+          "particles": 188.86666666666667,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 120,
+          "frames": 61,
+          "cpu": 2.1081967177938243,
+          "p95": 2.799999952316284,
+          "draw": 1.839344259168281,
+          "particles": 224.9016393442623,
+          "projectiles": 5.704918032786885,
+          "attacks": 2,
+          "aiAttacks": 0
+        }
+      ],
+      "metrics": [
+        {
+          "second": 1.0186999999284745,
+          "task": 275.866030066923,
+          "layout": 3.953748894320528,
+          "recalc": 9.277122747065972
+        },
+        {
+          "second": 2.032100000023842,
+          "task": 217.65021210057674,
+          "layout": 3.3051944269386215,
+          "recalc": 9.26303444084979
+        },
+        {
+          "second": 3.0401999999284746,
+          "task": 216.94104071272162,
+          "layout": 2.2363625007900545,
+          "recalc": 7.258265173220199
+        },
+        {
+          "second": 4.052,
+          "task": 228.86306901695636,
+          "layout": 2.679545378312604,
+          "recalc": 8.322725356798074
+        },
+        {
+          "second": 5.054600000023842,
+          "task": 237.27193241163815,
+          "layout": 5.343567702422696,
+          "recalc": 9.773968877987093
+        },
+        {
+          "second": 6.071199999928474,
+          "task": 221.68283993700257,
+          "layout": 2.894561039139082,
+          "recalc": 10.458594101308105
+        },
+        {
+          "second": 7.077899999976158,
+          "task": 195.72909183514415,
+          "layout": 2.573434800181852,
+          "recalc": 7.469916149717053
+        },
+        {
+          "second": 8.091600000023842,
+          "task": 186.79912243602465,
+          "layout": 4.803904651476734,
+          "recalc": 8.488673059228903
+        },
+        {
+          "second": 9.106,
+          "task": 169.24725543815688,
+          "layout": 2.742594403677518,
+          "recalc": 7.483477396950411
+        },
+        {
+          "second": 10.109899999976157,
+          "task": 167.46741450012019,
+          "layout": 3.1900358468658885,
+          "recalc": 7.606855238715187
+        },
+        {
+          "second": 11.119,
+          "task": 157.10428669233204,
+          "layout": 2.7663147672848667,
+          "recalc": 6.174668205486862
+        },
+        {
+          "second": 12.131799999952316,
+          "task": 162.40366202870268,
+          "layout": 4.370816123030307,
+          "recalc": 6.9513681178223505
+        },
+        {
+          "second": 13.141699999928475,
+          "task": 186.85963558373686,
+          "layout": 7.5887354185583815,
+          "recalc": 6.8097952713883965
+        },
+        {
+          "second": 14.1505,
+          "task": 244.80416520626372,
+          "layout": 6.424735479807652,
+          "recalc": 7.863375830640798
+        },
+        {
+          "second": 15.1595,
+          "task": 235.14141073281226,
+          "layout": 3.5992041781499675,
+          "recalc": 6.241720494763086
+        },
+        {
+          "second": 16.173299999952317,
+          "task": 229.11889491838843,
+          "layout": 8.582141095206714,
+          "recalc": 6.684755796737831
+        },
+        {
+          "second": 17.181799999952315,
+          "task": 228.83803069008093,
+          "layout": 2.5445672147596143,
+          "recalc": 7.278715127800046
+        },
+        {
+          "second": 18.186,
+          "task": 252.77028246831836,
+          "layout": 4.776143703061789,
+          "recalc": 8.706460252723325
+        },
+        {
+          "second": 19.199600000023842,
+          "task": 229.28522972067702,
+          "layout": 3.3397620299129045,
+          "recalc": 7.750973439617504
+        },
+        {
+          "second": 20.21,
+          "task": 248.48067881873436,
+          "layout": 2.990205963379659,
+          "recalc": 9.51923419085822
+        },
+        {
+          "second": 21.226799999952316,
+          "task": 249.31034347542726,
+          "layout": 3.5614217353668423,
+          "recalc": 8.786479977503111
+        },
+        {
+          "second": 22.239699999928476,
+          "task": 225.38443768080214,
+          "layout": 3.314781873626988,
+          "recalc": 8.942408872301051
+        },
+        {
+          "second": 23.248899999976157,
+          "task": 208.04888633682353,
+          "layout": 3.185475502904396,
+          "recalc": 7.243779237433772
+        },
+        {
+          "second": 24.256799999952317,
+          "task": 253.81575089383998,
+          "layout": 4.096932349815536,
+          "recalc": 10.024514268217075
+        },
+        {
+          "second": 25.271799999952318,
+          "task": 267.2735892191162,
+          "layout": 3.222859238029337,
+          "recalc": 7.285435928903035
+        },
+        {
+          "second": 26.285299999952315,
+          "task": 339.6599336928327,
+          "layout": 3.799717418854172,
+          "recalc": 6.615641230693021
+        },
+        {
+          "second": 27.299699999928475,
+          "task": 392.9503208718333,
+          "layout": 2.9017190516777482,
+          "recalc": 6.724024242712489
+        },
+        {
+          "second": 28.306600000023842,
+          "task": 372.08345847213144,
+          "layout": 3.1396520815136113,
+          "recalc": 6.216867900042569
+        },
+        {
+          "second": 29.318600000023842,
+          "task": 360.2866947397556,
+          "layout": 4.54973794071237,
+          "recalc": 6.746571892111486
+        },
+        {
+          "second": 30.335799999952318,
+          "task": 345.23232526805975,
+          "layout": 3.564781998633072,
+          "recalc": 8.251300417685405
+        },
+        {
+          "second": 31.348799999952316,
+          "task": 320.9551014376779,
+          "layout": 4.30951716376469,
+          "recalc": 8.115234548853186
+        },
+        {
+          "second": 32.36589999997616,
+          "task": 273.9518510571178,
+          "layout": 4.065929520172931,
+          "recalc": 6.646534012143169
+        },
+        {
+          "second": 33.37189999997616,
+          "task": 282.23347940188313,
+          "layout": 4.802457844457857,
+          "recalc": 7.665918385269198
+        },
+        {
+          "second": 34.38619999992847,
+          "task": 302.4614750834419,
+          "layout": 5.503350015450634,
+          "recalc": 7.7320934123580205
+        },
+        {
+          "second": 35.390600000023845,
+          "task": 328.8091674247759,
+          "layout": 6.809651420902121,
+          "recalc": 8.124179042369025
+        },
+        {
+          "second": 36.4055,
+          "task": 350.4321330255826,
+          "layout": 6.6250870624598885,
+          "recalc": 8.358938843861983
+        },
+        {
+          "second": 37.419299999952315,
+          "task": 373.3954887331635,
+          "layout": 7.812199269176738,
+          "recalc": 10.715001297054094
+        },
+        {
+          "second": 38.432699999928474,
+          "task": 322.69081639470807,
+          "layout": 7.482279202369186,
+          "recalc": 10.358483915552247
+        },
+        {
+          "second": 39.441299999952314,
+          "task": 270.88888076123567,
+          "layout": 6.162235909774491,
+          "recalc": 9.371073728472927
+        },
+        {
+          "second": 40.45110000002384,
+          "task": 195.70831008531593,
+          "layout": 5.665727991213862,
+          "recalc": 6.356114776157232
+        },
+        {
+          "second": 41.46460000002384,
+          "task": 167.83371379433441,
+          "layout": 4.884326631040123,
+          "recalc": 6.206815555185133
+        },
+        {
+          "second": 42.48119999992848,
+          "task": 169.7826116948353,
+          "layout": 5.689943799087147,
+          "recalc": 6.319427642028539
+        },
+        {
+          "second": 43.49879999995232,
+          "task": 200.83928252819757,
+          "layout": 5.1510373920861445,
+          "recalc": 6.9343159084139945
+        },
+        {
+          "second": 44.50639999997616,
+          "task": 210.3861953320609,
+          "layout": 4.615162065643799,
+          "recalc": 5.983461510180979
+        },
+        {
+          "second": 45.52110000002384,
+          "task": 200.65377124935395,
+          "layout": 4.64656538483418,
+          "recalc": 6.410584905269625
+        },
+        {
+          "second": 46.5315,
+          "task": 179.47128937573785,
+          "layout": 4.3132126097195655,
+          "recalc": 6.37661386048429
+        },
+        {
+          "second": 47.5485,
+          "task": 174.566253676242,
+          "layout": 5.391685468632065,
+          "recalc": 5.886750048007259
+        },
+        {
+          "second": 48.55489999997616,
+          "task": 169.93560069215462,
+          "layout": 4.836897398266832,
+          "recalc": 5.914851548588533
+        },
+        {
+          "second": 49.57289999997616,
+          "task": 176.7595072991825,
+          "layout": 4.499865367508135,
+          "recalc": 6.354254087422521
+        },
+        {
+          "second": 50.58629999995232,
+          "task": 207.01160708855232,
+          "layout": 5.041411595318563,
+          "recalc": 6.987929223021799
+        },
+        {
+          "second": 51.6,
+          "task": 241.29090574695024,
+          "layout": 4.301506069749876,
+          "recalc": 6.879054556601605
+        },
+        {
+          "second": 52.615,
+          "task": 243.82440989662683,
+          "layout": 4.564631025449239,
+          "recalc": 8.074061632028378
+        },
+        {
+          "second": 53.627100000023844,
+          "task": 231.1827745206805,
+          "layout": 6.017178996806608,
+          "recalc": 8.029142448603007
+        },
+        {
+          "second": 54.63960000002384,
+          "task": 198.70068542740728,
+          "layout": 4.3567345633911865,
+          "recalc": 7.253320898961038
+        },
+        {
+          "second": 55.6465,
+          "task": 186.0397318412609,
+          "layout": 4.239640690435792,
+          "recalc": 6.700244170240404
+        },
+        {
+          "second": 56.653,
+          "task": 171.3432983693684,
+          "layout": 5.043999900494098,
+          "recalc": 6.21501697981068
+        },
+        {
+          "second": 57.6675,
+          "task": 174.24468672075284,
+          "layout": 4.181044551683827,
+          "recalc": 6.51403192882573
+        },
+        {
+          "second": 58.679399999976155,
+          "task": 169.668550134776,
+          "layout": 3.780454762063035,
+          "recalc": 5.740397565727391
+        },
+        {
+          "second": 59.6905,
+          "task": 160.98597172968425,
+          "layout": 2.3732988556348484,
+          "recalc": 5.813148925442961
+        },
+        {
+          "second": 60.70260000002384,
+          "task": 151.58476327291436,
+          "layout": 1.6776882286364503,
+          "recalc": 5.482621896763152
+        },
+        {
+          "second": 61.719,
+          "task": 144.53732236269624,
+          "layout": 1.7650739678344005,
+          "recalc": 5.334576952953174
+        },
+        {
+          "second": 62.73319999992847,
+          "task": 161.2298170555114,
+          "layout": 3.9988678913476887,
+          "recalc": 6.756163729623376
+        },
+        {
+          "second": 63.74729999995232,
+          "task": 148.18009996065393,
+          "layout": 3.701224243659298,
+          "recalc": 5.777616960000991
+        },
+        {
+          "second": 64.76560000002384,
+          "task": 146.08408142730735,
+          "layout": 3.679630504687968,
+          "recalc": 6.531196803435755
+        },
+        {
+          "second": 65.77339999997616,
+          "task": 140.15787713753556,
+          "layout": 3.806551395301018,
+          "recalc": 5.940482083675391
+        },
+        {
+          "second": 66.77889999997616,
+          "task": 164.91893336443056,
+          "layout": 4.791389063897976,
+          "recalc": 7.3925428271465154
+        },
+        {
+          "second": 67.79729999995232,
+          "task": 190.70178688518743,
+          "layout": 2.759390013013959,
+          "recalc": 7.43221850041623
+        },
+        {
+          "second": 68.81239999997617,
+          "task": 198.80523026343272,
+          "layout": 2.8020594448924943,
+          "recalc": 7.301918454916889
+        },
+        {
+          "second": 69.8245,
+          "task": 194.57835423945974,
+          "layout": 3.565522892419883,
+          "recalc": 6.804666338658662
+        },
+        {
+          "second": 70.83539999997616,
+          "task": 175.23097375964443,
+          "layout": 3.870531848797087,
+          "recalc": 7.615249122524507
+        },
+        {
+          "second": 71.85260000002384,
+          "task": 170.99108349074024,
+          "layout": 3.115818324298502,
+          "recalc": 6.844198285132015
+        },
+        {
+          "second": 72.85660000002385,
+          "task": 171.37990795985914,
+          "layout": 3.315803103522944,
+          "recalc": 7.197354528704372
+        },
+        {
+          "second": 73.8715,
+          "task": 149.86109373918967,
+          "layout": 2.4637508341639807,
+          "recalc": 6.208652102093199
+        },
+        {
+          "second": 74.88629999995231,
+          "task": 156.99005256422106,
+          "layout": 4.630309360460938,
+          "recalc": 7.426823079334774
+        },
+        {
+          "second": 75.89910000002384,
+          "task": 152.74598807323864,
+          "layout": 5.399611773129115,
+          "recalc": 7.580794135929932
+        },
+        {
+          "second": 76.91239999997616,
+          "task": 155.3124385418967,
+          "layout": 5.060453642194943,
+          "recalc": 6.4431830651306266
+        },
+        {
+          "second": 77.92110000002384,
+          "task": 154.14889154761744,
+          "layout": 3.3142852620788994,
+          "recalc": 6.084434137846292
+        },
+        {
+          "second": 78.92710000002384,
+          "task": 155.00403109841508,
+          "layout": 5.08714130740828,
+          "recalc": 6.870776060465561
+        },
+        {
+          "second": 79.93839999997616,
+          "task": 145.53736957259488,
+          "layout": 4.048630981608611,
+          "recalc": 6.176162363502996
+        },
+        {
+          "second": 80.95289999997615,
+          "task": 142.16849899037942,
+          "layout": 4.801784730623222,
+          "recalc": 6.694710744891013
+        },
+        {
+          "second": 81.96360000002385,
+          "task": 145.66663435263942,
+          "layout": 5.379227632000184,
+          "recalc": 6.8160632688037746
+        },
+        {
+          "second": 82.97169999992848,
+          "task": 171.14437137162045,
+          "layout": 4.7939627608934865,
+          "recalc": 7.7568360832169425
+        },
+        {
+          "second": 83.97889999997616,
+          "task": 182.8011126184841,
+          "layout": 5.294898645613136,
+          "recalc": 7.8678698366827335
+        },
+        {
+          "second": 84.998,
+          "task": 191.00262630815322,
+          "layout": 5.791684289765608,
+          "recalc": 8.501618090428755
+        },
+        {
+          "second": 86.01089999997616,
+          "task": 175.33945245046766,
+          "layout": 5.8593461013641575,
+          "recalc": 8.759426494968636
+        },
+        {
+          "second": 87.01860000002384,
+          "task": 156.48260154207057,
+          "layout": 5.596554686076943,
+          "recalc": 7.475942938774327
+        },
+        {
+          "second": 88.02819999992847,
+          "task": 147.08397060923278,
+          "layout": 4.6995296500494685,
+          "recalc": 7.689057375935878
+        },
+        {
+          "second": 89.04019999992848,
+          "task": 168.9029677805894,
+          "layout": 5.252290478093158,
+          "recalc": 6.922487281138131
+        },
+        {
+          "second": 90.058,
+          "task": 165.9870083609871,
+          "layout": 5.192530540630266,
+          "recalc": 7.510150645647478
+        },
+        {
+          "second": 91.06979999995232,
+          "task": 177.69780405267548,
+          "layout": 4.894273611037668,
+          "recalc": 9.376491478929218
+        },
+        {
+          "second": 92.08739999997616,
+          "task": 173.48712291874347,
+          "layout": 3.680569072501077,
+          "recalc": 6.5845223417767045
+        },
+        {
+          "second": 93.10489999997615,
+          "task": 155.32293242353444,
+          "layout": 2.969956575497008,
+          "recalc": 5.032126225503108
+        },
+        {
+          "second": 94.11210000002384,
+          "task": 157.51978341070097,
+          "layout": 2.9346271106280573,
+          "recalc": 4.960869983697123
+        },
+        {
+          "second": 95.12810000002384,
+          "task": 135.5362627087939,
+          "layout": 2.9903929445678257,
+          "recalc": 4.711985196065156
+        },
+        {
+          "second": 96.13460000002384,
+          "task": 134.8222073409213,
+          "layout": 3.138218715617009,
+          "recalc": 5.686345023169292
+        },
+        {
+          "second": 97.14119999992847,
+          "task": 139.35190338294092,
+          "layout": 3.899790103016512,
+          "recalc": 6.472816753554092
+        },
+        {
+          "second": 98.16119999992847,
+          "task": 162.27192690720165,
+          "layout": 3.9698652032406287,
+          "recalc": 7.621197388687812
+        },
+        {
+          "second": 99.16879999995231,
+          "task": 171.12877093327802,
+          "layout": 4.083255684334212,
+          "recalc": 8.404899115743328
+        },
+        {
+          "second": 100.17139999997616,
+          "task": 179.38975842123992,
+          "layout": 2.5904694266076347,
+          "recalc": 8.489597724242309
+        },
+        {
+          "second": 101.18560000002384,
+          "task": 200.09446790072144,
+          "layout": 4.046934180964303,
+          "recalc": 10.263277523264229
+        },
+        {
+          "second": 102.19689999997615,
+          "task": 196.42625834112096,
+          "layout": 2.983226888573664,
+          "recalc": 9.475725314286219
+        },
+        {
+          "second": 103.21279999995231,
+          "task": 189.34217497885248,
+          "layout": 5.565572927683544,
+          "recalc": 8.684468591420952
+        },
+        {
+          "second": 104.21739999997615,
+          "task": 171.85684773971352,
+          "layout": 6.385627678540272,
+          "recalc": 7.600899260951077
+        },
+        {
+          "second": 105.22329999995232,
+          "task": 165.30581616303976,
+          "layout": 5.113749874689445,
+          "recalc": 8.405633175947177
+        },
+        {
+          "second": 106.23089999997616,
+          "task": 164.4433371176953,
+          "layout": 4.671324756590895,
+          "recalc": 8.579315739739807
+        },
+        {
+          "second": 107.244,
+          "task": 162.61359608005847,
+          "layout": 5.097320105207505,
+          "recalc": 9.246669016885454
+        },
+        {
+          "second": 108.252,
+          "task": 152.1302643755468,
+          "layout": 4.345189474332017,
+          "recalc": 7.594652776973297
+        },
+        {
+          "second": 109.2615,
+          "task": 153.71420312334178,
+          "layout": 4.588808691070686,
+          "recalc": 7.421675488707466
+        },
+        {
+          "second": 110.27829999995231,
+          "task": 152.67855560046294,
+          "layout": 4.3149744099443685,
+          "recalc": 7.560812662138181
+        },
+        {
+          "second": 111.28589999997615,
+          "task": 145.85878159590501,
+          "layout": 5.9431286476522205,
+          "recalc": 7.686736985686573
+        },
+        {
+          "second": 112.29489999997615,
+          "task": 141.22188853385506,
+          "layout": 4.8933028058901415,
+          "recalc": 7.524803504621806
+        },
+        {
+          "second": 113.301,
+          "task": 154.6070572344855,
+          "layout": 6.031212093470708,
+          "recalc": 7.388259650657531
+        },
+        {
+          "second": 114.31460000002384,
+          "task": 174.11091376633064,
+          "layout": 4.538188277364817,
+          "recalc": 6.519636866394728
+        },
+        {
+          "second": 115.32819999992847,
+          "task": 198.47850900769797,
+          "layout": 5.842478031333032,
+          "recalc": 8.90282366679314
+        },
+        {
+          "second": 116.34129999995231,
+          "task": 223.73668210220657,
+          "layout": 5.882532984263253,
+          "recalc": 8.808989473916835
+        },
+        {
+          "second": 117.35569999992848,
+          "task": 237.55397499704551,
+          "layout": 6.676047622544797,
+          "recalc": 11.370466939711468
+        },
+        {
+          "second": 118.37060000002384,
+          "task": 207.05088913063227,
+          "layout": 7.01028977257739,
+          "recalc": 10.913545014238615
+        },
+        {
+          "second": 119.38669999992848,
+          "task": 208.16575558150984,
+          "layout": 7.07049335980537,
+          "recalc": 9.710734651991556
+        }
+      ]
+    },
+    {
+      "branch": "main",
+      "elapsed": 120.01,
+      "frames": 7201,
+      "fps": 60.0033330555787,
+      "cpuMean": 2.243757811689887,
+      "cpuP95": 4,
+      "drawMean": 1.9701430363185604,
+      "frameP95": 16.70000000001164,
+      "frameP99": 16.80000000000291,
+      "gapsOver25": 0,
+      "gapsOver50": 0,
+      "taskMsPerSecond": 214.77675399184133,
+      "layoutMsPerSecond": 5.5157454913171255,
+      "attacks": 38,
+      "aiToAiAttacks": 6,
+      "munitions": 93,
+      "explosions": 69,
+      "intercepts": 28,
+      "meanParticles": 301.7226774059158,
+      "peakParticles": 1336,
+      "meanProjectiles": 6.3105124288293295,
+      "peakProjectiles": 23,
+      "simStart": 179.99999999999406,
+      "simEnd": 299.9999999999997,
+      "over": null,
+      "eliminations": 0,
+      "bins": [
+        {
+          "second": 1,
+          "frames": 59,
+          "cpu": 3.4898305141319663,
+          "p95": 5,
+          "draw": 3.00169491363784,
+          "particles": 670.2881355932203,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 2,
+          "frames": 61,
+          "cpu": 2.9278688684838716,
+          "p95": 4.200000047683716,
+          "draw": 2.5229508290525344,
+          "particles": 494.1475409836066,
+          "projectiles": 7.918032786885246,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 3,
+          "frames": 60,
+          "cpu": 2.4250000019868216,
+          "p95": 3.399999976158142,
+          "draw": 2.1233333468437197,
+          "particles": 379.15,
+          "projectiles": 6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 4,
+          "frames": 60,
+          "cpu": 2.1633333384990694,
+          "p95": 3.100000023841858,
+          "draw": 1.90166667898496,
+          "particles": 294.55,
+          "projectiles": 6.2,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 5,
+          "frames": 60,
+          "cpu": 1.8683333317438762,
+          "p95": 2.799999952316284,
+          "draw": 1.6316666543483733,
+          "particles": 303.1,
+          "projectiles": 6.1,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 6,
+          "frames": 60,
+          "cpu": 1.7066666722297668,
+          "p95": 2.600000023841858,
+          "draw": 1.4566666702429454,
+          "particles": 271.73333333333335,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 7,
+          "frames": 60,
+          "cpu": 1.5699999948342642,
+          "p95": 2.299999952316284,
+          "draw": 1.393333335717519,
+          "particles": 186.61666666666667,
+          "projectiles": 8.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 8,
+          "frames": 60,
+          "cpu": 1.6316666702429454,
+          "p95": 2.600000023841858,
+          "draw": 1.478333334128062,
+          "particles": 121.35,
+          "projectiles": 8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 9,
+          "frames": 60,
+          "cpu": 1.6683333357175192,
+          "p95": 2.8000000715255737,
+          "draw": 1.481666664282481,
+          "particles": 99.03333333333333,
+          "projectiles": 8.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 10,
+          "frames": 60,
+          "cpu": 1.9333333293596904,
+          "p95": 3.100000023841858,
+          "draw": 1.728333334128062,
+          "particles": 179.58333333333334,
+          "projectiles": 8.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 11,
+          "frames": 60,
+          "cpu": 2.213333338499069,
+          "p95": 3.5,
+          "draw": 2.018333339691162,
+          "particles": 131.31666666666666,
+          "projectiles": 7.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 12,
+          "frames": 60,
+          "cpu": 2.465000013510386,
+          "p95": 3.4000000953674316,
+          "draw": 2.2600000063578287,
+          "particles": 133.81666666666666,
+          "projectiles": 5.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 13,
+          "frames": 60,
+          "cpu": 2.6516666769981385,
+          "p95": 3.899999976158142,
+          "draw": 2.3883333365122477,
+          "particles": 257.45,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 14,
+          "frames": 60,
+          "cpu": 2.8933333277702333,
+          "p95": 4.600000023841858,
+          "draw": 2.439999993642171,
+          "particles": 498.3,
+          "projectiles": 2.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 15,
+          "frames": 60,
+          "cpu": 2.475000007947286,
+          "p95": 4,
+          "draw": 2.1416666666666666,
+          "particles": 700.7,
+          "projectiles": 5.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 16,
+          "frames": 60,
+          "cpu": 2.975,
+          "p95": 4,
+          "draw": 2.5216666638851164,
+          "particles": 666.8833333333333,
+          "projectiles": 18.7,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 17,
+          "frames": 60,
+          "cpu": 3.1033333321412404,
+          "p95": 3.899999976158142,
+          "draw": 2.6816666583220163,
+          "particles": 539.1166666666667,
+          "projectiles": 19,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 18,
+          "frames": 60,
+          "cpu": 3.0383333464463553,
+          "p95": 4.399999976158142,
+          "draw": 2.6633333384990694,
+          "particles": 414.8833333333333,
+          "projectiles": 21.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 19,
+          "frames": 60,
+          "cpu": 2.366666660706202,
+          "p95": 3.5,
+          "draw": 2.056666664282481,
+          "particles": 355.46666666666664,
+          "projectiles": 22.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 20,
+          "frames": 60,
+          "cpu": 2.203333322207133,
+          "p95": 3.1999999284744263,
+          "draw": 1.9233333309491476,
+          "particles": 283.78333333333336,
+          "projectiles": 22.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 21,
+          "frames": 60,
+          "cpu": 2.5233333349227904,
+          "p95": 3.8000000715255737,
+          "draw": 2.269999998807907,
+          "particles": 351.05,
+          "projectiles": 22,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 22,
+          "frames": 60,
+          "cpu": 2.2400000035762786,
+          "p95": 3.100000023841858,
+          "draw": 1.9833333353201548,
+          "particles": 293.1333333333333,
+          "projectiles": 21.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 23,
+          "frames": 60,
+          "cpu": 2.675,
+          "p95": 4.100000023841858,
+          "draw": 2.3666666646798453,
+          "particles": 745.45,
+          "projectiles": 17.5,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 24,
+          "frames": 59,
+          "cpu": 3.1661016981480485,
+          "p95": 4.800000071525574,
+          "draw": 2.783050846245329,
+          "particles": 932.457627118644,
+          "projectiles": 15.508474576271187,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 25,
+          "frames": 61,
+          "cpu": 3.3655737775271057,
+          "p95": 4.799999952316284,
+          "draw": 2.927868856758368,
+          "particles": 1123.7540983606557,
+          "projectiles": 12.639344262295081,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 26,
+          "frames": 60,
+          "cpu": 3.709999998410543,
+          "p95": 4.900000095367432,
+          "draw": 3.0900000095367433,
+          "particles": 1172.3166666666666,
+          "projectiles": 12.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 27,
+          "frames": 60,
+          "cpu": 4.126666671037674,
+          "p95": 5.5,
+          "draw": 3.4000000019868213,
+          "particles": 1060.9166666666667,
+          "projectiles": 12.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 28,
+          "frames": 60,
+          "cpu": 4.0366666714350385,
+          "p95": 5.5,
+          "draw": 3.218333327770233,
+          "particles": 1081.15,
+          "projectiles": 11.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 29,
+          "frames": 59,
+          "cpu": 4.167796603703903,
+          "p95": 5.900000095367432,
+          "draw": 3.4101694882926292,
+          "particles": 1213.8305084745762,
+          "projectiles": 8.610169491525424,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 30,
+          "frames": 61,
+          "cpu": 4.49508195236081,
+          "p95": 6.399999976158142,
+          "draw": 3.8622950764953115,
+          "particles": 1119.049180327869,
+          "projectiles": 5.934426229508197,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 31,
+          "frames": 60,
+          "cpu": 4.503333328167598,
+          "p95": 6,
+          "draw": 3.8699999928474424,
+          "particles": 988.85,
+          "projectiles": 3.9,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 32,
+          "frames": 60,
+          "cpu": 3.4016666730244953,
+          "p95": 4.399999976158142,
+          "draw": 2.8300000091393787,
+          "particles": 756.35,
+          "projectiles": 3.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 33,
+          "frames": 60,
+          "cpu": 2.885000002384186,
+          "p95": 4.399999976158142,
+          "draw": 2.4799999912579853,
+          "particles": 619.35,
+          "projectiles": 2.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 34,
+          "frames": 60,
+          "cpu": 3.1816666603088377,
+          "p95": 4.399999976158142,
+          "draw": 2.793333325783412,
+          "particles": 506.5,
+          "projectiles": 3.7,
+          "attacks": 2,
+          "aiAttacks": 1
+        },
+        {
+          "second": 35,
+          "frames": 60,
+          "cpu": 2.3216666638851167,
+          "p95": 3.1999999284744263,
+          "draw": 2.0516666690508525,
+          "particles": 340.56666666666666,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 36,
+          "frames": 60,
+          "cpu": 2.3333333392937976,
+          "p95": 3,
+          "draw": 2.091666666666667,
+          "particles": 296.78333333333336,
+          "projectiles": 6.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 37,
+          "frames": 60,
+          "cpu": 2.3266666730244956,
+          "p95": 3.5,
+          "draw": 2.0966666638851166,
+          "particles": 237.3,
+          "projectiles": 6.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 38,
+          "frames": 60,
+          "cpu": 2.1450000007947287,
+          "p95": 3.100000023841858,
+          "draw": 1.818333343664805,
+          "particles": 254.1,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 39,
+          "frames": 60,
+          "cpu": 2.0399999916553497,
+          "p95": 3.299999952316284,
+          "draw": 1.723333324988683,
+          "particles": 196.56666666666666,
+          "projectiles": 4.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 40,
+          "frames": 60,
+          "cpu": 2.018333339691162,
+          "p95": 3.100000023841858,
+          "draw": 1.7299999972184499,
+          "particles": 136.85,
+          "projectiles": 4.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 41,
+          "frames": 60,
+          "cpu": 2.133333339293798,
+          "p95": 3.3000000715255737,
+          "draw": 1.8300000091393789,
+          "particles": 106.73333333333333,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 42,
+          "frames": 60,
+          "cpu": 2.186666663487752,
+          "p95": 3.3000000715255737,
+          "draw": 1.8199999968210856,
+          "particles": 86.9,
+          "projectiles": 7.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 43,
+          "frames": 60,
+          "cpu": 2.319999986886978,
+          "p95": 3.399999976158142,
+          "draw": 1.9933333357175191,
+          "particles": 78.93333333333334,
+          "projectiles": 8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 44,
+          "frames": 60,
+          "cpu": 2.878333342075348,
+          "p95": 3.899999976158142,
+          "draw": 2.5300000071525575,
+          "particles": 100.4,
+          "projectiles": 7.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 45,
+          "frames": 60,
+          "cpu": 2.661666655540466,
+          "p95": 4.100000023841858,
+          "draw": 2.4383333186308542,
+          "particles": 144.25,
+          "projectiles": 8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 46,
+          "frames": 60,
+          "cpu": 2.443333319822947,
+          "p95": 3.399999976158142,
+          "draw": 2.234999990463257,
+          "particles": 160.93333333333334,
+          "projectiles": 7.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 47,
+          "frames": 60,
+          "cpu": 2.411666655540466,
+          "p95": 3.6999999284744263,
+          "draw": 2.125,
+          "particles": 171.8,
+          "projectiles": 7.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 48,
+          "frames": 60,
+          "cpu": 2.8000000019868216,
+          "p95": 3.799999952316284,
+          "draw": 2.4716666638851166,
+          "particles": 449.78333333333336,
+          "projectiles": 6.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 49,
+          "frames": 60,
+          "cpu": 3.023333340883255,
+          "p95": 4.100000023841858,
+          "draw": 2.6433333377043406,
+          "particles": 432.4,
+          "projectiles": 8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 50,
+          "frames": 60,
+          "cpu": 3.181666664282481,
+          "p95": 4.700000047683716,
+          "draw": 2.8283333281675973,
+          "particles": 507.9166666666667,
+          "projectiles": 10.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 51,
+          "frames": 60,
+          "cpu": 2.7316666622956594,
+          "p95": 4.100000023841858,
+          "draw": 2.368333331743876,
+          "particles": 537.9166666666666,
+          "projectiles": 9.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 52,
+          "frames": 60,
+          "cpu": 2.5449999988079073,
+          "p95": 3.899999976158142,
+          "draw": 2.2216666678587598,
+          "particles": 596.7333333333333,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 53,
+          "frames": 60,
+          "cpu": 2.72999999721845,
+          "p95": 4.100000023841858,
+          "draw": 2.3766666611035663,
+          "particles": 503.31666666666666,
+          "projectiles": 8.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 54,
+          "frames": 60,
+          "cpu": 2.3833333412806192,
+          "p95": 3.100000023841858,
+          "draw": 2.1016666690508523,
+          "particles": 443.28333333333336,
+          "projectiles": 7.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 55,
+          "frames": 60,
+          "cpu": 2.1666666487852733,
+          "p95": 3.0999999046325684,
+          "draw": 1.8966666638851166,
+          "particles": 474.56666666666666,
+          "projectiles": 4.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 56,
+          "frames": 60,
+          "cpu": 2.10833332935969,
+          "p95": 3,
+          "draw": 1.8600000023841858,
+          "particles": 401.43333333333334,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 57,
+          "frames": 60,
+          "cpu": 2.3150000035762788,
+          "p95": 3.5999999046325684,
+          "draw": 1.9900000115235648,
+          "particles": 368.3333333333333,
+          "projectiles": 4.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 58,
+          "frames": 60,
+          "cpu": 2.551666675011317,
+          "p95": 3.899999976158142,
+          "draw": 2.1283333361148835,
+          "particles": 378,
+          "projectiles": 3.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 59,
+          "frames": 60,
+          "cpu": 2.7616666634877522,
+          "p95": 4.5,
+          "draw": 2.433333327372869,
+          "particles": 306.5833333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 60,
+          "frames": 60,
+          "cpu": 2.73333332935969,
+          "p95": 3.899999976158142,
+          "draw": 2.416666672627131,
+          "particles": 335.26666666666665,
+          "projectiles": 1.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 61,
+          "frames": 60,
+          "cpu": 2.956666668256124,
+          "p95": 4.100000023841858,
+          "draw": 2.634999990463257,
+          "particles": 363.5833333333333,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 62,
+          "frames": 60,
+          "cpu": 2.5183333377043406,
+          "p95": 4,
+          "draw": 2.2233333329359692,
+          "particles": 253.46666666666667,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 63,
+          "frames": 60,
+          "cpu": 1.978333330154419,
+          "p95": 2.899999976158142,
+          "draw": 1.7566666702429454,
+          "particles": 206.88333333333333,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 64,
+          "frames": 60,
+          "cpu": 1.8266666809717813,
+          "p95": 2.3000000715255737,
+          "draw": 1.6266666650772095,
+          "particles": 170.4,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 65,
+          "frames": 60,
+          "cpu": 1.6083333293596904,
+          "p95": 2.600000023841858,
+          "draw": 1.4333333313465118,
+          "particles": 123.35,
+          "projectiles": 1.1,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 66,
+          "frames": 60,
+          "cpu": 1.6683333218097687,
+          "p95": 2.299999952316284,
+          "draw": 1.4766666611035666,
+          "particles": 113.85,
+          "projectiles": 2.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 67,
+          "frames": 60,
+          "cpu": 1.8116666615009307,
+          "p95": 2.399999976158142,
+          "draw": 1.6383333285649617,
+          "particles": 127.15,
+          "projectiles": 2.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 68,
+          "frames": 60,
+          "cpu": 1.796666669845581,
+          "p95": 2.5,
+          "draw": 1.6466666718324026,
+          "particles": 89.53333333333333,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 69,
+          "frames": 60,
+          "cpu": 1.4649999916553498,
+          "p95": 2,
+          "draw": 1.3349999984105427,
+          "particles": 55.21666666666667,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 70,
+          "frames": 60,
+          "cpu": 1.306666664282481,
+          "p95": 1.899999976158142,
+          "draw": 1.1899999996026358,
+          "particles": 46.7,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 71,
+          "frames": 60,
+          "cpu": 1.273333328962326,
+          "p95": 2,
+          "draw": 1.151666667064031,
+          "particles": 52.4,
+          "projectiles": 5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 72,
+          "frames": 60,
+          "cpu": 1.3583333432674407,
+          "p95": 2.100000023841858,
+          "draw": 1.2516666809717814,
+          "particles": 47.35,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 73,
+          "frames": 60,
+          "cpu": 1.4299999992052714,
+          "p95": 2.399999976158142,
+          "draw": 1.2833333273728689,
+          "particles": 36.083333333333336,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 74,
+          "frames": 60,
+          "cpu": 1.5999999980131785,
+          "p95": 2.600000023841858,
+          "draw": 1.4633333345254262,
+          "particles": 34.78333333333333,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 75,
+          "frames": 60,
+          "cpu": 1.8566666742165883,
+          "p95": 2.8000000715255737,
+          "draw": 1.6716666638851165,
+          "particles": 44.4,
+          "projectiles": 4.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 76,
+          "frames": 60,
+          "cpu": 2.1166666567325594,
+          "p95": 3.0999999046325684,
+          "draw": 1.9100000003973643,
+          "particles": 72.95,
+          "projectiles": 2.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 77,
+          "frames": 60,
+          "cpu": 2.339999989668528,
+          "p95": 3.399999976158142,
+          "draw": 2.149999992052714,
+          "particles": 190.48333333333332,
+          "projectiles": 4.5,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 78,
+          "frames": 60,
+          "cpu": 2.2916666607062024,
+          "p95": 3.600000023841858,
+          "draw": 2.0749999980131784,
+          "particles": 205.4,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 79,
+          "frames": 60,
+          "cpu": 2.3650000055631,
+          "p95": 3.4000000953674316,
+          "draw": 2.098333328962326,
+          "particles": 295.46666666666664,
+          "projectiles": 4.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 80,
+          "frames": 60,
+          "cpu": 2.1583333373069764,
+          "p95": 2.8000000715255737,
+          "draw": 1.9016666690508524,
+          "particles": 276.73333333333335,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 81,
+          "frames": 60,
+          "cpu": 1.975,
+          "p95": 3,
+          "draw": 1.7349999924500783,
+          "particles": 283.21666666666664,
+          "projectiles": 3.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 82,
+          "frames": 60,
+          "cpu": 2.3766666571299235,
+          "p95": 3.399999976158142,
+          "draw": 2.08166667620341,
+          "particles": 411.18333333333334,
+          "projectiles": 0.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 83,
+          "frames": 60,
+          "cpu": 2.0900000035762787,
+          "p95": 2.700000047683716,
+          "draw": 1.7983333428700765,
+          "particles": 308.73333333333335,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 84,
+          "frames": 60,
+          "cpu": 1.7399999876817067,
+          "p95": 2.399999976158142,
+          "draw": 1.526666675011317,
+          "particles": 211.03333333333333,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 85,
+          "frames": 60,
+          "cpu": 1.6566666742165883,
+          "p95": 2.399999976158142,
+          "draw": 1.4700000087420146,
+          "particles": 180.95,
+          "projectiles": 0.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 86,
+          "frames": 60,
+          "cpu": 1.3500000019868215,
+          "p95": 2,
+          "draw": 1.2016666571299235,
+          "particles": 130.8,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 87,
+          "frames": 60,
+          "cpu": 1.3850000023841857,
+          "p95": 2.100000023841858,
+          "draw": 1.203333350022634,
+          "particles": 104.48333333333333,
+          "projectiles": 1.6,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 88,
+          "frames": 60,
+          "cpu": 1.4666666607062022,
+          "p95": 2.399999976158142,
+          "draw": 1.3149999856948853,
+          "particles": 85.28333333333333,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 89,
+          "frames": 60,
+          "cpu": 1.3566666801770528,
+          "p95": 2.200000047683716,
+          "draw": 1.220000006755193,
+          "particles": 52.9,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 90,
+          "frames": 60,
+          "cpu": 1.616666672627131,
+          "p95": 2.6999999284744263,
+          "draw": 1.4350000063578288,
+          "particles": 53.68333333333333,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 91,
+          "frames": 60,
+          "cpu": 1.7866666674613954,
+          "p95": 3.299999952316284,
+          "draw": 1.5849999984105427,
+          "particles": 60.516666666666666,
+          "projectiles": 3.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 92,
+          "frames": 60,
+          "cpu": 2.2266666611035664,
+          "p95": 3.1999999284744263,
+          "draw": 2.0450000007947287,
+          "particles": 109.28333333333333,
+          "projectiles": 2.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 93,
+          "frames": 60,
+          "cpu": 2.233333323399226,
+          "p95": 2.9000000953674316,
+          "draw": 2.006666668256124,
+          "particles": 166.26666666666668,
+          "projectiles": 6.2,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 94,
+          "frames": 60,
+          "cpu": 1.913333346446355,
+          "p95": 2.700000047683716,
+          "draw": 1.7550000031789144,
+          "particles": 142.63333333333333,
+          "projectiles": 6.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 95,
+          "frames": 60,
+          "cpu": 1.8200000087420145,
+          "p95": 2.399999976158142,
+          "draw": 1.6583333353201548,
+          "particles": 149.38333333333333,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 96,
+          "frames": 60,
+          "cpu": 1.7083333412806192,
+          "p95": 2.299999952316284,
+          "draw": 1.5600000043710074,
+          "particles": 100.96666666666667,
+          "projectiles": 4.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 97,
+          "frames": 60,
+          "cpu": 1.721666661898295,
+          "p95": 2.399999976158142,
+          "draw": 1.573333332935969,
+          "particles": 91.23333333333333,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 98,
+          "frames": 60,
+          "cpu": 1.7733333468437196,
+          "p95": 2.8000000715255737,
+          "draw": 1.5883333424727122,
+          "particles": 135.86666666666667,
+          "projectiles": 2.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 99,
+          "frames": 60,
+          "cpu": 2.0016666611035663,
+          "p95": 2.9000000953674316,
+          "draw": 1.7666666785875955,
+          "particles": 317.46666666666664,
+          "projectiles": 3.8,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 100,
+          "frames": 60,
+          "cpu": 2.019999998807907,
+          "p95": 2.899999976158142,
+          "draw": 1.7599999944368998,
+          "particles": 314.65,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 101,
+          "frames": 60,
+          "cpu": 1.8783333321412405,
+          "p95": 2.8000000715255737,
+          "draw": 1.6566666563351948,
+          "particles": 264.45,
+          "projectiles": 4.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 102,
+          "frames": 60,
+          "cpu": 1.8083333412806193,
+          "p95": 2.600000023841858,
+          "draw": 1.5883333285649617,
+          "particles": 225.43333333333334,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 103,
+          "frames": 60,
+          "cpu": 1.481666664282481,
+          "p95": 2.200000047683716,
+          "draw": 1.2800000071525575,
+          "particles": 180.71666666666667,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 104,
+          "frames": 60,
+          "cpu": 1.4766666730244955,
+          "p95": 2.4000000953674316,
+          "draw": 1.251666667064031,
+          "particles": 170.96666666666667,
+          "projectiles": 3.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 105,
+          "frames": 60,
+          "cpu": 1.7616666654745738,
+          "p95": 3,
+          "draw": 1.5100000043710073,
+          "particles": 151.01666666666668,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 106,
+          "frames": 60,
+          "cpu": 1.6333333373069763,
+          "p95": 2.5,
+          "draw": 1.4483333349227905,
+          "particles": 85.61666666666666,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 107,
+          "frames": 60,
+          "cpu": 1.6200000067551932,
+          "p95": 2.5,
+          "draw": 1.4500000019868216,
+          "particles": 53.75,
+          "projectiles": 3.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 108,
+          "frames": 60,
+          "cpu": 2.0566666583220163,
+          "p95": 3.299999952316284,
+          "draw": 1.8549999992052715,
+          "particles": 105.2,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 109,
+          "frames": 60,
+          "cpu": 2.023333324988683,
+          "p95": 2.700000047683716,
+          "draw": 1.8433333337306976,
+          "particles": 98.28333333333333,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 110,
+          "frames": 60,
+          "cpu": 1.7416666567325592,
+          "p95": 2.5,
+          "draw": 1.575,
+          "particles": 63.43333333333333,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 111,
+          "frames": 60,
+          "cpu": 1.6366666853427887,
+          "p95": 2.100000023841858,
+          "draw": 1.4950000127156575,
+          "particles": 63.15,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 112,
+          "frames": 60,
+          "cpu": 1.6850000043710074,
+          "p95": 2.399999976158142,
+          "draw": 1.5133333345254263,
+          "particles": 92.55,
+          "projectiles": 8.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 113,
+          "frames": 60,
+          "cpu": 2.1783333301544188,
+          "p95": 3.200000047683716,
+          "draw": 1.951666667064031,
+          "particles": 237.5,
+          "projectiles": 8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 114,
+          "frames": 60,
+          "cpu": 2.131666672229767,
+          "p95": 3,
+          "draw": 1.8883333365122477,
+          "particles": 189.05,
+          "projectiles": 8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 115,
+          "frames": 60,
+          "cpu": 1.8349999964237214,
+          "p95": 2.399999976158142,
+          "draw": 1.6,
+          "particles": 178.26666666666668,
+          "projectiles": 8.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 116,
+          "frames": 60,
+          "cpu": 1.9750000019868215,
+          "p95": 3,
+          "draw": 1.7533333420753479,
+          "particles": 399.3333333333333,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 117,
+          "frames": 60,
+          "cpu": 1.7299999952316285,
+          "p95": 2.5,
+          "draw": 1.5149999996026358,
+          "particles": 189.33333333333334,
+          "projectiles": 3.6,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 118,
+          "frames": 60,
+          "cpu": 1.4299999912579855,
+          "p95": 2.0999999046325684,
+          "draw": 1.279999989271164,
+          "particles": 110.45,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 119,
+          "frames": 60,
+          "cpu": 1.3866666694482168,
+          "p95": 2.1999999284744263,
+          "draw": 1.2533333420753479,
+          "particles": 89.61666666666666,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 120,
+          "frames": 61,
+          "cpu": 1.352459020301944,
+          "p95": 2,
+          "draw": 1.1967213173381617,
+          "particles": 54.26229508196721,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        }
+      ],
+      "metrics": [
+        {
+          "second": 1.0176000000238419,
+          "task": 314.57606314298135,
+          "layout": 4.948323412517631,
+          "recalc": 12.260157292194847
+        },
+        {
+          "second": 2.032399999976158,
+          "task": 251.50601518414678,
+          "layout": 2.5486410862310347,
+          "recalc": 11.09275081670614
+        },
+        {
+          "second": 3.0512000000476838,
+          "task": 215.96202561302107,
+          "layout": 2.8126614031870782,
+          "recalc": 7.32826680389666
+        },
+        {
+          "second": 4.059,
+          "task": 192.5587648099982,
+          "layout": 4.297886641926612,
+          "recalc": 6.729533638048842
+        },
+        {
+          "second": 5.070800000071525,
+          "task": 189.31638714499746,
+          "layout": 5.093741043586821,
+          "recalc": 8.344287084013096
+        },
+        {
+          "second": 6.083,
+          "task": 155.98070704257788,
+          "layout": 1.9652794047599529,
+          "recalc": 6.329820939978871
+        },
+        {
+          "second": 7.090399999976158,
+          "task": 156.82252561697405,
+          "layout": 3.2182005465753374,
+          "recalc": 6.232968742842948
+        },
+        {
+          "second": 8.105200000047684,
+          "task": 150.60338303589657,
+          "layout": 3.2435287068324765,
+          "recalc": 6.797419364652875
+        },
+        {
+          "second": 9.1175,
+          "task": 166.14168328710727,
+          "layout": 4.091215739073973,
+          "recalc": 7.158145934589358
+        },
+        {
+          "second": 10.124,
+          "task": 182.6963101988753,
+          "layout": 5.340841242362136,
+          "recalc": 8.03907874501382
+        },
+        {
+          "second": 11.131700000047683,
+          "task": 205.12122983749663,
+          "layout": 6.24789643550094,
+          "recalc": 10.30858234384336
+        },
+        {
+          "second": 12.148100000023842,
+          "task": 229.78118189682232,
+          "layout": 8.977051746068797,
+          "recalc": 11.707226684212252
+        },
+        {
+          "second": 13.152399999976158,
+          "task": 247.1577642268791,
+          "layout": 12.013799326490469,
+          "recalc": 11.65212345560779
+        },
+        {
+          "second": 14.16,
+          "task": 275.07561682935443,
+          "layout": 6.134689275998912,
+          "recalc": 9.645613031819687
+        },
+        {
+          "second": 15.166399999976159,
+          "task": 260.2282362168829,
+          "layout": 6.918055827863012,
+          "recalc": 7.0035375521728165
+        },
+        {
+          "second": 16.175399999976158,
+          "task": 313.2653091360886,
+          "layout": 4.603869985468939,
+          "recalc": 8.104832675667362
+        },
+        {
+          "second": 17.184899999976157,
+          "task": 297.82589102161023,
+          "layout": 3.7897585393106157,
+          "recalc": 10.905708708261864
+        },
+        {
+          "second": 18.1975,
+          "task": 261.9849773793973,
+          "layout": 2.9987812809908183,
+          "recalc": 11.549614534182524
+        },
+        {
+          "second": 19.215200000047684,
+          "task": 207.50487970591968,
+          "layout": 4.047037488151922,
+          "recalc": 7.507234913763857
+        },
+        {
+          "second": 20.232700000047682,
+          "task": 212.86281313568256,
+          "layout": 2.8061214472685387,
+          "recalc": 8.418364341805617
+        },
+        {
+          "second": 21.25089999997616,
+          "task": 217.79110345804696,
+          "layout": 3.477021381060135,
+          "recalc": 7.368886704107093
+        },
+        {
+          "second": 22.267200000047684,
+          "task": 202.3536539340383,
+          "layout": 3.3438975106784032,
+          "recalc": 6.450002368635191
+        },
+        {
+          "second": 23.274399999976158,
+          "task": 272.1752112339405,
+          "layout": 4.31557733431641,
+          "recalc": 6.529759377920306
+        },
+        {
+          "second": 24.285700000047683,
+          "task": 317.6701739086927,
+          "layout": 4.2433360717973345,
+          "recalc": 7.702738817524328
+        },
+        {
+          "second": 25.30060000002384,
+          "task": 294.8315389958822,
+          "layout": 2.894464880553179,
+          "recalc": 6.491758100775582
+        },
+        {
+          "second": 26.306100000023843,
+          "task": 350.37567368445326,
+          "layout": 3.104659658907751,
+          "recalc": 7.9287470715863755
+        },
+        {
+          "second": 27.319300000071525,
+          "task": 357.30930373478446,
+          "layout": 3.544233834529222,
+          "recalc": 8.419899427003301
+        },
+        {
+          "second": 28.334399999976156,
+          "task": 358.12078577201805,
+          "layout": 3.221295707627601,
+          "recalc": 6.576894363212723
+        },
+        {
+          "second": 29.351,
+          "task": 373.3195408993918,
+          "layout": 3.668338784833041,
+          "recalc": 7.256802450964048
+        },
+        {
+          "second": 30.359,
+          "task": 405.88340384779445,
+          "layout": 4.827656321285691,
+          "recalc": 8.549817839905257
+        },
+        {
+          "second": 31.376800000071526,
+          "task": 379.300957165629,
+          "layout": 3.9597946685158374,
+          "recalc": 8.752040586531018
+        },
+        {
+          "second": 32.391700000047685,
+          "task": 314.4686562123462,
+          "layout": 2.6210976684700045,
+          "recalc": 7.949020635920127
+        },
+        {
+          "second": 33.4015,
+          "task": 282.02516833166237,
+          "layout": 2.903580884731944,
+          "recalc": 8.450927697980054
+        },
+        {
+          "second": 34.41460000002384,
+          "task": 260.66596731264116,
+          "layout": 3.9721975778434855,
+          "recalc": 9.771112600802066
+        },
+        {
+          "second": 35.42680000007152,
+          "task": 212.84615498310035,
+          "layout": 3.3992629174205033,
+          "recalc": 7.287940757058934
+        },
+        {
+          "second": 36.44420000004769,
+          "task": 215.8886025128871,
+          "layout": 2.942734099416547,
+          "recalc": 9.969924175886309
+        },
+        {
+          "second": 37.458700000047685,
+          "task": 200.6771599705562,
+          "layout": 3.9123044344589553,
+          "recalc": 7.419377739239835
+        },
+        {
+          "second": 38.4665,
+          "task": 187.10035228918247,
+          "layout": 3.883248554262121,
+          "recalc": 7.147399740650044
+        },
+        {
+          "second": 39.479700000047686,
+          "task": 178.67660779823433,
+          "layout": 4.9886612362870615,
+          "recalc": 6.6729391047029925
+        },
+        {
+          "second": 40.494,
+          "task": 190.7225290148358,
+          "layout": 6.686083497652606,
+          "recalc": 7.100326759050175
+        },
+        {
+          "second": 41.50789999997616,
+          "task": 196.69836889055182,
+          "layout": 4.513871778328104,
+          "recalc": 7.704134430391019
+        },
+        {
+          "second": 42.52110000002384,
+          "task": 211.43530530519539,
+          "layout": 5.549672181315881,
+          "recalc": 8.011148692111112
+        },
+        {
+          "second": 43.53260000002384,
+          "task": 241.88489140286418,
+          "layout": 5.907117849287282,
+          "recalc": 9.469606957858478
+        },
+        {
+          "second": 44.54120000004768,
+          "task": 238.95470563131272,
+          "layout": 6.999067055283588,
+          "recalc": 10.228720043436963
+        },
+        {
+          "second": 45.555300000071526,
+          "task": 245.84780816724358,
+          "layout": 7.295909716329758,
+          "recalc": 12.00113564202112
+        },
+        {
+          "second": 46.56710000002384,
+          "task": 245.60414790431065,
+          "layout": 10.553604481093952,
+          "recalc": 13.696747505770501
+        },
+        {
+          "second": 47.582200000047685,
+          "task": 248.70076984122585,
+          "layout": 6.409240020617886,
+          "recalc": 10.090515250653228
+        },
+        {
+          "second": 48.5935,
+          "task": 267.2935884900517,
+          "layout": 6.609084004095737,
+          "recalc": 8.206221616936448
+        },
+        {
+          "second": 49.61710000002384,
+          "task": 313.43765393884865,
+          "layout": 8.038925945690146,
+          "recalc": 10.603768179552477
+        },
+        {
+          "second": 50.62539999997616,
+          "task": 287.33302797698207,
+          "layout": 6.352142651124181,
+          "recalc": 8.332313305072175
+        },
+        {
+          "second": 51.6355,
+          "task": 255.94631706295576,
+          "layout": 5.732224905017365,
+          "recalc": 7.4499123333774175
+        },
+        {
+          "second": 52.64860000002384,
+          "task": 259.59909124276936,
+          "layout": 6.33117878141819,
+          "recalc": 7.704384172953206
+        },
+        {
+          "second": 53.656,
+          "task": 233.28129261371552,
+          "layout": 5.358709390115353,
+          "recalc": 8.064827894557567
+        },
+        {
+          "second": 54.6695,
+          "task": 201.14034559780805,
+          "layout": 4.764268381876264,
+          "recalc": 6.48228645413114
+        },
+        {
+          "second": 55.6765,
+          "task": 185.44652458845434,
+          "layout": 4.817656995547514,
+          "recalc": 6.023312652648042
+        },
+        {
+          "second": 56.68560000002384,
+          "task": 198.71639934896976,
+          "layout": 4.641883539040744,
+          "recalc": 6.8082939743549575
+        },
+        {
+          "second": 57.69770000004768,
+          "task": 222.451917634279,
+          "layout": 5.110144737664175,
+          "recalc": 6.498232171255545
+        },
+        {
+          "second": 58.704899999976156,
+          "task": 236.82707432407287,
+          "layout": 5.5226851792494545,
+          "recalc": 8.608221960701407
+        },
+        {
+          "second": 59.71439999997616,
+          "task": 241.83416337748963,
+          "layout": 5.707454513015486,
+          "recalc": 8.991249826431345
+        },
+        {
+          "second": 60.72310000002384,
+          "task": 246.15584086843396,
+          "layout": 5.069460115429501,
+          "recalc": 8.842357803835807
+        },
+        {
+          "second": 61.73370000004768,
+          "task": 248.22552612338802,
+          "layout": 6.143265704984944,
+          "recalc": 10.813532596004933
+        },
+        {
+          "second": 62.7485,
+          "task": 232.45180620453084,
+          "layout": 7.8481673116059545,
+          "recalc": 12.571692840373975
+        },
+        {
+          "second": 63.75370000004769,
+          "task": 188.62461937577606,
+          "layout": 4.738006208732312,
+          "recalc": 7.7690606307307535
+        },
+        {
+          "second": 64.76180000007153,
+          "task": 159.03915396229615,
+          "layout": 4.110332164739511,
+          "recalc": 7.228104060546193
+        },
+        {
+          "second": 65.76710000002385,
+          "task": 179.73156296320616,
+          "layout": 5.611238378115297,
+          "recalc": 9.647235376614404
+        },
+        {
+          "second": 66.77920000004768,
+          "task": 173.33969301180565,
+          "layout": 4.906307148376622,
+          "recalc": 7.520761260117559
+        },
+        {
+          "second": 67.789,
+          "task": 171.71604346246335,
+          "layout": 5.164696997434822,
+          "recalc": 8.29613433482681
+        },
+        {
+          "second": 68.79820000004769,
+          "task": 154.37827963500825,
+          "layout": 4.776863417545257,
+          "recalc": 8.028142085397514
+        },
+        {
+          "second": 69.8145,
+          "task": 140.91828948354927,
+          "layout": 4.1950811200631755,
+          "recalc": 7.065658928744967
+        },
+        {
+          "second": 70.826,
+          "task": 143.76407641520146,
+          "layout": 6.125189867682811,
+          "recalc": 7.335799352663663
+        },
+        {
+          "second": 71.83620000004768,
+          "task": 143.94707050888897,
+          "layout": 5.834435041318221,
+          "recalc": 7.560224510799015
+        },
+        {
+          "second": 72.84489999997616,
+          "task": 148.21532759305637,
+          "layout": 5.291703545870554,
+          "recalc": 8.060098988019163
+        },
+        {
+          "second": 73.85610000002384,
+          "task": 159.5539846206367,
+          "layout": 4.589241623520942,
+          "recalc": 7.349903233362408
+        },
+        {
+          "second": 74.86610000002385,
+          "task": 187.37824290331798,
+          "layout": 7.12625518730934,
+          "recalc": 10.728483639402587
+        },
+        {
+          "second": 75.87270000004769,
+          "task": 194.97603615307622,
+          "layout": 5.211860955805399,
+          "recalc": 8.88836805534644
+        },
+        {
+          "second": 76.88210000002384,
+          "task": 211.6009404913273,
+          "layout": 6.434398169846863,
+          "recalc": 11.077390135338423
+        },
+        {
+          "second": 77.89030000007152,
+          "task": 229.4186562055463,
+          "layout": 8.507421673637332,
+          "recalc": 11.811785199160454
+        },
+        {
+          "second": 78.90039999997616,
+          "task": 250.27379544566597,
+          "layout": 8.075232849815327,
+          "recalc": 11.052820241525259
+        },
+        {
+          "second": 79.9115,
+          "task": 204.04069990251364,
+          "layout": 5.243331549285057,
+          "recalc": 7.552811797639717
+        },
+        {
+          "second": 80.92010000002384,
+          "task": 191.42794308734793,
+          "layout": 5.936802229985783,
+          "recalc": 7.903188418292518
+        },
+        {
+          "second": 81.93610000002384,
+          "task": 229.2091166242911,
+          "layout": 5.643260865637149,
+          "recalc": 9.171160210211239
+        },
+        {
+          "second": 82.9485,
+          "task": 188.32367911236335,
+          "layout": 4.002243547560786,
+          "recalc": 5.640467590344712
+        },
+        {
+          "second": 83.95289999997615,
+          "task": 168.39575137674362,
+          "layout": 4.156776102731931,
+          "recalc": 5.942805230984645
+        },
+        {
+          "second": 84.96330000007153,
+          "task": 175.82725242846215,
+          "layout": 5.851707926755667,
+          "recalc": 8.92150500143405
+        },
+        {
+          "second": 85.97370000004769,
+          "task": 144.78237873253235,
+          "layout": 4.599850633732081,
+          "recalc": 7.711980412195956
+        },
+        {
+          "second": 86.98260000002384,
+          "task": 139.717408325857,
+          "layout": 3.979731984334174,
+          "recalc": 6.783071433861353
+        },
+        {
+          "second": 87.99389999997616,
+          "task": 148.5646321658275,
+          "layout": 3.6037695491274517,
+          "recalc": 7.127323288010519
+        },
+        {
+          "second": 88.9995,
+          "task": 149.41928255038837,
+          "layout": 5.706862337710552,
+          "recalc": 8.334839668998878
+        },
+        {
+          "second": 90.01239999997615,
+          "task": 168.95015966410654,
+          "layout": 5.883271158410375,
+          "recalc": 10.223356834127655
+        },
+        {
+          "second": 91.02339999997616,
+          "task": 185.65431297095014,
+          "layout": 7.177094991591604,
+          "recalc": 11.631264014476294
+        },
+        {
+          "second": 92.03789999997616,
+          "task": 215.2627108851173,
+          "layout": 8.05385262674253,
+          "recalc": 12.468002341424057
+        },
+        {
+          "second": 93.04739999997616,
+          "task": 213.7201414595153,
+          "layout": 8.15285513435429,
+          "recalc": 12.24910004507626
+        },
+        {
+          "second": 94.05260000002384,
+          "task": 208.7431944086122,
+          "layout": 8.168709258739364,
+          "recalc": 10.736785151356596
+        },
+        {
+          "second": 95.06530000007153,
+          "task": 188.30912105786462,
+          "layout": 5.105036244108915,
+          "recalc": 9.147552843993765
+        },
+        {
+          "second": 96.07189999997615,
+          "task": 167.15507599677906,
+          "layout": 6.051446224068732,
+          "recalc": 9.092054822059415
+        },
+        {
+          "second": 97.07870000004769,
+          "task": 173.11464978040004,
+          "layout": 8.41192584399089,
+          "recalc": 9.61902725942876
+        },
+        {
+          "second": 98.08820000004768,
+          "task": 181.05510010592857,
+          "layout": 8.128713703745222,
+          "recalc": 10.662814226604853
+        },
+        {
+          "second": 99.10130000007153,
+          "task": 192.03682544475566,
+          "layout": 6.6573766916934805,
+          "recalc": 8.784655937192321
+        },
+        {
+          "second": 100.1075,
+          "task": 182.38350719997496,
+          "layout": 4.106308991482754,
+          "recalc": 6.869349229884285
+        },
+        {
+          "second": 101.11830000007153,
+          "task": 184.24007399668162,
+          "layout": 6.614202828295862,
+          "recalc": 8.037750221343659
+        },
+        {
+          "second": 102.13310000002384,
+          "task": 163.34761089153687,
+          "layout": 5.577314649663466,
+          "recalc": 6.977803095885605
+        },
+        {
+          "second": 103.14580000007153,
+          "task": 146.13319695508585,
+          "layout": 5.169361757479213,
+          "recalc": 6.643360440427566
+        },
+        {
+          "second": 104.16010000002385,
+          "task": 150.62731356543367,
+          "layout": 5.669019298436338,
+          "recalc": 7.12896698124788
+        },
+        {
+          "second": 105.16720000004769,
+          "task": 168.36845491205668,
+          "layout": 5.681001220271804,
+          "recalc": 10.233536846431342
+        },
+        {
+          "second": 106.17839999997616,
+          "task": 154.84135480543327,
+          "layout": 5.1734604647376,
+          "recalc": 9.65072209587823
+        },
+        {
+          "second": 107.18560000002384,
+          "task": 180.97536599003703,
+          "layout": 6.8476307954678575,
+          "recalc": 11.122194415401614
+        },
+        {
+          "second": 108.195,
+          "task": 208.55795682589687,
+          "layout": 6.361139078973879,
+          "recalc": 10.212110641661509
+        },
+        {
+          "second": 109.20289999997615,
+          "task": 203.66746250533527,
+          "layout": 8.13459728245389,
+          "recalc": 10.99921342094016
+        },
+        {
+          "second": 110.213,
+          "task": 206.46853233823674,
+          "layout": 11.74627568616393,
+          "recalc": 11.359591503028735
+        },
+        {
+          "second": 111.22030000007153,
+          "task": 175.87493953045407,
+          "layout": 6.5412335572454605,
+          "recalc": 8.90896188576957
+        },
+        {
+          "second": 112.237,
+          "task": 180.98764169892274,
+          "layout": 7.2837689498941,
+          "recalc": 9.193975472607718
+        },
+        {
+          "second": 113.2475,
+          "task": 208.09305767818165,
+          "layout": 6.260529071208031,
+          "recalc": 9.171551363448915
+        },
+        {
+          "second": 114.26180000007153,
+          "task": 208.6560970834842,
+          "layout": 6.7843220364853805,
+          "recalc": 10.703320208367504
+        },
+        {
+          "second": 115.27080000007153,
+          "task": 182.23102775769428,
+          "layout": 5.264821930605611,
+          "recalc": 8.254035586988644
+        },
+        {
+          "second": 116.2805,
+          "task": 185.8340902117881,
+          "layout": 7.541443769241214,
+          "recalc": 7.607805304904395
+        },
+        {
+          "second": 117.28830000007153,
+          "task": 165.18931064226962,
+          "layout": 7.881658026367003,
+          "recalc": 9.147963194038098
+        },
+        {
+          "second": 118.30180000007152,
+          "task": 145.38560407733755,
+          "layout": 6.590232724785511,
+          "recalc": 7.729541031495203
+        },
+        {
+          "second": 119.31089999997616,
+          "task": 147.65702663030322,
+          "layout": 7.29964626646835,
+          "recalc": 7.762502316222681
+        }
+      ]
+    },
+    {
+      "branch": "dev",
+      "elapsed": 120.00769999992848,
+      "frames": 7201,
+      "fps": 60.004483045707,
+      "cpuMean": 2.335078461751923,
+      "cpuP95": 4.099999904632568,
+      "drawMean": 2.0516178305654655,
+      "frameP95": 16.70000000001164,
+      "frameP99": 16.80000000000291,
+      "gapsOver25": 0,
+      "gapsOver50": 0,
+      "taskMsPerSecond": 221.07401929091594,
+      "layoutMsPerSecond": 4.226957171826169,
+      "attacks": 37,
+      "aiToAiAttacks": 3,
+      "munitions": 93,
+      "explosions": 77,
+      "intercepts": 19,
+      "meanParticles": 341.8361338702958,
+      "peakParticles": 1607,
+      "meanProjectiles": 6.25718650187474,
+      "peakProjectiles": 25,
+      "simStart": 179.99999999999406,
+      "simEnd": 299.9999999999997,
+      "over": null,
+      "eliminations": 0,
+      "bins": [
+        {
+          "second": 1,
+          "frames": 60,
+          "cpu": 3.1850000103314717,
+          "p95": 4.5,
+          "draw": 2.7333333333333334,
+          "particles": 684,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 2,
+          "frames": 60,
+          "cpu": 3.3833333432674406,
+          "p95": 4.5,
+          "draw": 2.8983333349227904,
+          "particles": 475.78333333333336,
+          "projectiles": 7.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 3,
+          "frames": 60,
+          "cpu": 2.8166666607062023,
+          "p95": 3.899999976158142,
+          "draw": 2.483333331346512,
+          "particles": 371.5833333333333,
+          "projectiles": 7,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 4,
+          "frames": 60,
+          "cpu": 2.2133333404858906,
+          "p95": 3.299999952316284,
+          "draw": 1.9016666611035664,
+          "particles": 311.55,
+          "projectiles": 7.2,
+          "attacks": 1,
+          "aiAttacks": 1
+        },
+        {
+          "second": 5,
+          "frames": 60,
+          "cpu": 2.2150000015894573,
+          "p95": 3.299999952316284,
+          "draw": 1.9099999944368997,
+          "particles": 319.65,
+          "projectiles": 6.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 6,
+          "frames": 60,
+          "cpu": 2.1333333353201547,
+          "p95": 2.9000000953674316,
+          "draw": 1.818333335717519,
+          "particles": 262.3,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 7,
+          "frames": 60,
+          "cpu": 1.7899999936421713,
+          "p95": 2.4000000953674316,
+          "draw": 1.5833333313465119,
+          "particles": 160.88333333333333,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 8,
+          "frames": 60,
+          "cpu": 1.9416666587193807,
+          "p95": 2.8000000715255737,
+          "draw": 1.7449999928474427,
+          "particles": 121.2,
+          "projectiles": 5.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 9,
+          "frames": 60,
+          "cpu": 1.9749999860922496,
+          "p95": 2.799999952316284,
+          "draw": 1.8150000015894572,
+          "particles": 139.33333333333334,
+          "projectiles": 6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 10,
+          "frames": 60,
+          "cpu": 1.881666660308838,
+          "p95": 2.6999999284744263,
+          "draw": 1.7349999964237213,
+          "particles": 144.18333333333334,
+          "projectiles": 4.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 11,
+          "frames": 60,
+          "cpu": 1.6916666527589161,
+          "p95": 2.6999999284744263,
+          "draw": 1.5766666571299235,
+          "particles": 135.26666666666668,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 12,
+          "frames": 60,
+          "cpu": 1.5983333468437195,
+          "p95": 2.100000023841858,
+          "draw": 1.475000007947286,
+          "particles": 99.71666666666667,
+          "projectiles": 3.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 13,
+          "frames": 60,
+          "cpu": 1.8316666662693024,
+          "p95": 2.700000047683716,
+          "draw": 1.6316666722297668,
+          "particles": 328.68333333333334,
+          "projectiles": 2.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 14,
+          "frames": 60,
+          "cpu": 2.445000006755193,
+          "p95": 3.8000000715255737,
+          "draw": 2.0883333305517833,
+          "particles": 681.0666666666667,
+          "projectiles": 0.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 15,
+          "frames": 60,
+          "cpu": 2.801666667064031,
+          "p95": 4,
+          "draw": 2.341666664679845,
+          "particles": 609.4666666666667,
+          "projectiles": 9.6,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 16,
+          "frames": 60,
+          "cpu": 2.9699999849001566,
+          "p95": 5.099999904632568,
+          "draw": 2.5216666559378305,
+          "particles": 649.9666666666667,
+          "projectiles": 20.4,
+          "attacks": 2,
+          "aiAttacks": 1
+        },
+        {
+          "second": 17,
+          "frames": 60,
+          "cpu": 3.2149999996026355,
+          "p95": 4.699999928474426,
+          "draw": 2.7816666503747305,
+          "particles": 614.2333333333333,
+          "projectiles": 24,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 18,
+          "frames": 60,
+          "cpu": 3.461666683355967,
+          "p95": 4.699999928474426,
+          "draw": 3.019999998807907,
+          "particles": 493.56666666666666,
+          "projectiles": 24.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 19,
+          "frames": 60,
+          "cpu": 3.153333330154419,
+          "p95": 4.300000071525574,
+          "draw": 2.768333331743876,
+          "particles": 424.8833333333333,
+          "projectiles": 25,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 20,
+          "frames": 60,
+          "cpu": 2.91833332379659,
+          "p95": 4.399999976158142,
+          "draw": 2.596666657924652,
+          "particles": 316.25,
+          "projectiles": 25,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 21,
+          "frames": 60,
+          "cpu": 3.018333343664805,
+          "p95": 4.199999928474426,
+          "draw": 2.756666668256124,
+          "particles": 334.31666666666666,
+          "projectiles": 23.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 22,
+          "frames": 60,
+          "cpu": 2.6399999896685284,
+          "p95": 3.899999976158142,
+          "draw": 2.3833333293596906,
+          "particles": 268.7,
+          "projectiles": 21.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 23,
+          "frames": 60,
+          "cpu": 2.750000007947286,
+          "p95": 3.6999999284744263,
+          "draw": 2.4566666702429454,
+          "particles": 359.76666666666665,
+          "projectiles": 18.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 24,
+          "frames": 60,
+          "cpu": 3.101666659116745,
+          "p95": 4.799999952316284,
+          "draw": 2.768333313862483,
+          "particles": 723.8666666666667,
+          "projectiles": 15.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 25,
+          "frames": 60,
+          "cpu": 3.578333344062169,
+          "p95": 5.5,
+          "draw": 3.116666660706202,
+          "particles": 1189.45,
+          "projectiles": 11.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 26,
+          "frames": 60,
+          "cpu": 3.9866666634877523,
+          "p95": 5.799999952316284,
+          "draw": 3.373333324988683,
+          "particles": 1288.6,
+          "projectiles": 12.7,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 27,
+          "frames": 60,
+          "cpu": 3.6783333321412406,
+          "p95": 6,
+          "draw": 3.1783333381017047,
+          "particles": 1130.1,
+          "projectiles": 12.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 28,
+          "frames": 60,
+          "cpu": 3.4649999956289927,
+          "p95": 5.699999928474426,
+          "draw": 2.9299999992052714,
+          "particles": 1120.0166666666667,
+          "projectiles": 10.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 29,
+          "frames": 60,
+          "cpu": 3.3066666543483736,
+          "p95": 4.5,
+          "draw": 2.7566666821638743,
+          "particles": 1100.9,
+          "projectiles": 11.2,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 30,
+          "frames": 60,
+          "cpu": 3.6549999992052715,
+          "p95": 5.399999976158142,
+          "draw": 3.038333332538605,
+          "particles": 1507.55,
+          "projectiles": 7.8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 31,
+          "frames": 60,
+          "cpu": 3.7550000071525576,
+          "p95": 5.300000071525574,
+          "draw": 3.0666666686534882,
+          "particles": 1251.2333333333333,
+          "projectiles": 5.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 32,
+          "frames": 60,
+          "cpu": 3.6916666587193805,
+          "p95": 5,
+          "draw": 2.9249999940395357,
+          "particles": 825.3,
+          "projectiles": 5.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 33,
+          "frames": 60,
+          "cpu": 3.5316666821638742,
+          "p95": 5.100000023841858,
+          "draw": 2.928333334128062,
+          "particles": 707.4166666666666,
+          "projectiles": 5.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 34,
+          "frames": 60,
+          "cpu": 3.9050000111262,
+          "p95": 5.100000023841858,
+          "draw": 3.3283333321412405,
+          "particles": 669.05,
+          "projectiles": 4.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 35,
+          "frames": 60,
+          "cpu": 3.3533333400885263,
+          "p95": 4.400000095367432,
+          "draw": 2.9333333214124044,
+          "particles": 470.1666666666667,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 36,
+          "frames": 60,
+          "cpu": 2.7966666638851168,
+          "p95": 3.799999952316284,
+          "draw": 2.424999996026357,
+          "particles": 349.8833333333333,
+          "projectiles": 4.3,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 37,
+          "frames": 60,
+          "cpu": 2.3283333520094556,
+          "p95": 3.200000047683716,
+          "draw": 2.0416666626930238,
+          "particles": 229.73333333333332,
+          "projectiles": 7.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 38,
+          "frames": 60,
+          "cpu": 2.201666655143102,
+          "p95": 2.899999976158142,
+          "draw": 1.9533333400885264,
+          "particles": 184.06666666666666,
+          "projectiles": 10,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 39,
+          "frames": 60,
+          "cpu": 2.118333347638448,
+          "p95": 2.899999976158142,
+          "draw": 1.880000001192093,
+          "particles": 163.78333333333333,
+          "projectiles": 10.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 40,
+          "frames": 60,
+          "cpu": 2.114999997615814,
+          "p95": 3,
+          "draw": 1.8900000055631,
+          "particles": 125.4,
+          "projectiles": 11.6,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 41,
+          "frames": 60,
+          "cpu": 2.3683333337306975,
+          "p95": 3.3000000715255737,
+          "draw": 2.1649999996026357,
+          "particles": 167.15,
+          "projectiles": 13.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 42,
+          "frames": 60,
+          "cpu": 2.7533333400885263,
+          "p95": 3.9000000953674316,
+          "draw": 2.4550000031789145,
+          "particles": 685.9,
+          "projectiles": 8.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 43,
+          "frames": 60,
+          "cpu": 3.0333333373069764,
+          "p95": 4.399999976158142,
+          "draw": 2.6633333285649616,
+          "particles": 765.9166666666666,
+          "projectiles": 7.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 44,
+          "frames": 60,
+          "cpu": 2.6333333273728687,
+          "p95": 3.3000000715255737,
+          "draw": 2.3499999980131787,
+          "particles": 602.1,
+          "projectiles": 6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 45,
+          "frames": 60,
+          "cpu": 2.5166666666666666,
+          "p95": 3.600000023841858,
+          "draw": 2.2466666718324024,
+          "particles": 457.76666666666665,
+          "projectiles": 6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 46,
+          "frames": 60,
+          "cpu": 2.6266666690508527,
+          "p95": 3.6999999284744263,
+          "draw": 2.2933333377043406,
+          "particles": 749.7166666666667,
+          "projectiles": 4.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 47,
+          "frames": 60,
+          "cpu": 3.358333323399226,
+          "p95": 4.700000047683716,
+          "draw": 2.7416666626930235,
+          "particles": 842.35,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 48,
+          "frames": 60,
+          "cpu": 3.1433333198229474,
+          "p95": 4.199999928474426,
+          "draw": 2.5666666626930237,
+          "particles": 699.05,
+          "projectiles": 2.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 49,
+          "frames": 60,
+          "cpu": 3.388333338499069,
+          "p95": 4.200000047683716,
+          "draw": 2.8500000019868215,
+          "particles": 586.9,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 50,
+          "frames": 60,
+          "cpu": 3.681666672229767,
+          "p95": 5.200000047683716,
+          "draw": 3.210000006357829,
+          "particles": 626.9333333333333,
+          "projectiles": 5.7,
+          "attacks": 3,
+          "aiAttacks": 0
+        },
+        {
+          "second": 51,
+          "frames": 60,
+          "cpu": 3.480000009139379,
+          "p95": 5.100000023841858,
+          "draw": 3.0116666654745736,
+          "particles": 535.65,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 52,
+          "frames": 60,
+          "cpu": 3.2049999932448068,
+          "p95": 4.5,
+          "draw": 2.756666664282481,
+          "particles": 570.05,
+          "projectiles": 6.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 53,
+          "frames": 60,
+          "cpu": 3.3700000047683716,
+          "p95": 5,
+          "draw": 2.9833333432674407,
+          "particles": 433.3666666666667,
+          "projectiles": 6.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 54,
+          "frames": 60,
+          "cpu": 2.568333355585734,
+          "p95": 3.5,
+          "draw": 2.2550000051657357,
+          "particles": 344.43333333333334,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 55,
+          "frames": 60,
+          "cpu": 2.344999994834264,
+          "p95": 3.3000000715255737,
+          "draw": 2.108333331346512,
+          "particles": 312.5833333333333,
+          "projectiles": 4.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 56,
+          "frames": 60,
+          "cpu": 2.4783333202203113,
+          "p95": 3.600000023841858,
+          "draw": 2.2116666615009306,
+          "particles": 249.35,
+          "projectiles": 6.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 57,
+          "frames": 60,
+          "cpu": 2.016666660706202,
+          "p95": 2.799999952316284,
+          "draw": 1.819999990860621,
+          "particles": 187.76666666666668,
+          "projectiles": 8,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 58,
+          "frames": 60,
+          "cpu": 2.008333331346512,
+          "p95": 2.600000023841858,
+          "draw": 1.7983333388964335,
+          "particles": 177.43333333333334,
+          "projectiles": 7.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 59,
+          "frames": 60,
+          "cpu": 1.919999998807907,
+          "p95": 2.600000023841858,
+          "draw": 1.771666669845581,
+          "particles": 141.93333333333334,
+          "projectiles": 7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 60,
+          "frames": 60,
+          "cpu": 1.7499999940395354,
+          "p95": 2.399999976158142,
+          "draw": 1.6166666607062021,
+          "particles": 122.26666666666667,
+          "projectiles": 6.5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 61,
+          "frames": 60,
+          "cpu": 1.8383333404858908,
+          "p95": 2.700000047683716,
+          "draw": 1.675,
+          "particles": 213.98333333333332,
+          "projectiles": 4.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 62,
+          "frames": 60,
+          "cpu": 1.9099999944368997,
+          "p95": 2.899999976158142,
+          "draw": 1.7116666615009308,
+          "particles": 305.7,
+          "projectiles": 2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 63,
+          "frames": 60,
+          "cpu": 2.1333333353201547,
+          "p95": 3,
+          "draw": 1.8716666618982951,
+          "particles": 282.48333333333335,
+          "projectiles": 2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 64,
+          "frames": 60,
+          "cpu": 2.05,
+          "p95": 2.899999976158142,
+          "draw": 1.7883333305517832,
+          "particles": 187.86666666666667,
+          "projectiles": 2.5,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 65,
+          "frames": 60,
+          "cpu": 2.7766666650772094,
+          "p95": 4.5,
+          "draw": 2.4299999952316282,
+          "particles": 330.8,
+          "projectiles": 2.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 66,
+          "frames": 60,
+          "cpu": 3.148333344856898,
+          "p95": 4.300000071525574,
+          "draw": 2.7799999912579856,
+          "particles": 299.71666666666664,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 67,
+          "frames": 60,
+          "cpu": 2.464999997615814,
+          "p95": 3.299999952316284,
+          "draw": 2.1716666678587595,
+          "particles": 230.46666666666667,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 68,
+          "frames": 60,
+          "cpu": 2.1833333214124044,
+          "p95": 2.700000047683716,
+          "draw": 1.9216666758060454,
+          "particles": 188.98333333333332,
+          "projectiles": 5,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 69,
+          "frames": 60,
+          "cpu": 2.0333333273728686,
+          "p95": 2.799999952316284,
+          "draw": 1.8033333361148833,
+          "particles": 143.56666666666666,
+          "projectiles": 8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 70,
+          "frames": 60,
+          "cpu": 1.9016666730244955,
+          "p95": 2.5,
+          "draw": 1.701666682958603,
+          "particles": 129.36666666666667,
+          "projectiles": 7.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 71,
+          "frames": 60,
+          "cpu": 2.0516666611035665,
+          "p95": 3,
+          "draw": 1.8583333273728688,
+          "particles": 123.88333333333334,
+          "projectiles": 7.4,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 72,
+          "frames": 60,
+          "cpu": 2.0350000063578286,
+          "p95": 2.600000023841858,
+          "draw": 1.8633333504199983,
+          "particles": 105.68333333333334,
+          "projectiles": 9.8,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 73,
+          "frames": 60,
+          "cpu": 2.0233333388964336,
+          "p95": 2.600000023841858,
+          "draw": 1.8366666654745738,
+          "particles": 193.16666666666666,
+          "projectiles": 9.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 74,
+          "frames": 60,
+          "cpu": 2.0616666535536448,
+          "p95": 2.600000023841858,
+          "draw": 1.8799999892711639,
+          "particles": 218.33333333333334,
+          "projectiles": 8.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 75,
+          "frames": 60,
+          "cpu": 1.97833331823349,
+          "p95": 2.899999976158142,
+          "draw": 1.801666655143102,
+          "particles": 213.13333333333333,
+          "projectiles": 6.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 76,
+          "frames": 60,
+          "cpu": 1.8749999980131784,
+          "p95": 2.700000047683716,
+          "draw": 1.6816666682561239,
+          "particles": 363.56666666666666,
+          "projectiles": 3.7,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 77,
+          "frames": 60,
+          "cpu": 2.166666656732559,
+          "p95": 3,
+          "draw": 1.9150000075499216,
+          "particles": 489.9,
+          "projectiles": 1.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 78,
+          "frames": 60,
+          "cpu": 2.170000010728836,
+          "p95": 3.600000023841858,
+          "draw": 1.8366666773955027,
+          "particles": 362.78333333333336,
+          "projectiles": 0.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 79,
+          "frames": 60,
+          "cpu": 2.1400000035762785,
+          "p95": 3.299999952316284,
+          "draw": 1.8533333400885263,
+          "particles": 267.76666666666665,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 80,
+          "frames": 60,
+          "cpu": 1.9266666650772095,
+          "p95": 3.200000047683716,
+          "draw": 1.7066666622956594,
+          "particles": 211.68333333333334,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 81,
+          "frames": 60,
+          "cpu": 1.9600000143051148,
+          "p95": 2.8000000715255737,
+          "draw": 1.6816666742165884,
+          "particles": 192.6,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 82,
+          "frames": 60,
+          "cpu": 1.9816666781902312,
+          "p95": 3.100000023841858,
+          "draw": 1.7933333396911622,
+          "particles": 175.91666666666666,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 83,
+          "frames": 60,
+          "cpu": 1.895000010728836,
+          "p95": 2.6999999284744263,
+          "draw": 1.7166666607062022,
+          "particles": 110.88333333333334,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 84,
+          "frames": 60,
+          "cpu": 1.4666666646798452,
+          "p95": 2.100000023841858,
+          "draw": 1.330000005165736,
+          "particles": 75.11666666666666,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 85,
+          "frames": 60,
+          "cpu": 1.4850000063578288,
+          "p95": 2,
+          "draw": 1.3416666686534882,
+          "particles": 53.46666666666667,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 86,
+          "frames": 60,
+          "cpu": 1.5283333301544189,
+          "p95": 2.1999999284744263,
+          "draw": 1.3816666642824809,
+          "particles": 48.55,
+          "projectiles": 0.2,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 87,
+          "frames": 60,
+          "cpu": 1.5866666714350381,
+          "p95": 2,
+          "draw": 1.4150000035762786,
+          "particles": 56.016666666666666,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 88,
+          "frames": 60,
+          "cpu": 1.4183333277702332,
+          "p95": 2.100000023841858,
+          "draw": 1.2816666662693024,
+          "particles": 58.833333333333336,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 89,
+          "frames": 60,
+          "cpu": 1.7133333384990692,
+          "p95": 2.5,
+          "draw": 1.5683333416779837,
+          "particles": 101.26666666666667,
+          "projectiles": 0.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 90,
+          "frames": 60,
+          "cpu": 1.5549999992052714,
+          "p95": 2,
+          "draw": 1.4116666634877524,
+          "particles": 81.95,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 91,
+          "frames": 60,
+          "cpu": 1.3066666682561239,
+          "p95": 1.899999976158142,
+          "draw": 1.1900000035762788,
+          "particles": 48.43333333333333,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 92,
+          "frames": 60,
+          "cpu": 1.3049999912579855,
+          "p95": 1.899999976158142,
+          "draw": 1.1933333277702332,
+          "particles": 41.35,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 93,
+          "frames": 60,
+          "cpu": 1.2516666611035665,
+          "p95": 1.7999999523162842,
+          "draw": 1.1383333226044974,
+          "particles": 40.65,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 94,
+          "frames": 60,
+          "cpu": 1.2383333285649618,
+          "p95": 2,
+          "draw": 1.1333333233992258,
+          "particles": 34.833333333333336,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 95,
+          "frames": 60,
+          "cpu": 1.4900000055631002,
+          "p95": 2.5,
+          "draw": 1.2816666702429453,
+          "particles": 47.4,
+          "projectiles": 0.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 96,
+          "frames": 60,
+          "cpu": 1.6149999936421713,
+          "p95": 2.700000047683716,
+          "draw": 1.4483333309491475,
+          "particles": 50.75,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 97,
+          "frames": 60,
+          "cpu": 1.856666664282481,
+          "p95": 2.899999976158142,
+          "draw": 1.723333332935969,
+          "particles": 43.766666666666666,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 98,
+          "frames": 60,
+          "cpu": 1.6450000027815501,
+          "p95": 2.3000000715255737,
+          "draw": 1.4800000150998434,
+          "particles": 37.36666666666667,
+          "projectiles": 1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 99,
+          "frames": 60,
+          "cpu": 1.9399999896685283,
+          "p95": 2.799999952316284,
+          "draw": 1.7683333237965901,
+          "particles": 153.16666666666666,
+          "projectiles": 0.4,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 100,
+          "frames": 60,
+          "cpu": 1.9583333373069762,
+          "p95": 3,
+          "draw": 1.7566666702429454,
+          "particles": 203.46666666666667,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 101,
+          "frames": 60,
+          "cpu": 1.7466666638851165,
+          "p95": 2.299999952316284,
+          "draw": 1.5550000111262003,
+          "particles": 153.05,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 102,
+          "frames": 60,
+          "cpu": 1.6966666758060456,
+          "p95": 2.100000023841858,
+          "draw": 1.4849999984105429,
+          "particles": 125.46666666666667,
+          "projectiles": 0,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 103,
+          "frames": 60,
+          "cpu": 1.5216666678587596,
+          "p95": 2.0999999046325684,
+          "draw": 1.3516666650772096,
+          "particles": 113.93333333333334,
+          "projectiles": 0.9,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 104,
+          "frames": 60,
+          "cpu": 1.4966666579246521,
+          "p95": 2.100000023841858,
+          "draw": 1.3316666722297668,
+          "particles": 109.01666666666667,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 105,
+          "frames": 60,
+          "cpu": 1.5333333432674408,
+          "p95": 2.4000000953674316,
+          "draw": 1.3383333384990692,
+          "particles": 101.86666666666666,
+          "projectiles": 3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 106,
+          "frames": 60,
+          "cpu": 1.401666671037674,
+          "p95": 2,
+          "draw": 1.22833331823349,
+          "particles": 90.33333333333333,
+          "projectiles": 6.2,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 107,
+          "frames": 60,
+          "cpu": 1.4250000139077506,
+          "p95": 2.200000047683716,
+          "draw": 1.308333339293798,
+          "particles": 110.78333333333333,
+          "projectiles": 11,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 108,
+          "frames": 60,
+          "cpu": 1.5099999964237214,
+          "p95": 2.200000047683716,
+          "draw": 1.3899999876817069,
+          "particles": 94.35,
+          "projectiles": 10.1,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 109,
+          "frames": 60,
+          "cpu": 1.6399999916553498,
+          "p95": 2.200000047683716,
+          "draw": 1.5083333333333333,
+          "particles": 97.66666666666667,
+          "projectiles": 8.7,
+          "attacks": 1,
+          "aiAttacks": 0
+        },
+        {
+          "second": 110,
+          "frames": 60,
+          "cpu": 1.6083333373069764,
+          "p95": 2.399999976158142,
+          "draw": 1.4699999928474425,
+          "particles": 67.45,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 111,
+          "frames": 60,
+          "cpu": 1.5283333361148834,
+          "p95": 2.5,
+          "draw": 1.353333334128062,
+          "particles": 60.95,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 112,
+          "frames": 60,
+          "cpu": 1.6800000111262003,
+          "p95": 2.799999952316284,
+          "draw": 1.515000009536743,
+          "particles": 58.93333333333333,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 113,
+          "frames": 60,
+          "cpu": 1.8383333285649617,
+          "p95": 2.8000000715255737,
+          "draw": 1.6799999972184498,
+          "particles": 56.71666666666667,
+          "projectiles": 9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 114,
+          "frames": 60,
+          "cpu": 2.503333334128062,
+          "p95": 3.799999952316284,
+          "draw": 2.26666667064031,
+          "particles": 203.3,
+          "projectiles": 8.2,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 115,
+          "frames": 60,
+          "cpu": 2.5150000035762785,
+          "p95": 3.700000047683716,
+          "draw": 2.2650000075499217,
+          "particles": 199.9,
+          "projectiles": 7.9,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 116,
+          "frames": 60,
+          "cpu": 2.305000003178914,
+          "p95": 3.5,
+          "draw": 2.0399999996026357,
+          "particles": 301.85,
+          "projectiles": 4.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 117,
+          "frames": 60,
+          "cpu": 2.376666675011317,
+          "p95": 3.3000000715255737,
+          "draw": 2.0466666678587595,
+          "particles": 399.8666666666667,
+          "projectiles": 2.3,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 118,
+          "frames": 60,
+          "cpu": 2.3066666603088377,
+          "p95": 3.100000023841858,
+          "draw": 1.9983333388964335,
+          "particles": 357.85,
+          "projectiles": 1.6,
+          "attacks": 0,
+          "aiAttacks": 0
+        },
+        {
+          "second": 119,
+          "frames": 60,
+          "cpu": 2.616666668653488,
+          "p95": 3.6999999284744263,
+          "draw": 2.228333338101705,
+          "particles": 589.1666666666666,
+          "projectiles": 4.7,
+          "attacks": 2,
+          "aiAttacks": 0
+        },
+        {
+          "second": 120,
+          "frames": 61,
+          "cpu": 2.6459016409076628,
+          "p95": 3.6999999284744263,
+          "draw": 2.27704918384552,
+          "particles": 603.4262295081967,
+          "projectiles": 4,
+          "attacks": 0,
+          "aiAttacks": 0
+        }
+      ],
+      "metrics": [
+        {
+          "second": 1.0043999999761581,
+          "task": 284.65608466844617,
+          "layout": 2.866998163453805,
+          "recalc": 9.366522819422517
+        },
+        {
+          "second": 2.0180999999046327,
+          "task": 277.88182538333746,
+          "layout": 2.8769137053656784,
+          "recalc": 10.363405341531752
+        },
+        {
+          "second": 3.0295999999046326,
+          "task": 249.62276481378865,
+          "layout": 1.8208281352584843,
+          "recalc": 9.249688112879149
+        },
+        {
+          "second": 4.049,
+          "task": 213.48050658399248,
+          "layout": 2.204270921661559,
+          "recalc": 7.12962228835826
+        },
+        {
+          "second": 5.062299999952316,
+          "task": 231.6092966972324,
+          "layout": 4.090123307810516,
+          "recalc": 10.916896536412187
+        },
+        {
+          "second": 6.072399999976158,
+          "task": 201.96763258427936,
+          "layout": 1.3089909713319894,
+          "recalc": 8.026701046682062
+        },
+        {
+          "second": 7.086099999904633,
+          "task": 164.94412208212475,
+          "layout": 1.3975640762887067,
+          "recalc": 6.367447901566611
+        },
+        {
+          "second": 8.102099999904633,
+          "task": 194.13359844617858,
+          "layout": 3.656658021444665,
+          "recalc": 8.730701655508524
+        },
+        {
+          "second": 9.118599999904633,
+          "task": 177.30622007640406,
+          "layout": 2.7420109916408677,
+          "recalc": 6.897318179475395
+        },
+        {
+          "second": 10.134799999952316,
+          "task": 172.4276040732923,
+          "layout": 3.0634245995283487,
+          "recalc": 7.612802024398119
+        },
+        {
+          "second": 11.144699999928475,
+          "task": 157.85758895172654,
+          "layout": 4.297312568956277,
+          "recalc": 6.535682068541792
+        },
+        {
+          "second": 12.153699999928474,
+          "task": 164.4827115056894,
+          "layout": 5.969741429848413,
+          "recalc": 7.106269317322044
+        },
+        {
+          "second": 13.177799999952317,
+          "task": 174.93561644154084,
+          "layout": 6.707618028238181,
+          "recalc": 6.270738346084248
+        },
+        {
+          "second": 14.195399999976159,
+          "task": 235.16098041781777,
+          "layout": 3.3964773987162373,
+          "recalc": 5.873629757397006
+        },
+        {
+          "second": 15.2125,
+          "task": 272.051259380331,
+          "layout": 6.109422791892871,
+          "recalc": 8.541586759109725
+        },
+        {
+          "second": 16.221799999952317,
+          "task": 295.2920760673553,
+          "layout": 4.909886699423116,
+          "recalc": 7.2374928186912335
+        },
+        {
+          "second": 17.235699999928475,
+          "task": 280.0329822831185,
+          "layout": 1.8808987676552376,
+          "recalc": 8.347166371613179
+        },
+        {
+          "second": 18.262699999928476,
+          "task": 290.4914040771775,
+          "layout": 1.7873666780055144,
+          "recalc": 9.085861783343557
+        },
+        {
+          "second": 19.281699999928474,
+          "task": 267.3520110638618,
+          "layout": 2.603157346478802,
+          "recalc": 9.18120742216442
+        },
+        {
+          "second": 20.29789999997616,
+          "task": 264.1373197605078,
+          "layout": 2.574401380268937,
+          "recalc": 10.88390403947095
+        },
+        {
+          "second": 21.314299999952315,
+          "task": 264.8862018099543,
+          "layout": 2.7257051774686833,
+          "recalc": 9.976475979271251
+        },
+        {
+          "second": 22.332299999952316,
+          "task": 228.08760358813294,
+          "layout": 2.109149205446254,
+          "recalc": 7.264086033792127
+        },
+        {
+          "second": 23.34689999997616,
+          "task": 252.90682757864815,
+          "layout": 1.9743930787697654,
+          "recalc": 7.140770970043408
+        },
+        {
+          "second": 24.370899999976157,
+          "task": 300.4809849038298,
+          "layout": 2.1640419896063814,
+          "recalc": 6.786646329729953
+        },
+        {
+          "second": 25.38189999997616,
+          "task": 347.4311542925075,
+          "layout": 3.215819059507878,
+          "recalc": 7.094591586668155
+        },
+        {
+          "second": 26.3975,
+          "task": 347.86599628634406,
+          "layout": 2.3470981062884215,
+          "recalc": 6.706699593031867
+        },
+        {
+          "second": 27.420799999952315,
+          "task": 328.5865169351617,
+          "layout": 1.4092212809562543,
+          "recalc": 6.253236576810721
+        },
+        {
+          "second": 28.4325,
+          "task": 316.75400168623753,
+          "layout": 2.3301412012019336,
+          "recalc": 5.834736784866417
+        },
+        {
+          "second": 29.44639999997616,
+          "task": 315.24752081541544,
+          "layout": 1.6068225724769347,
+          "recalc": 5.476636344813741
+        },
+        {
+          "second": 30.464699999928474,
+          "task": 354.0780357424408,
+          "layout": 3.090728012070229,
+          "recalc": 6.785289977656275
+        },
+        {
+          "second": 31.481199999928474,
+          "task": 330.43486815281057,
+          "layout": 2.8919075770823346,
+          "recalc": 7.0064822012099865
+        },
+        {
+          "second": 32.50439999997616,
+          "task": 310.41182864496875,
+          "layout": 2.029039900587392,
+          "recalc": 6.308007475140219
+        },
+        {
+          "second": 33.51709999990463,
+          "task": 328.62288857184626,
+          "layout": 2.978135978956464,
+          "recalc": 8.111865738437409
+        },
+        {
+          "second": 34.53439999997616,
+          "task": 331.8598731525056,
+          "layout": 5.005373082712119,
+          "recalc": 8.976440040298918
+        },
+        {
+          "second": 35.561199999928476,
+          "task": 283.23599618744714,
+          "layout": 5.216894231215932,
+          "recalc": 8.569636466198947
+        },
+        {
+          "second": 36.583599999904635,
+          "task": 252.01122926573507,
+          "layout": 6.423430674199563,
+          "recalc": 11.102298212127762
+        },
+        {
+          "second": 37.5995,
+          "task": 226.84294771603402,
+          "layout": 8.448739428859591,
+          "recalc": 9.62239407937534
+        },
+        {
+          "second": 38.61479999995232,
+          "task": 209.13744714671864,
+          "layout": 4.761346149800645,
+          "recalc": 8.423540962742573
+        },
+        {
+          "second": 39.627699999928474,
+          "task": 200.87288738684504,
+          "layout": 5.498814689085871,
+          "recalc": 8.047455957750344
+        },
+        {
+          "second": 40.651,
+          "task": 224.2974432849173,
+          "layout": 6.137254519207704,
+          "recalc": 11.060514460021084
+        },
+        {
+          "second": 41.6685,
+          "task": 255.8019800311188,
+          "layout": 5.18002350245851,
+          "recalc": 7.8191629424440325
+        },
+        {
+          "second": 42.681199999928474,
+          "task": 294.3706190227223,
+          "layout": 3.5334188963346875,
+          "recalc": 7.965248297185846
+        },
+        {
+          "second": 43.69539999997616,
+          "task": 266.8760787192145,
+          "layout": 4.450909808461292,
+          "recalc": 6.86818876714483
+        },
+        {
+          "second": 44.71239999997616,
+          "task": 249.78930835160125,
+          "layout": 3.833260070369997,
+          "recalc": 5.876747609166484
+        },
+        {
+          "second": 45.735099999904634,
+          "task": 240.70651138063837,
+          "layout": 3.3683428554742947,
+          "recalc": 5.6389930160276895
+        },
+        {
+          "second": 46.76109999990463,
+          "task": 303.5170010110926,
+          "layout": 4.746237435049505,
+          "recalc": 7.154513466907952
+        },
+        {
+          "second": 47.77129999995232,
+          "task": 290.3995777781264,
+          "layout": 4.510915546001006,
+          "recalc": 6.371025768957589
+        },
+        {
+          "second": 48.784199999928475,
+          "task": 305.65720804838816,
+          "layout": 3.5825102441829,
+          "recalc": 6.904474288788875
+        },
+        {
+          "second": 49.80459999990463,
+          "task": 320.2238933233065,
+          "layout": 4.6752233739886115,
+          "recalc": 8.801688607244957
+        },
+        {
+          "second": 50.816299999952314,
+          "task": 328.21544757939245,
+          "layout": 5.730304857850454,
+          "recalc": 7.865201870464596
+        },
+        {
+          "second": 51.831699999928475,
+          "task": 315.735612645521,
+          "layout": 6.111596471390671,
+          "recalc": 9.227968950920088
+        },
+        {
+          "second": 52.84339999997616,
+          "task": 321.86122395330193,
+          "layout": 6.276413653532911,
+          "recalc": 11.141129220324839
+        },
+        {
+          "second": 53.855,
+          "task": 271.92611907241707,
+          "layout": 6.401512833434477,
+          "recalc": 9.892439582102003
+        },
+        {
+          "second": 54.878199999928476,
+          "task": 219.4057660744558,
+          "layout": 4.1525439460998115,
+          "recalc": 6.987998659413129
+        },
+        {
+          "second": 55.90069999992848,
+          "task": 218.35023355539258,
+          "layout": 5.759570922334801,
+          "recalc": 9.450625542965117
+        },
+        {
+          "second": 56.926799999952316,
+          "task": 201.4602802022037,
+          "layout": 4.490390914928467,
+          "recalc": 7.160801689516257
+        },
+        {
+          "second": 57.9475,
+          "task": 188.94993596167706,
+          "layout": 4.830431424584903,
+          "recalc": 7.765253350633025
+        },
+        {
+          "second": 58.96129999995232,
+          "task": 181.10970262752284,
+          "layout": 3.1113895206013584,
+          "recalc": 6.409225654834237
+        },
+        {
+          "second": 59.9755,
+          "task": 167.49074211296588,
+          "layout": 4.042137054899484,
+          "recalc": 6.464454395133816
+        },
+        {
+          "second": 60.992599999904634,
+          "task": 173.55888310276697,
+          "layout": 4.104234208068482,
+          "recalc": 6.15929411865731
+        },
+        {
+          "second": 62.00889999997616,
+          "task": 180.26728250865997,
+          "layout": 5.064424489043455,
+          "recalc": 6.968513992225474
+        },
+        {
+          "second": 63.030099999904635,
+          "task": 201.51079839719338,
+          "layout": 6.003127137687393,
+          "recalc": 7.788527313587584
+        },
+        {
+          "second": 64.04239999997615,
+          "task": 189.60736539320754,
+          "layout": 6.527917506103016,
+          "recalc": 8.097822807237353
+        },
+        {
+          "second": 65.0565,
+          "task": 243.67541860211327,
+          "layout": 6.926945937923397,
+          "recalc": 8.612384575549491
+        },
+        {
+          "second": 66.06969999992847,
+          "task": 271.8930921575486,
+          "layout": 5.022032428514198,
+          "recalc": 8.598911152889135
+        },
+        {
+          "second": 67.09239999997615,
+          "task": 239.08337101931275,
+          "layout": 5.447156305857106,
+          "recalc": 9.51118810401411
+        },
+        {
+          "second": 68.11,
+          "task": 222.07995951156798,
+          "layout": 5.150891693221389,
+          "recalc": 8.963532668432475
+        },
+        {
+          "second": 69.1215,
+          "task": 226.28942217601977,
+          "layout": 7.0239667933164105,
+          "recalc": 9.890227068969635
+        },
+        {
+          "second": 70.1355,
+          "task": 181.6872018111384,
+          "layout": 4.792738705049096,
+          "recalc": 7.808416680366127
+        },
+        {
+          "second": 71.14589999997615,
+          "task": 192.9005290428691,
+          "layout": 4.618386860186752,
+          "recalc": 7.904794137384173
+        },
+        {
+          "second": 72.168,
+          "task": 197.98475849737034,
+          "layout": 5.444086831031782,
+          "recalc": 8.68119075266403
+        },
+        {
+          "second": 73.18229999995232,
+          "task": 189.04696440781927,
+          "layout": 4.594665493839307,
+          "recalc": 7.258368326820708
+        },
+        {
+          "second": 74.19229999995231,
+          "task": 193.66662999608448,
+          "layout": 4.311630501767663,
+          "recalc": 6.613611116708168
+        },
+        {
+          "second": 75.20779999995231,
+          "task": 173.3183153862242,
+          "layout": 4.27774920026384,
+          "recalc": 6.289010687879193
+        },
+        {
+          "second": 76.2285,
+          "task": 178.97830097988853,
+          "layout": 3.171410739808229,
+          "recalc": 5.815557325157433
+        },
+        {
+          "second": 77.24619999992848,
+          "task": 201.15044743137983,
+          "layout": 3.3664442349867936,
+          "recalc": 5.779750434965527
+        },
+        {
+          "second": 78.26089999997616,
+          "task": 198.61034625335557,
+          "layout": 4.014489598333488,
+          "recalc": 6.282306789833752
+        },
+        {
+          "second": 79.275,
+          "task": 184.32481368912573,
+          "layout": 2.979525388788599,
+          "recalc": 4.973773660940058
+        },
+        {
+          "second": 80.295,
+          "task": 182.34266949901908,
+          "layout": 3.6755092387213852,
+          "recalc": 5.487311021730876
+        },
+        {
+          "second": 81.30879999995231,
+          "task": 191.40756607775015,
+          "layout": 3.829574073532774,
+          "recalc": 6.7570838722628634
+        },
+        {
+          "second": 82.33119999992847,
+          "task": 201.5208085903611,
+          "layout": 5.456008248236187,
+          "recalc": 7.760263700247079
+        },
+        {
+          "second": 83.34229999995232,
+          "task": 186.8138176843244,
+          "layout": 4.899534791814016,
+          "recalc": 7.39978224315194
+        },
+        {
+          "second": 84.36479999995231,
+          "task": 152.74901512269693,
+          "layout": 3.6639201111671897,
+          "recalc": 5.864813173410087
+        },
+        {
+          "second": 85.37509999990463,
+          "task": 154.4162249352813,
+          "layout": 4.200547914705593,
+          "recalc": 5.991579080791661
+        },
+        {
+          "second": 86.39379999995232,
+          "task": 160.4814876225567,
+          "layout": 2.547309631052618,
+          "recalc": 7.590923848562164
+        },
+        {
+          "second": 87.41009999990463,
+          "task": 158.85116619212235,
+          "layout": 4.852730644670903,
+          "recalc": 8.260071727901968
+        },
+        {
+          "second": 88.42819999992848,
+          "task": 163.5343679220892,
+          "layout": 4.391403334967294,
+          "recalc": 8.955596070103168
+        },
+        {
+          "second": 89.4365,
+          "task": 147.13422985075314,
+          "layout": 3.645874141768662,
+          "recalc": 6.627239122768878
+        },
+        {
+          "second": 90.44829999995231,
+          "task": 141.6127173248274,
+          "layout": 2.5949068652239804,
+          "recalc": 5.509110841864056
+        },
+        {
+          "second": 91.46279999995231,
+          "task": 144.1545657525671,
+          "layout": 3.663527016555602,
+          "recalc": 6.271745416992106
+        },
+        {
+          "second": 92.4905,
+          "task": 124.79009379001664,
+          "layout": 2.7928983926684228,
+          "recalc": 5.37028332696401
+        },
+        {
+          "second": 93.50369999992847,
+          "task": 134.6944365718096,
+          "layout": 3.458427923067258,
+          "recalc": 5.243804389334486
+        },
+        {
+          "second": 94.51579999995232,
+          "task": 142.12531195825585,
+          "layout": 3.6561915755385903,
+          "recalc": 6.96276353526396
+        },
+        {
+          "second": 95.52609999990463,
+          "task": 155.78413701456697,
+          "layout": 3.4217931700798982,
+          "recalc": 7.0930199180770215
+        },
+        {
+          "second": 96.54369999992848,
+          "task": 177.3773866381632,
+          "layout": 4.845259382406066,
+          "recalc": 9.51750889439151
+        },
+        {
+          "second": 97.56439999997616,
+          "task": 162.86553401579366,
+          "layout": 3.5734466181844606,
+          "recalc": 8.59722879173505
+        },
+        {
+          "second": 98.58809999990463,
+          "task": 186.88484539846422,
+          "layout": 5.0521830901526394,
+          "recalc": 11.321971621374916
+        },
+        {
+          "second": 99.6115,
+          "task": 209.5950438206104,
+          "layout": 4.96066170795324,
+          "recalc": 7.128690805143553
+        },
+        {
+          "second": 100.63439999997615,
+          "task": 178.98443393515063,
+          "layout": 3.827034082951179,
+          "recalc": 6.562723496344892
+        },
+        {
+          "second": 101.6585,
+          "task": 176.13861792236034,
+          "layout": 4.756171687267331,
+          "recalc": 6.3021473620683395
+        },
+        {
+          "second": 102.673,
+          "task": 158.94777561846817,
+          "layout": 4.180161404100217,
+          "recalc": 6.084720306346127
+        },
+        {
+          "second": 103.69339999997615,
+          "task": 152.24793008230623,
+          "layout": 3.6297480889618114,
+          "recalc": 7.208634711842728
+        },
+        {
+          "second": 104.70989999997616,
+          "task": 163.24777494318852,
+          "layout": 5.173847372568803,
+          "recalc": 8.560759250922201
+        },
+        {
+          "second": 105.72369999992847,
+          "task": 146.47499345033845,
+          "layout": 4.923802988351233,
+          "recalc": 9.06070584000382
+        },
+        {
+          "second": 106.73319999992847,
+          "task": 153.86823058419262,
+          "layout": 4.197090044299294,
+          "recalc": 7.557928947963633
+        },
+        {
+          "second": 107.75619999992847,
+          "task": 142.71852074237523,
+          "layout": 3.5445854007574074,
+          "recalc": 6.518316301890073
+        },
+        {
+          "second": 108.77569999992848,
+          "task": 159.40632549434258,
+          "layout": 4.702159056850924,
+          "recalc": 6.847604807280055
+        },
+        {
+          "second": 109.78979999995232,
+          "task": 143.1922842161255,
+          "layout": 3.6854260218840724,
+          "recalc": 6.419615040531772
+        },
+        {
+          "second": 110.8035,
+          "task": 160.84897714730758,
+          "layout": 4.149136433891738,
+          "recalc": 7.305317140014613
+        },
+        {
+          "second": 111.8175,
+          "task": 166.27427319333336,
+          "layout": 3.920977079691017,
+          "recalc": 7.004913792105681
+        },
+        {
+          "second": 112.83359999990464,
+          "task": 179.29101574951778,
+          "layout": 5.040554716386495,
+          "recalc": 9.2475776395713
+        },
+        {
+          "second": 113.85769999992847,
+          "task": 225.16071745378483,
+          "layout": 5.560271605661568,
+          "recalc": 9.425695840307148
+        },
+        {
+          "second": 114.87839999997615,
+          "task": 237.28562776726227,
+          "layout": 5.431448902225073,
+          "recalc": 10.9559859599096
+        },
+        {
+          "second": 115.88719999992847,
+          "task": 218.89985449176712,
+          "layout": 5.768082090583738,
+          "recalc": 9.12511973526656
+        },
+        {
+          "second": 116.896,
+          "task": 244.7324050791355,
+          "layout": 9.04885429715442,
+          "recalc": 9.673323374513163
+        },
+        {
+          "second": 117.91109999990464,
+          "task": 213.02959524966073,
+          "layout": 6.6680463985271015,
+          "recalc": 9.910415989297706
+        },
+        {
+          "second": 118.926,
+          "task": 238.83866595402228,
+          "layout": 5.801136908408878,
+          "recalc": 9.333595509594597
+        },
+        {
+          "second": 119.95139999997616,
+          "task": 242.50542831782698,
+          "layout": 5.340757862440461,
+          "recalc": 10.089071000249579
+        }
+      ]
+    }
+  ]
+}

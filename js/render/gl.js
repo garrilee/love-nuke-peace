@@ -31,7 +31,7 @@ const Gl = {
       this.texCache = new Map(); this.textCache = new Map();
       this.L = {}; this.g = {};
       const sprite = (blend) => { const s = new P.Sprite(P.Texture.EMPTY); s.blendMode = blend; s.visible = false; this.world.addChild(s); return s; };
-      const layer = (name, blend, parent = this.world) => { const l = this.spriteLayer(blend); this.L[name] = l; parent.addChild(l.c); };
+      const layer = (name, blend, parent = this.world) => { const l = name === 'smoke' || name === 'glow' ? this.particleLayer(blend) : this.spriteLayer(blend); this.L[name] = l; parent.addChild(l.c); };
       const gfx = (name, blend) => { const g = new P.Graphics(); g.blendMode = blend; this.g[name] = g; this.world.addChild(g); };
       // 图层顺序（从下到上）
       this.baseSpr = sprite(NORMAL); this.scorchSpr = sprite(NORMAL);   // 底图、焦痕
@@ -204,7 +204,7 @@ const Gl = {
         if (i < NP - 1) { const k = (t * (NP - 1) + i) * 6; idx[k] = v; idx[k + 1] = v + 1; idx[k + 2] = v + 2; idx[k + 3] = v + 1; idx[k + 4] = v + 3; idx[k + 5] = v + 2; }
       }
     }
-    this.tPos = pos; this.tCol = col; this.trailCap = cap;
+    this.tPos = pos; this.tCol = col; this.trailCap = cap; this.trailViews = null;
     const geom = new P.Geometry().addAttribute('aPos', pos, 2).addAttribute('aUv', uv, 2).addAttribute('aCol', col, 4).addIndex(idx);
     const old = this.trailMesh;
     this.trailMesh = new P.Mesh(geom, this.trailShader);
@@ -368,14 +368,23 @@ const Gl = {
   end() {
     for (const k in this.L) this.L[k].end();
     const g = this.trailMesh.geometry;
-    g.getBuffer('aPos').update(); g.getBuffer('aCol').update();
+    // Upload only live trails, including after the pool has grown during a burst.
+    if (this.trailN) {
+      if (!this.trailViews || this.trailViews.n !== this.trailN) {
+        const vertices = this.trailN * this.NP * 2;
+        this.trailViews = { n: this.trailN, pos: this.tPos.subarray(0, vertices * 2), col: this.tCol.subarray(0, vertices * 4) };
+      }
+      g.getBuffer('aPos').update(this.trailViews.pos); g.getBuffer('aCol').update(this.trailViews.col);
+    }
     this.trailMesh.size = this.trailN * (this.NP - 1) * 6;
     this.trailMesh.visible = this.trailN > 0;
     for (let i = this.fbN; i < this.fbPool.length; i++) this.fbPool[i].visible = false;
     const fancy = FX.quality > 0.45; // 画质降到一半以下才关掉后期效果（它们主要耗显卡，粒子多才是拖慢的主因）
     // 泛光：只画高亮的几层到低分辨率图上
-    this.bloomSpr.visible = fancy;
-    if (fancy) {
+    const bloom = fancy && (this.trailN > 0 || this.fbN > 0 || this.L.head.shown > 0 ||
+      this.L.air.shown > 0 || this.L.pillar.shown > 0 || this.g.lines.geometry.graphicsData.length > 0);
+    this.bloomSpr.visible = bloom;
+    if (bloom) {
       const kids = this.world.children;
       for (const k of kids) { k._keep = k.renderable; k.renderable = k._keep && (k === this.trailMesh || this.bright.has(k)); }
       this.world.filters = null;

@@ -1,0 +1,183 @@
+{
+  "date": "2026-11-09",
+  "refs": {
+    "main": "73375a2",
+    "dev": "888788d"
+  },
+  "records": [
+    {
+      "phase": "render",
+      "round": 0,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 0,
+      "particles": 0,
+      "hash": "a841abc1ed4c1009e9c59ef3906c3acc4542d4d9c2b134e567e90cee23ef3078",
+      "cpu": {
+        "mean": 0.8416666626930237,
+        "median": 0.7999999523162842,
+        "p95": 1.5
+      },
+      "frame": {
+        "mean": 16.665833333333335,
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182
+      }
+    },
+    {
+      "phase": "render",
+      "round": 0,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 4,
+      "particles": 801,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 2.364166670044263,
+        "median": 2.3000000715255737,
+        "p95": 3.399999976158142
+      },
+      "frame": {
+        "mean": 16.66583333333334,
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182
+      }
+    },
+    {
+      "phase": "render",
+      "round": 0,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 12,
+      "particles": 1964,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 2.9316666652758916,
+        "median": 2.600000023841858,
+        "p95": 4.600000023841858
+      },
+      "frame": {
+        "mean": 16.66583333333333,
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728
+      }
+    },
+    {
+      "phase": "render",
+      "round": 1,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 0,
+      "particles": 0,
+      "hash": "a841abc1ed4c1009e9c59ef3906c3acc4542d4d9c2b134e567e90cee23ef3078",
+      "cpu": {
+        "mean": 0.5850000093380611,
+        "median": 0.5,
+        "p95": 1
+      },
+      "frame": {
+        "mean": 16.665,
+        "median": 16.699999999999818,
+        "p95": 16.799999999999955
+      }
+    },
+    {
+      "phase": "render",
+      "round": 1,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 4,
+      "particles": 801,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 1.6049999962250392,
+        "median": 1.5,
+        "p95": 2.200000047683716
+      },
+      "frame": {
+        "mean": 16.66583333333333,
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182
+      }
+    },
+    {
+      "phase": "render",
+      "round": 1,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 12,
+      "particles": 1964,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 3.2725000003973643,
+        "median": 3.200000047683716,
+        "p95": 4.399999976158142
+      },
+      "frame": {
+        "mean": 16.66583333333333,
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728
+      }
+    },
+    {
+      "phase": "render",
+      "round": 2,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 0,
+      "particles": 0,
+      "hash": "a841abc1ed4c1009e9c59ef3906c3acc4542d4d9c2b134e567e90cee23ef3078",
+      "cpu": {
+        "mean": 0.7883333335320155,
+        "median": 0.8000000715255737,
+        "p95": 1
+      },
+      "frame": {
+        "mean": 16.665833333333335,
+        "median": 16.699999999999818,
+        "p95": 16.800000000000182
+      }
+    },
+    {
+      "phase": "render",
+      "round": 2,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 4,
+      "particles": 801,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 2.0774999966224033,
+        "median": 2,
+        "p95": 2.9000000953674316
+      },
+      "frame": {
+        "mean": 16.666666666666668,
+        "median": 16.699999999999818,
+        "p95": 16.700000000000728
+      }
+    },
+    {
+      "phase": "render",
+      "round": 2,
+      "branch": "dev-gpu",
+      "viewport": "desktop",
+      "count": 12,
+      "particles": 1964,
+      "hash": "ae9fc1c158edcf422de5459a794780cad9cbb28865b12a2fcc52510dced439a6",
+      "cpu": {
+        "mean": 2.7291666607062024,
+        "median": 2.5,
+        "p95": 4.399999976158142
+      },
+      "frame": {
+        "mean": 16.66583333333333,
+        "median": 16.69999999999891,
+        "p95": 16.700000000000728
+      }
+    }
+  ],
+  "errors": [],
+  "browser": "149.0.7827.55",
+  "renderer": "ANGLE (AMD, AMD Radeon 780M Graphics (0x000015BF) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+}
