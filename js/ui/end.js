@@ -46,15 +46,20 @@ Object.assign(UI, {
       ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${raceIcon(n.race.id, 18)} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${raceIcon(n.race.id, 14)}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
       ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>'
-        : camp ? `<div class="endbtns">${stars && li + 1 < LEVELS.length ? '<button id="nextBtn">下一关</button>' : ''}<button id="retryBtn" class="${stars ? 'ghost' : ''}">重打这一关</button><button id="againBtn" class="ghost">返回选关</button></div>`
+        : camp ? `<div class="endbtns">${stars && li + 1 < LEVELS.length ? '<button id="nextBtn">下一关</button>' : ''}<button id="retryBtn" class="${stars ? 'ghost' : ''}">${stars ? '重打这一关' : '马上重打'}</button><button id="againBtn" class="ghost">返回选关</button></div>`
         : '<button id="againBtn">再核平一次</button>'}`;
     $('end').classList.remove('hidden');
     this.drawPopChart();
     if (G.tutorial) Store.set('tutorialDone', true);
     $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
-    // 下一关 / 重打：回到开始页并选中那一关（每关开始前可以重新选国家）
+    // 下一关：回到开始页并选中那一关（每关开始前可以重新选国家）
     if ($('nextBtn')) $('nextBtn').onclick = () => { Store.set('campSel', li + 1); location.href = location.pathname; };
-    if ($('retryBtn')) $('retryBtn').onclick = () => { Store.set('campSel', li); location.href = location.pathname; };
+    // 重打这一关：用同一个国家原地马上重开，不回开始页（想换国家点「返回选关」）
+    if ($('retryBtn')) $('retryBtn').onclick = () => {
+      const L = G.level, race = p.race.id, tut = G.tutorial;
+      for (const id of ['end', 'mapPop', 'tooltip', 'tip', 'leader', 'banner']) $(id).classList.add('hidden');
+      startGame(race, 0, L.diff, tut, null, { level: L });
+    };
     if ($('roomBtn')) $('roomBtn').onclick = () => Net.backToRoom();
   },
   // 结算：全程人口曲线（每个国家一条线，你的最粗；午夜、乱纪元、倒下的时刻都标出来）
