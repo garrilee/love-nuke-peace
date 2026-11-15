@@ -23,3 +23,11 @@ Native HTML remains in separate HTML/template files. Static controls retain node
 ## Verification
 
 Verify hardware WebGL, CPU and GPU frame costs, draw submissions, upload bytes, live particles/projectiles, displayed resolution and quality. Use the same Chrome, seed, difficulty, viewport/DPR and real 120-second AI-combat window on baseline and candidate. Add a controlled heavy-explosion probe and repeat lifecycle checks where a fix changes ownership. Check all gameplay source mappings and deterministic simulation snapshots, then inspect rendered screenshots and representative keyboard/pointer, research, combat, settings, boss and multiplayer flows. Report measured gains and remaining limitations separately; no FPS or energy claims from CPU-only data.
+
+## Implemented rendering contract
+
+Smoke and additive particle layers use PixiJS 7 geometry instancing. A shared 1024 x 1024 atlas stores the existing Canvas-generated images, including lazily created country-colored ultimate effects. Each instance uploads nine floats: rectangle, texture region and opacity. The vertex shader expands the quad and applies the world transform. Layer order, particle submission order and premultiplied blending remain unchanged. Devices without instanced drawing retain the original Sprite layers. The atlas and instance buffers persist across games; capacity grows with the maximum submitted count rather than creating display objects per particle.
+
+Trail buffers upload their active prefix and remain untouched when no trail is visible. Bloom skips its offscreen pass only when every contributing layer is empty; shock waves and high-level fireball shaders remain intact. No presentation frame-rate or effect-density reduction was needed in this iteration. The game keeps its original adaptive quality behavior.
+
+The geometry uses the existing PixiJS API ([Geometry instanced attributes](https://api.pixijs.io/@pixi/core/src/geometry/Geometry.ts.html), [Mesh instance count submission](https://api.pixijs.io/@pixi/mesh/src/Mesh.ts.html)); no renderer dependency was added or upgraded.

@@ -25,4 +25,7 @@
 ## Status
 
 - Environment verification complete. Baseline restored; old dev archived. Design revised before implementation.
-- Baseline profiling, implementation, functional/visual acceptance and final combat measurements are pending.
+- Current-main combat profiling identified per-particle Sprite transforms, full-capacity trail uploads, and frequent HUD subtree replacement.
+- GPU implementation complete: instanced smoke/glow layers with a shared atlas, live trail uploads, empty-bloom suppression. All five nuclear effect levels and dynamic ultimate textures were compared against Sprite rendering. Context loss and automatic restoration passed with active particles; Canvas fallback remains functional.
+- Native HUD retention and inactive-view draw suppression are implemented and browser-verified; they are recorded in a separate implementation commit.
+- Full 180-second simulation snapshots match main exactly. Three-AI 120-second live combat completed on both revisions with equivalent starting state, approximately 177 live particles and 11 projectiles on average, no early game end, no errors and quality 1. Final report and evidence packaging are in progress.
