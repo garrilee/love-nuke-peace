@@ -1,0 +1,40 @@
+{
+  "simulation180": "identical full network snapshots",
+  "retained": {
+    "rank": true,
+    "research": true,
+    "icon": true
+  },
+  "fire": {
+    "counts": [
+      1,
+      1,
+      1
+    ],
+    "kinds": [
+      "ufo",
+      "conv",
+      "drone"
+    ]
+  },
+  "research": "choice button dispatches original command",
+  "actions": {
+    "shield": true,
+    "net": true,
+    "ult": true,
+    "crate": 1,
+    "allocation": {
+      "tech": 0.2,
+      "nuke": 0.5,
+      "def": 0.3
+    },
+    "auto": false
+  },
+  "pause": true,
+  "idle": 0,
+  "survivalQuick": true,
+  "contextRestore": true,
+  "canvasFallback": true,
+  "hiddenHost": true,
+  "errors": []
+}

@@ -1,0 +1,26 @@
+{
+  "main": {
+    "cpu": 2.540166668891907,
+    "gpu": 2.0620818999999995,
+    "upload": 424260,
+    "draws": 31,
+    "parts": 1418,
+    "smoke": 458,
+    "glow": 818,
+    "shaders": 2,
+    "gl": true,
+    "errors": []
+  },
+  "dev": {
+    "cpu": 1.9605000074704488,
+    "gpu": 1.9027404000000003,
+    "upload": 249012,
+    "draws": 30,
+    "parts": 1418,
+    "smoke": 458,
+    "glow": 818,
+    "shaders": 2,
+    "gl": true,
+    "errors": []
+  }
+}
