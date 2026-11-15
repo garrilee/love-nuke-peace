@@ -72,14 +72,6 @@ Object.assign(Render, {
       const col = toMe ? '#ff3b30' : G.nations[p.att].color;
       if (p.kind === 'conv') {
         const u0 = Math.max(0, u - 0.2), steps = 6;
-        if (Gl.on) { // 显卡画：一条暖色光带 + 弹头光点
-          const pts = this.trailPts(p, u0, u), cols = this.trailCols;
-          for (let i = 0; i < Gl.NP; i++) { cols[i * 3] = 1; cols[i * 3 + 1] = 0.9; cols[i * 3 + 2] = 0.67; }
-          Gl.trail(pts, 1.1 / Math.max(0.6, z), cols, 0.7);
-          const h = pts[Gl.NP - 1];
-          Gl.L.head.img(Gl.tex(S.warm), h.x - 4, h.y - 4, 8, 8, 0.9);
-          continue;
-        }
         ctx.lineWidth = 1.1 / Math.max(0.6, z);
         const tail = this.arcPoint(p, u0), headPt = this.arcPoint(p, u);
         if (Math.abs(tail.x - headPt.x) + Math.abs(tail.y - headPt.y) > 0.01) {
@@ -166,15 +158,9 @@ Object.assign(Render, {
     const pos = this.dronePos(p, u);
     if (!this.visibleRect(pos.x - 14, pos.y - 14, 28, 28)) return;
     const back = this.dronePos(p, Math.max(0, u - 0.035));
-    if (Gl.on) { // 显卡画：一小段淡淡的尾迹
-      const n = Gl.NP, pts = this._dpts || (this._dpts = Array.from({ length: n }, () => ({ x: 0, y: 0 }))), cols = this.trailCols, c = hexToRgb(col);
-      for (let i = 0; i < n; i++) { const f = i / (n - 1); pts[i].x = lerp(back.x, pos.x, f); pts[i].y = lerp(back.y, pos.y, f); cols[i * 3] = c[0] / 255; cols[i * 3 + 1] = c[1] / 255; cols[i * 3 + 2] = c[2] / 255; }
-      Gl.trail(pts, 0.9 / Math.max(0.6, z), cols, 0.45);
-    } else {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = rgba(col, 0.3); ctx.lineWidth = 0.7 / Math.max(0.6, z);
-      ctx.beginPath(); ctx.moveTo(back.x, back.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
-    }
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = rgba(col, 0.3); ctx.lineWidth = 0.7 / Math.max(0.6, z);
+    ctx.beginPath(); ctx.moveTo(back.x, back.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
     this.drawPaperPlane(ctx, pos.x, pos.y, Math.atan2(pos.y - back.y, pos.x - back.x), col, z, p.wob);
   },
   // 升空拦截的小摩托：同样的纸飞机，外面一圈青色光环，表示在执行拦截
@@ -196,13 +182,7 @@ Object.assign(Render, {
     ctx.restore();
   },
   drawPaperPlane(ctx, x, y, ang, col, z, wob) {
-    const k = (1 / Math.max(0.75, z) + 0.3) * 1.05;
-    const flap = 1 + 0.12 * Math.sin(this.time * 5 + (wob || 0) * 3); // 机翼扇动
-    if (Gl.on) { // 显卡画：同一张纸飞机贴图，旋转、缩放后合批
-      const tex = Gl.made('paper:' + col, 13, 12.2, 8, (cx) => { cx.translate(5.5, 6.1); this.paintPaper(cx, col); });
-      Gl.L.unit.rot(tex, x, y, 13 * k, 12.2 * k * flap, ctx.globalAlpha, ang, 5.5 / 13, 0.5);
-      return;
-    }
+    const k = this.paperScale(z), flap = this.paperFlap(wob);
     // 每种颜色的纸飞机预先画成一张图；每帧只是平移、旋转后贴上，机翼扇动用纵向缩放表现
     const pl = this.plate('paper:' + col, '', [-5.5, -6.1, 13, 12.2], 0, (cx) => this.paintPaper(cx, col), 2);
     ctx.save();
@@ -212,6 +192,8 @@ Object.assign(Render, {
     ctx.restore();
     ctx.globalCompositeOperation = 'lighter';
   },
+  paperScale(z) { return (1 / Math.max(0.75, z) + 0.3) * 1.05; },
+  paperFlap(wob) { return 1 + 0.12 * Math.sin(this.time * 5 + (wob || 0) * 3); }, // 机翼扇动
   paintPaper(cx, col) {
     {
       cx.lineJoin = 'round';
@@ -239,8 +221,10 @@ Object.assign(Render, {
     return pts;
   },
   trailCols: new Float32Array(64),
-  // 显卡画的火箭尾迹：一条由细到粗的光带，自带光晕和白芯；4 级是流动的彩虹，5 级东风金白色
-  glRocketTrail(ctx, p, u, col, z, T, lv, u0, w) {
+  // WebGL 画的火箭尾迹：一条由细到粗的光带，自带光晕和白芯；4 级是流动的彩虹，5 级东风金白色。返回弹头位置
+  glRocketTrail(p, u, col, z, T) {
+    const lv = p.lv || 1, len = lv >= 5 ? 0.45 : 0.18 + lv * 0.05;
+    const u0 = Math.max(p.mirvOf !== undefined ? CFG.MIRV_SPLIT - 0.05 : 0, u - len), w = (1.1 + lv * 0.22) / Math.max(0.6, z);
     const S = FX.S, n = Gl.NP, pts = this.trailPts(p, u0, u), cols = this.trailCols;
     if (lv >= 5) for (let i = 0; i < n; i++) { const f = i / (n - 1); cols[i * 3] = 1; cols[i * 3 + 1] = (200 + 55 * f) / 255; cols[i * 3 + 2] = (120 + 135 * f) / 255; }
     else if (lv === 4) for (let i = 0; i < n; i++) { const c = hslToRgb((((T * 160 + i * 30 + p.id * 40) % 360) / 360), 1, 0.65); cols[i * 3] = c[0] / 255; cols[i * 3 + 1] = c[1] / 255; cols[i * 3 + 2] = c[2] / 255; }
@@ -256,11 +240,6 @@ Object.assign(Render, {
     const len = lv >= 5 ? 0.45 : 0.18 + lv * 0.05;
     const steps = lv >= 3 ? 12 : 9, u0 = Math.max(p.mirvOf !== undefined ? CFG.MIRV_SPLIT - 0.05 : 0, u - len);
     const w = (1.1 + lv * 0.22) / Math.max(0.6, z);   // 等级越高略粗，但不过分
-    if (Gl.on) {
-      const h = this.glRocketTrail(ctx, p, u, col, z, T, lv, u0, w);
-      this.trailExtras(ctx, p, h, lv, z, T);
-      return;
-    }
     const rgb = this.rgbStr(col);
     const pts = [];
     for (let i = 0; i <= steps; i++) pts.push(this.arcPoint(p, u0 + (u - u0) * (i / steps)));
@@ -312,9 +291,11 @@ Object.assign(Render, {
   trailExtras(ctx, p, h, lv, z, T) {
     const S = FX.S;
     if (lv >= 5) { // 东风：脉动光环
-      const r = (5 + 2.5 * Math.sin(T * 9 + p.id)) / Math.max(0.7, z);
-      ctx.strokeStyle = `rgba(255,230,160,${0.55 + 0.3 * Math.sin(T * 9 + p.id)})`; ctx.lineWidth = 1.2 / z;
-      ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
+      const r = (5 + 2.5 * Math.sin(T * 9 + p.id)) / Math.max(0.7, z), a = 0.55 + 0.3 * Math.sin(T * 9 + p.id);
+      if (ctx) {
+        ctx.strokeStyle = `rgba(255,230,160,${a})`; ctx.lineWidth = 1.2 / z;
+        ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke();
+      } else { Gl.lines.lineStyle(1.2 / z, 0xffe6a0, a); Gl.lines.drawCircle(h.x, h.y, r); }
     }
     // 火花：3 级以上沿途洒落
     if (lv >= 3 && Math.random() < 0.18 * (lv - 2) * (this.lod && lv < 4 ? 0.3 : 1)) {
@@ -362,8 +343,19 @@ Object.assign(Render, {
     ctx.save();
     ctx.translate(pos.x, pos.y); ctx.rotate(ang);
     ctx.globalCompositeOperation = 'source-over';
-    // 发光的机身按国家颜色预先画成一张图
-    const pl = this.plate('plane:' + col, '', [-7.5, -6.5, 14.5, 13], 8, (cx) => {
+    const pl = this.planePlate(col);
+    ctx.drawImage(pl.c, pl.x, pl.y, pl.w, pl.h);
+    // 航行灯：左红右绿，闪烁
+    if (Math.sin(this.time * 8 + p.id) > 0) {
+      ctx.fillStyle = '#ff4040'; ctx.fillRect(-1.6, -6.8, 1.4, 1.4);
+      ctx.fillStyle = '#40ff70'; ctx.fillRect(-1.6, 5.4, 1.4, 1.4);
+    }
+    ctx.restore();
+    ctx.globalCompositeOperation = 'lighter';
+  },
+  // 发光的机身按国家颜色预先画成一张图
+  planePlate(col) {
+    return this.plate('plane:' + col, '', [-7.5, -6.5, 14.5, 13], 8, (cx) => {
       cx.shadowColor = col; cx.shadowBlur = 8;
       cx.fillStyle = '#e9f2ff';
       cx.beginPath();
@@ -387,13 +379,5 @@ Object.assign(Render, {
       cx.shadowBlur = 0;
       cx.fillStyle = col; cx.fillRect(-3, -0.7, 6, 1.4);
     });
-    ctx.drawImage(pl.c, pl.x, pl.y, pl.w, pl.h);
-    // 航行灯：左红右绿，闪烁
-    if (Math.sin(this.time * 8 + p.id) > 0) {
-      ctx.fillStyle = '#ff4040'; ctx.fillRect(-1.6, -6.8, 1.4, 1.4);
-      ctx.fillStyle = '#40ff70'; ctx.fillRect(-1.6, 5.4, 1.4, 1.4);
-    }
-    ctx.restore();
-    ctx.globalCompositeOperation = 'lighter';
   },
 });

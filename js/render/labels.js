@@ -16,10 +16,16 @@ Object.assign(Render, {
     const canvas = new OffscreenCanvas(w, h), cx = canvas.getContext('2d');
     cx.scale(scale, scale); cx.translate(-x, -y);
     paint(cx);
-    if (e) e.c.close();
+    if (e) this.freeBmp(e.c);
     e = { c: canvas.transferToImageBitmap(), x, y, w: w / scale, h: h / scale, sig, scale };
     this.plateCache.set(key, e);
     return e;
+  },
+  // 把一块缓存位图贴到画面上：Canvas 2D 画法传 ctx；WebGL 画法 ctx 为 null，贴到标牌层
+  blit(ctx, pl, x, y, a = 1) {
+    if (!ctx) { Gl.put(Gl.L.label, pl, x, y, a); return; }
+    if (a !== 1) { ctx.globalAlpha = a; ctx.drawImage(pl.c, x + pl.x, y + pl.y, pl.w, pl.h); ctx.globalAlpha = 1; }
+    else ctx.drawImage(pl.c, x + pl.x, y + pl.y, pl.w, pl.h);
   },
   // 首都上空的标识：自己的国家是金色的「你」+ 光柱 + 地面波纹；联机时其他真人玩家是国家颜色的「玩家」小旗
   drawMarkers(ctx, z, T) {
@@ -31,22 +37,32 @@ Object.assign(Render, {
       const cap = (n.cities.find((c) => c.isCapital) || n.cities[0]).tile;
       const x = cap.x, y = cap.y, col = me ? '#ffd27a' : n.color;
       const H = (me ? 64 : 46) * k;
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      // 地面波纹
-      const ph = (T * 0.7 + n.id * 0.37) % 1;
-      for (let i = 0; i < 2; i++) {
-        const f = (ph + i * 0.5) % 1, r = (7 + f * (me ? 26 : 18)) * k;
-        ctx.strokeStyle = rgba(col, (1 - f) * (me ? 0.9 : 0.6));
-        ctx.lineWidth = (me ? 2 : 1.4) * k;
-        ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+      const ph = (T * 0.7 + n.id * 0.37) % 1, pw = (me ? 2 : 1.2) * k;
+      if (ctx) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        // 地面波纹
+        for (let i = 0; i < 2; i++) {
+          const f = (ph + i * 0.5) % 1, r = (7 + f * (me ? 26 : 18)) * k;
+          ctx.strokeStyle = rgba(col, (1 - f) * (me ? 0.9 : 0.6));
+          ctx.lineWidth = (me ? 2 : 1.4) * k;
+          ctx.beginPath(); ctx.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+        // 光柱
+        const g = ctx.createLinearGradient(0, y - H, 0, y);
+        g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, me ? 0.65 : 0.4));
+        ctx.fillStyle = g;
+        ctx.fillRect(x - pw, y - H, pw * 2, H);
+        ctx.restore();
+      } else { // WebGL：波纹画在线条层，光柱是一张上淡下亮的渐变贴图染成国家颜色
+        const num = parseInt(col.slice(1), 16);
+        for (let i = 0; i < 2; i++) {
+          const f = (ph + i * 0.5) % 1, r = (7 + f * (me ? 26 : 18)) * k;
+          Gl.g.mark.lineStyle((me ? 2 : 1.4) * k, num, (1 - f) * (me ? 0.9 : 0.6));
+          Gl.g.mark.drawEllipse(x, y, r, r * 0.6);
+        }
+        Gl.L.labelAdd.img(Gl.fadeUp(), x - pw, y - H, pw * 2, H, me ? 0.65 : 0.4, num);
       }
-      // 光柱
-      const g = ctx.createLinearGradient(0, y - H, 0, y);
-      g.addColorStop(0, rgba(col, 0)); g.addColorStop(1, rgba(col, me ? 0.65 : 0.4));
-      ctx.fillStyle = g;
-      ctx.fillRect(x - (me ? 2 : 1.2) * k, y - H, (me ? 4 : 2.4) * k, H);
-      ctx.restore();
       // 悬浮的标牌：上下轻轻浮动
       const bob = Math.sin(T * 2.6 + n.id) * 3 * k;
       const text = me ? `★ ${n.name}  👥${fmtPop(totalPop(n))} ☢${stock(n)}` : '👤 玩家'; // 我方：人口和核弹数直接写在标牌里
@@ -76,7 +92,7 @@ Object.assign(Render, {
           this.drawPopBar(cx, n, 0, -bh / 2 - 7.5 * k, bw - 12 * k, 4 * k, popF);
         }
       });
-      ctx.drawImage(pl.c, x + pl.x, by + pl.y, pl.w, pl.h);
+      this.blit(ctx, pl, x, by);
     }
   },
   // 长国家名在地图上用小一点的字（最小约 65%），避免标签伸出屏幕
@@ -102,9 +118,7 @@ Object.assign(Render, {
       cx.shadowBlur = 0; cx.strokeStyle = 'rgba(255,120,100,0.9)'; cx.lineWidth = 1 * k; cx.stroke();
       cx.drawImage(label.c, label.x, 0.5 * k + label.y, label.w, label.h);
     });
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(pl.c, c.x + pl.x, y + pl.y, pl.w, pl.h);
-    ctx.globalAlpha = 1;
+    this.blit(ctx, pl, c.x, y, alpha);
   },
 
   // Keep one bitmap per label owner; state and scale changes replace it.
@@ -125,7 +139,7 @@ Object.assign(Render, {
     cx.fillStyle = color;
     if (blur) { cx.shadowColor = shadow; cx.shadowBlur = blur; }
     cx.fillText(text, 0, 0);
-    if (e) e.c.close();
+    if (e) this.freeBmp(e.c);
     e = { c: canvas.transferToImageBitmap(), x, y, w: w / scale, h: h / scale, width: m.width, text, font, color, blur, shadow, baseline, scale };
     this.labelCache.set(key, e);
     return e;
@@ -198,14 +212,14 @@ Object.assign(Render, {
         if (stats) cx.drawImage(stats.c, tx + stats.x, sy + stats.y, stats.w, stats.h);
         if (n.alive) this.drawPopBar(cx, n, tx, bot - barH, w - 14 * sk, barH, popF);
       });
-      ctx.drawImage(pl.c, c.x + pl.x, c.y + pl.y, pl.w, pl.h);
+      this.blit(ctx, pl, c.x, c.y);
     }
     if (z > 0.95) {
       const font = `${Math.round(10 / Math.min(z, 1.6))}px "Microsoft YaHei", sans-serif`;
       for (const c of G.world.cities) {
         const color = c.ruined ? 'rgba(255,120,100,0.7)' : 'rgba(255,240,210,0.75)';
         const label = this.labelImage('city:' + c.id, c.name, font, color);
-        ctx.drawImage(label.c, c.tile.x + label.x, c.tile.y + 18 + label.y, label.w, label.h);
+        this.blit(ctx, label, c.tile.x, c.tile.y + 18);
       }
     }
   },

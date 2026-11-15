@@ -4,6 +4,20 @@
 Object.assign(Render, {
   // 地块上的二维化痕迹：被压进二维画布的深紫黑色平面 + 发光的青紫色网格，随时间褪去
   drawFlat(ctx, z, T) {
+    this.markFlats();
+    const W = G.world, H = CFG.HEX;
+    for (const t of W.tiles) {
+      if (!t.flat) continue;
+      const a = flatAlpha(t);
+      if (a <= 0) { t.flat = 0; continue; }
+      if (!this.visibleRect(t.x - H * 2, t.y - H * 2, H * 4, H * 4)) continue;
+      const pl = this.flatStamp(t.flat >= 1);
+      ctx.globalAlpha = a * (0.93 + 0.07 * Math.sin(T * 2 + t.phase)); // 轻微的明暗流动
+      ctx.drawImage(pl.c, t.x + pl.x, t.y + pl.y, pl.w, pl.h);
+    }
+    ctx.globalAlpha = 1;
+  },
+  markFlats() {
     const W = G.world;
     // 联机客户端不跑模拟：按展开半径在本地标出二维化的地块
     for (const d of G.dims || []) {
@@ -18,9 +32,11 @@ Object.assign(Render, {
       }
     }
     if (G.dims) G.dims = G.dims.filter((d) => G.t - d.t0 < BOSS_CFG.dimWarn + BOSS_CFG.dimSpread + 0.5);
-    // 一块二维化地块预先画成一张图（核心区、外延区各一张）；一次降维打击会压平几百块，每帧每块只贴一次图
+  },
+  // 一块二维化地块预先画成一张图（核心区、外延区各一张）；一次降维打击会压平几百块，每帧每块只贴一次图
+  flatStamp(core) {
     const H = CFG.HEX, box = [-H - 1, -H - 1, H * 2 + 2, H * 2 + 2];
-    const stamp = (core) => this.plate(core ? 'flat:core' : 'flat:outer', '', box, 0, (cx) => {
+    return this.plate(core ? 'flat:core' : 'flat:outer', '', box, 0, (cx) => {
       // 深紫黑色的“画布”
       cx.fillStyle = core ? 'rgba(18,6,38,0.82)' : 'rgba(48,14,80,0.45)';
       this.hexPath(cx, 0, 0, H + 0.4); cx.fill();
@@ -36,16 +52,6 @@ Object.assign(Render, {
         this.hexPath(cx, 0, 0, H - 0.6); cx.stroke();
       }
     });
-    for (const t of W.tiles) {
-      if (!t.flat) continue;
-      const a = flatAlpha(t);
-      if (a <= 0) { t.flat = 0; continue; }
-      if (!this.visibleRect(t.x - H * 2, t.y - H * 2, H * 4, H * 4)) continue;
-      const pl = stamp(t.flat >= 1);
-      ctx.globalAlpha = a * (0.93 + 0.07 * Math.sin(T * 2 + t.phase)); // 轻微的明暗流动
-      ctx.drawImage(pl.c, t.x + pl.x, t.y + pl.y, pl.w, pl.h);
-    }
-    ctx.globalAlpha = 1;
   },
   // 进行中的降维打击：预警时两圈红紫色虚线闪烁，展开时一道紫红色电光冲击环向外推
   drawDims(ctx, z, T) {

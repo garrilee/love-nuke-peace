@@ -1,7 +1,10 @@
-// ===================== 渲染·WebGL 特效层（PixiJS）=====================
-// 粒子、火焰、爆炸、飞弹尾迹、小摩托这些“数量多”的东西交给显卡合批绘制；地图、城市、标签仍用 Canvas 2D。
-// 三层画布从下到上：#game（地图、城市、设施）→ #fxgl（本层）→ #top（标签、标记、文字、屏幕暗角和闪光）。
-// PixiJS 从网上动态加载；加载失败或设备不支持 WebGL 时 Gl.on 保持 false，所有特效退回 Canvas 2D 画法。
+// ===================== 渲染·WebGL 层（PixiJS）：基础设施 =====================
+// Gl.on 为 true 时，整个画面由这一层画在 #fxgl 画布上（见 glscene.js 的 Render.glDraw）；#game 画布只负责接收鼠标和触摸。
+// PixiJS 从网上动态加载；加载失败、设备不支持 WebGL 或运行中出错时 Gl.on 为 false，画面退回 Canvas 2D（Render.draw）。
+// 这里提供三样东西，用法都是“每帧重新提交”：
+//   贴图层 Gl.L.xxx.img(...)：相当于 ctx.drawImage，内部复用 Sprite，由显卡合批
+//   线条层 Gl.g.xxx：PIXI.Graphics，每帧清空重画（圆环、准星这类数量不多的线条）
+//   尾迹 Gl.trail(...)：所有飞弹尾迹合成一张网格一次画完
 'use strict';
 
 const Gl = {
@@ -20,81 +23,100 @@ const Gl = {
 
   init() {
     try {
-      const P = window.PIXI, game = Render.canvas;
-      const mk = (id) => { const c = document.createElement('canvas'); c.id = id; c.className = 'overlayCanvas'; return c; };
-      this.view = mk('fxgl'); this.topCanvas = mk('top');
-      this.renderer = new P.Renderer({ view: this.view, width: Math.max(1, Render.w), height: Math.max(1, Render.h), resolution: Render.dpr, backgroundAlpha: 0, antialias: false, powerPreference: 'high-performance' });
-      // 加色混合时不写透明度：这层画布叠在地图上时就是真正的“加亮”，而不是盖住下面的画面
-      const gl = this.renderer.gl;
-      this.renderer.state.blendModes[P.BLEND_MODES.ADD] = [gl.ONE, gl.ONE, gl.ZERO, gl.ONE];
-      this.stage = new P.Container(); this.world = new P.Container(); this.stage.addChild(this.world);
-      // 图层顺序（从下到上）：地面光 → 尾迹 → 弹头光 → 小摩托 → 冲击波线条 → 火球/光芒 → 烟 → 火星
-      this.L = {};
-      const add = (name, blend) => { const l = this.spriteLayer(blend); this.L[name] = l; this.world.addChild(l.c); return l; };
-      add('ground', P.BLEND_MODES.ADD);
-      this.initTrails();
-      add('head', P.BLEND_MODES.ADD);
-      add('unit', P.BLEND_MODES.NORMAL);
-      this.lines = new P.Graphics(); this.lines.blendMode = P.BLEND_MODES.ADD; this.world.addChild(this.lines);
-      add('air', P.BLEND_MODES.ADD);
-      add('smoke', P.BLEND_MODES.NORMAL);
-      add('glow', P.BLEND_MODES.ADD);
-      this.texCache = new Map();
-      game.after(this.view, this.topCanvas);
-      this.topCtx = this.topCanvas.getContext('2d');
+      const P = window.PIXI, ADD = P.BLEND_MODES.ADD, NORMAL = P.BLEND_MODES.NORMAL;
+      this.view = document.createElement('canvas'); this.view.id = 'fxgl'; this.view.className = 'overlayCanvas';
+      this.renderer = new P.Renderer({ view: this.view, width: Math.max(1, Render.w), height: Math.max(1, Render.h), resolution: Render.dpr, backgroundColor: 0x01040a, backgroundAlpha: 1, antialias: true, powerPreference: 'high-performance' });
+      this.stage = new P.Container(); this.world = new P.Container(); this.screen = new P.Container();
+      this.stage.addChild(this.world, this.screen);
+      this.texCache = new Map(); this.textCache = new Map();
+      this.L = {}; this.g = {};
+      const sprite = (blend) => { const s = new P.Sprite(P.Texture.EMPTY); s.blendMode = blend; s.visible = false; this.world.addChild(s); return s; };
+      const layer = (name, blend, parent = this.world) => { const l = this.spriteLayer(blend); this.L[name] = l; parent.addChild(l.c); };
+      const gfx = (name, blend) => { const g = new P.Graphics(); g.blendMode = blend; this.g[name] = g; this.world.addChild(g); };
+      // 图层顺序（从下到上）
+      this.baseSpr = sprite(NORMAL); this.scorchSpr = sprite(NORMAL);   // 底图、焦痕
+      layer('fill', NORMAL); layer('fillAdd', ADD);                     // 国土底色；国境发光、护盾
+      this.dustSpr = sprite(ADD);                                       // 辐射尘
+      layer('flat', NORMAL);                                            // 二维化地块
+      layer('ground', ADD);                                             // 地面光、余火、城市灯光
+      layer('low', NORMAL);                                             // 城市黑烟
+      gfx('low', NORMAL);                                               // 人口环、首都标记、进度环、宕机红叉
+      layer('fac', NORMAL);                                             // 设施、潜航器
+      layer('dark', NORMAL);                                            // 东风镜头压暗
+      gfx('dim', NORMAL);                                               // 降维打击预警圈
+      this.initTrails();                                                // 飞弹尾迹
+      layer('head', ADD); layer('unit', NORMAL);                        // 弹头光；小摩托、飞机
+      gfx('lines', ADD);                                                // 冲击波、锁定圈、曳光弹
+      layer('air', ADD); layer('smoke', NORMAL); layer('glow', ADD);    // 火球和光芒；烟；火星
+      layer('pillar', ADD);                                             // 东风光柱
+      gfx('mark', NORMAL);                                              // 来袭准星、标记波纹、空投光圈、悬停框
+      layer('labelAdd', ADD); layer('label', NORMAL); layer('text', NORMAL); // 标牌和文字
+      layer('scr', NORMAL, this.screen); layer('scrAdd', ADD, this.screen);  // 屏幕层：暗角、闪光
+      this.lines = this.g.lines;
+      Render.canvas.after(this.view);
       this.resize();
       this.on = true;
     } catch (e) {
-      console.warn('WebGL 特效层不可用，使用 Canvas 2D：', e);
+      console.warn('WebGL 层不可用，使用 Canvas 2D：', e);
       this.off();
     }
   },
   // 出错时整层关掉，退回 Canvas 2D
   off() {
     this.on = false;
-    for (const c of [this.view, this.topCanvas]) if (c && c.parentNode) c.parentNode.removeChild(c);
+    if (this.view && this.view.parentNode) this.view.parentNode.removeChild(this.view);
   },
   resize() {
     if (!this.renderer) return;
-    const w = Math.max(1, Render.w), h = Math.max(1, Render.h), d = Render.dpr;
-    this.renderer.resolution = d;
+    const w = Math.max(1, Render.w), h = Math.max(1, Render.h);
+    this.renderer.resolution = Render.dpr;
     this.renderer.resize(w, h);
-    for (const c of [this.view, this.topCanvas]) { c.style.width = w + 'px'; c.style.height = h + 'px'; }
-    this.topCanvas.width = w * d; this.topCanvas.height = h * d;
+    this.view.style.width = w + 'px'; this.view.style.height = h + 'px';
   },
 
-  // ---------- 贴图层：用法和 ctx.drawImage 一样（每帧重新提交），内部复用 Sprite 对象，由显卡合批 ----------
+  // ---------- 贴图层 ----------
   spriteLayer(blend) {
     const P = window.PIXI;
     return {
       c: new P.Container(), pool: [], n: 0, shown: 0,
-      get(tex, a) {
+      get(tex, a, tint) {
         let s = this.pool[this.n];
         if (!s) { s = new P.Sprite(tex); s.blendMode = blend; this.pool.push(s); this.c.addChild(s); }
         this.n++;
-        s.texture = tex; s.visible = true; s.alpha = a;
+        s.texture = tex; s.visible = true; s.alpha = a; s.tint = tint === undefined ? 0xffffff : tint;
         return s;
       },
-      // 左上角 (x, y)，宽 w 高 h
-      img(tex, x, y, w, h, a) {
+      // 左上角 (x, y)，宽 w 高 h，透明度 a，可选染色 tint
+      img(tex, x, y, w, h, a, tint) {
         if (a <= 0.004) return;
-        const s = this.get(tex, a);
+        const s = this.get(tex, a, tint);
         s.anchor.set(0, 0); s.rotation = 0; s.position.set(x, y); s.width = w; s.height = h;
       },
       // 以 (x, y) 为锚点旋转；ax, ay 为锚点在图内的比例位置
-      rot(tex, x, y, w, h, a, ang, ax, ay) {
+      rot(tex, x, y, w, h, a, ang, ax, ay, tint) {
         if (a <= 0.004) return;
-        const s = this.get(tex, a);
+        const s = this.get(tex, a, tint);
         s.anchor.set(ax, ay); s.rotation = ang; s.position.set(x, y); s.width = w; s.height = h;
       },
+      // 纯色矩形
+      rect(x, y, w, h, color, a) { this.img(P.Texture.WHITE, x, y, w, h, a, color); },
       end() { for (let i = this.n; i < this.shown; i++) this.pool[i].visible = false; this.shown = this.n; this.n = 0; },
     };
   },
-  // 画布（预先画好的光斑等）→ 显卡贴图，每张画布只上传一次
-  tex(canvas) {
-    let t = this.texCache.get(canvas);
-    if (!t) { t = window.PIXI.Texture.from(canvas); this.texCache.set(canvas, t); }
+
+  // ---------- 贴图管理 ----------
+  // 画布或位图（预先画好的光斑、标牌等）→ 显卡贴图，每个只上传一次
+  tex(src) {
+    let t = this.texCache.get(src);
+    if (!t) { t = window.PIXI.Texture.from(src); this.texCache.set(src, t); }
     return t;
+  },
+  // 画布内容变了：重新上传
+  touch(src) { const t = this.texCache && this.texCache.get(src); if (t) t.baseTexture.update(); },
+  // 画布或位图不再使用：释放贴图
+  drop(src) {
+    const t = this.texCache && this.texCache.get(src);
+    if (t) { this.texCache.delete(src); t.destroy(true); }
   },
   // 按名字缓存的自绘贴图：paint(cx) 在 w×h（世界单位）的范围内画，K 为每单位像素数
   made(key, w, h, K, paint) {
@@ -105,6 +127,39 @@ const Gl = {
       t = window.PIXI.Texture.from(c); this.texCache.set(key, t);
     }
     return t;
+  },
+  // 文字贴图（带黑色描边，可选发光）。px 字号（世界单位），align 'center' | 'left'。
+  // 返回 { t 贴图, w, h 世界尺寸, ox, oy 贴图左上角相对文字基线锚点的偏移 }；最近用过的 400 条留在缓存里
+  txt(str, px, weight, fill, strokeW, glowColor, glowBlur, align) {
+    const scale = Render.labelScale, key = str + '|' + px + '|' + weight + '|' + fill + '|' + strokeW + '|' + glowColor + '|' + glowBlur + '|' + align + '|' + scale;
+    let e = this.textCache.get(key);
+    if (e) { this.textCache.delete(key); this.textCache.set(key, e); return e; }
+    const font = `${weight} ${px}px "Microsoft YaHei", sans-serif`;
+    const m = this.measure || (this.measure = document.createElement('canvas').getContext('2d'));
+    m.font = font; m.textAlign = align;
+    const mt = m.measureText(str), pad = strokeW / 2 + (glowBlur * 2 + 2) / scale;
+    const ox = -mt.actualBoundingBoxLeft - pad, oy = -mt.actualBoundingBoxAscent - pad;
+    const w = mt.actualBoundingBoxRight + pad - ox, h = mt.actualBoundingBoxDescent + pad - oy;
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * scale)); c.height = Math.max(1, Math.ceil(h * scale));
+    const cx = c.getContext('2d');
+    cx.scale(scale, scale); cx.translate(-ox, -oy);
+    cx.font = font; cx.textAlign = align; cx.lineJoin = 'round';
+    if (strokeW > 0) { cx.lineWidth = strokeW; cx.strokeStyle = 'rgba(0,0,0,0.85)'; cx.strokeText(str, 0, 0); }
+    if (glowBlur > 0) { cx.shadowColor = glowColor; cx.shadowBlur = glowBlur; }
+    cx.fillStyle = fill; cx.fillText(str, 0, 0);
+    e = { t: window.PIXI.Texture.from(c), w: c.width / scale, h: c.height / scale, ox, oy };
+    this.textCache.set(key, e);
+    if (this.textCache.size > 400) { const k = this.textCache.keys().next().value; this.textCache.get(k).t.destroy(true); this.textCache.delete(k); }
+    return e;
+  },
+  // 把文字贴到某一层：(x, y) 是文字基线锚点，k 为放大倍数
+  putText(layer, e, x, y, a, k = 1) { layer.img(e.t, x + e.ox * k, y + e.oy * k, e.w * k, e.h * k, a); },
+  // 2D 缓存里的一块标牌 / 标签位图（{ c, x, y, w, h }）贴到某一层
+  put(layer, pl, x, y, a = 1) { layer.img(this.tex(pl.c), x + pl.x, y + pl.y, pl.w, pl.h, a); },
+  // 铺满整个世界的大图（底图、焦痕、辐射尘）
+  mapSprite(spr, src, a = 1) {
+    if (spr._src !== src) { if (spr._src) this.drop(spr._src); spr._src = src; spr.texture = this.tex(src); spr.width = WORLD_W; spr.height = WORLD_H; }
+    spr.visible = a > 0; spr.alpha = a;
   },
 
   // ---------- 尾迹：所有飞弹的尾迹合成一张网格，一次画完。每条尾迹是一条由细到粗、由透明到亮的光带 ----------
@@ -169,31 +224,19 @@ const Gl = {
   },
 
   // ---------- 每帧 ----------
-  // 开始一帧：镜头和 2D 画布保持一致（屏幕坐标 = (世界坐标 − 镜头) × 缩放 + 屏幕中心 + 震动）
+  // 开始一帧：镜头（屏幕坐标 = (世界坐标 − 镜头) × 缩放 + 屏幕中心 + 震动）
   begin(camX, camY, pz, sx, sy) {
     this.world.scale.set(pz);
     this.world.position.set(Render.w / 2 + sx - camX * pz, Render.h / 2 + sy - camY * pz);
     this.trailN = 0;
-    this.lines.clear();
-    // 上层 2D 画布：清空，套上同样的镜头
-    const c = this.topCtx;
-    c.setTransform(Render.dpr, 0, 0, Render.dpr, 0, 0);
-    c.clearRect(0, 0, Render.w, Render.h);
-    c.save();
-    c.translate(Render.w / 2 + sx, Render.h / 2 + sy); c.scale(pz, pz); c.translate(-camX, -camY);
-    return c;
+    for (const k in this.g) this.g[k].clear();
   },
   end() {
-    try {
-      for (const k in this.L) this.L[k].end();
-      const g = this.trailMesh.geometry;
-      g.getBuffer('aPos').update(); g.getBuffer('aCol').update();
-      this.trailMesh.size = this.trailN * (this.NP - 1) * 6;
-      this.trailMesh.visible = this.trailN > 0;
-      this.renderer.render(this.stage);
-    } catch (e) {
-      console.warn('WebGL 特效层出错，退回 Canvas 2D：', e);
-      this.off();
-    }
+    for (const k in this.L) this.L[k].end();
+    const g = this.trailMesh.geometry;
+    g.getBuffer('aPos').update(); g.getBuffer('aCol').update();
+    this.trailMesh.size = this.trailN * (this.NP - 1) * 6;
+    this.trailMesh.visible = this.trailN > 0;
+    this.renderer.render(this.stage);
   },
 };
