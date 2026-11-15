@@ -21,6 +21,7 @@
 <h2>平衡测试</h2>
 <div class="bar">
   <label>模式 <select id="mode"><option value="normal">普通</option><option value="survival">生存（三体人）</option></select></label>
+  <label>闯关关卡 <select id="level"><option value="0">不是闯关</option></select></label>
   <label><input type="checkbox" id="quick"> 快速局</label>
   <label>玩家打法 <select id="play"><option value="ai">和 AI 一样</option><option value="aggr">开局就集中猛攻最弱的国家</option></select></label>
   <label>难度 <select id="diff"><option value="easy">简单</option><option value="normal" selected>普通</option><option value="hard">癫狂</option></select></label>
@@ -35,9 +36,10 @@
 const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/events', 'sim/end', 'ai'];
 const base = new URL('../js/', location.href).href;
 // 后台线程：加载模拟代码，逐局运行，把每局的结果发回来
-const workerSrc = `
+const workerSrc = () => `
 importScripts(${FILES.map((f) => JSON.stringify(base + f + '.js?t=' + Date.now())).join(',')});
-checkEnd = function () { const alive = G.nations.filter((n) => n.alive); if (alive.length <= 1) endGame(alive.length ? 'last' : 'earth'); };
+const realCheckEnd = checkEnd;
+checkEnd = function () { if (G.level) return realCheckEnd(); const alive = G.nations.filter((n) => n.alive); if (alive.length <= 1) endGame(alive.length ? 'last' : 'earth'); }; // 闯关按真实规则判胜负（玩家倒下即输）
 let pend = 0; const loss = { nuke: 0, conv: 0, drone: 0, dim: 0 }; let nukes = 0, dims = 0;
 Bus.on('cityHit', (e) => { pend += e.loss; });
 Bus.on('explode', () => { loss.nuke += pend; pend = 0; });
@@ -50,7 +52,7 @@ onmessage = (ev) => {
   if (o.patch) (0, eval)(o.patch); // 调参用：开始前执行一段临时修改参数的代码（页面上 window.PATCH）
   for (let g = 0; g < o.n; g++) {
     for (const k in loss) loss[k] = 0; nukes = 0; dims = 0; pend = 0;
-    newGame(RACES[g % RACES.length].id, o.ai, o.diff, null, { survival: o.survival, quick: o.quick });
+    newGame(RACES[g % RACES.length].id, o.ai, o.diff, null, { survival: o.survival, quick: o.quick, level: o.level ? LEVELS[o.level - 1] : null });
     const p = G.player; p.pers = pers[g % pers.length];
     const last = G.nations.map((n) => n.techMask), reach = {}; let fd = null, bd = null;
     for (let i = 0; i < 60000 && !G.over; i++) {
@@ -70,7 +72,9 @@ onmessage = (ev) => {
     const alive = G.nations.filter((n) => n.alive);
     postMessage({ g, len: G.t / 60, stalled: !G.over, fd, bd, reach, nukes, dims, loss: Object.assign({}, loss),
       races: G.nations.map((n) => n.race.name), normalNations: G.nations.filter((n) => !n.race.boss).length,
-      winner: alive.length === 1 ? alive[0].race.name : null, playerWon: alive.length === 1 && alive[0] === p, bossWon: alive.length === 1 && !!alive[0].race.boss,
+      winner: G.level ? (G.over === 'win' ? p.race.name : (alive.find((n) => !allied(n, p)) || {race: {}}).race.name || null) : alive.length === 1 ? alive[0].race.name : null,
+      playerWon: G.level ? G.over === 'win' : alive.length === 1 && alive[0] === p, bossWon: alive.length === 1 && !!alive[0].race.boss,
+      pop: p.alive ? totalPop(p) / Math.max(1, p.stats.peakPop) : 0,
       techNames: TECHS.map((t) => [t.id, t.name]) });
   }
   postMessage({ done: true });
@@ -79,10 +83,15 @@ const $ = (id) => document.getElementById(id);
 const med = (a) => { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y); return s[s.length >> 1]; };
 const f1 = (v) => (v === null || v === undefined ? '-' : v.toFixed(1));
 let worker = null;
+// 关卡列表（从游戏的配置里读）
+fetch(base + 'config.js?t=' + Date.now()).then((r) => r.text()).then((src) => {
+  const m = [...src.matchAll(/\{ name: '([^']+)', desc:/g)];
+  m.forEach((x, i) => { const o = document.createElement('option'); o.value = i + 1; o.textContent = `第 ${i + 1} 关 ${x[1]}`; $('level').appendChild(o); });
+});
 $('run').onclick = () => {
   if (worker) worker.terminate();
   const N = Math.max(6, +$('n').value | 0), R = [];
-  worker = new Worker(URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' })));
+  worker = new Worker(URL.createObjectURL(new Blob([workerSrc()], { type: 'text/javascript' }))); // 每次点「开始」都重新加载脚本，改了代码不用刷新页面
   const t0 = performance.now();
   $('run').disabled = true; $('status').textContent = '运行中…'; $('out').innerHTML = '';
   worker.onerror = (e) => { $('status').textContent = '出错：' + e.message; $('status').className = 'bad'; $('run').disabled = false; };
@@ -93,7 +102,7 @@ $('run').onclick = () => {
     document.querySelector('#prog i').style.width = (R.length / N * 100) + '%';
     if (R.length % 6 === 0) { $('status').textContent = `运行中… ${R.length}/${N}`; report(R, false); }
   };
-  worker.postMessage({ patch: window.PATCH || '', n: N, ai: +$('ai').value, diff: $('diff').value, survival: $('mode').value === 'survival', quick: $('quick').checked, aggr: $('play').value === 'aggr' });
+  worker.postMessage({ patch: window.PATCH || '', n: N, ai: +$('ai').value, diff: $('diff').value, survival: $('mode').value === 'survival', quick: $('quick').checked, aggr: $('play').value === 'aggr', level: +$('level').value });
 };
 function summarize(R) {
   const app = {}, win = {};
@@ -106,7 +115,8 @@ function summarize(R) {
     games: R.length, medianMin: med(len), maxMin: Math.max(...len), stalled: R.filter((r) => r.stalled).length,
     firstDeathMin: med(R.filter((r) => r.fd !== null).map((r) => r.fd)),
     nukesPerGame: Math.round(R.reduce((s, r) => s + r.nukes, 0) / R.length), dimsPerGame: +(R.reduce((s, r) => s + r.dims, 0) / R.length).toFixed(1),
-    playerWin: Math.round(100 * R.filter((r) => r.playerWon).length / R.length), bossWin: Math.round(100 * R.filter((r) => r.bossWon).length / R.length),
+    playerWin: Math.round(100 * R.filter((r) => r.playerWon).length / R.length),
+    popLeft: Math.round(100 * R.filter((r) => r.playerWon).reduce((s, r) => s + (r.pop || 0), 0) / Math.max(1, R.filter((r) => r.playerWon).length)), bossWin: Math.round(100 * R.filter((r) => r.bossWon).length / R.length),
     bossDeathMin: med(R.filter((r) => r.bd !== null).map((r) => r.bd)),
     win: Object.fromEntries(Object.keys(app).map((k) => { const p = (win[k] || 0) / app[k]; return [k, { pct: Math.round(100 * p), se: Math.round(100 * Math.sqrt(p * (1 - p) / app[k])), n: app[k] }]; })),
     loss: Object.fromEntries(Object.entries(lossT).map(([k, v]) => [k, Math.round(100 * v / lt)])), techs,

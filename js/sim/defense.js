@@ -31,7 +31,7 @@ function stepAir(dt) {
     let foe = null, bd = R;
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
       for (const o of cells.get((cx + dx) * 4096 + cy + dy) || []) {
-        if (o === p || o.done || o.att === p.att || o.fightT > 0) continue;
+        if (o === p || o.done || o.fightT > 0 || allied(G.nations[o.att], G.nations[p.att])) continue; // 同队的小摩托不互相打
         // 升空拦截的小摩托只和自己盯住的那一架交战，不被路过的小摩托打断
         if (p.kind === 'guard' && o.id !== p.prey) continue;
         if (o.kind === 'guard' && p.id !== o.prey) continue;
@@ -156,7 +156,7 @@ function autoNet(n) {
 // 护盾持续时间：全域护盾 +50%；快速局 ×0.4
 const shieldDur = (n) => SKILLS.shield.dur * (has(n, 'aegis') ? 1.5 : 1) * (G.quick ? QUICK.shieldDur : 1);
 function useShield(n) {
-  if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield) return false;
+  if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield || n.mods.noShield || n.mods.fortress) return false; // 虫族没有护盾；堡垒国的护盾由换班机制管
   n.energy -= COSTS.shield; n.shieldT = shieldDur(n); n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
@@ -174,8 +174,18 @@ function ultNeedsTarget(n) { return n.race.id === 'ai' || n.race.id === 'trisola
 function useUlt(n, tgt) {
   if (!n.alive || n.ultCd > 0) return false;
   const U = n.race.ult, id = n.race.id;
-  if (tgt && (!tgt.alive || tgt === n)) tgt = null;
+  if (tgt && (!tgt.alive || allied(tgt, n))) tgt = null;
   if (id === 'human') n.overtimeT = U.dur;
+  else if (id === 'swarm') { // 虫潮：立刻孵化一大群，全部扑向目标
+    const foe = G.nations[n.lastAttacker], t2 = tgt || (foe && foe.alive && !allied(foe, n) ? foe : null);
+    if (!t2) return false;
+    n.drones += 40; n.droneCd = 0;
+    launchDrones(n, t2, n.drones);
+  } else if (id === 'fortress') { // 炮火覆盖：向最近打它的国家回敬 8 枚导弹
+    const foe = G.nations[n.lastAttacker], t2 = foe && foe.alive && !allied(foe, n) ? foe : tgt;
+    if (!t2) return false;
+    n.conv += 8; n.convCd = 0; launchConv(n, t2, 0, 8);
+  }
   else if (id === 'mole') {
     n.shieldT = Math.max(n.shieldT, shieldDur(n));
     const foe = G.nations[n.lastAttacker];
@@ -192,6 +202,7 @@ function useUlt(n, tgt) {
   } else if (id === 'mushroom') {
     for (const t of G.world.tiles) {
       if (t.owner < 0 || !G.nations[t.owner].alive) continue;
+      if (t.owner !== n.id && allied(G.nations[t.owner], n)) continue; // 不往队友家里扬沙
       t.rad = Math.min(1.5, t.rad + (t.owner === n.id ? 0.5 : 0.95));
     }
     n.lastAttack = G.t; // 扬沙算出手（不算隔岸观火），但不直接拉仇恨

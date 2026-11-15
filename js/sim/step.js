@@ -7,6 +7,7 @@ function simStep(dt) {
   G.t += dt;
   for (const n of G.nations) if (n.alive) stepNation(n, dt);
   if (G.boss && G.boss.alive) stepBoss(G.boss, dt);
+  for (const n of G.nations) if (n.alive && n.mods.fortress) stepFort(n, dt);
   stepDims();
   stepProjectiles(dt);
   stepAir(dt);
@@ -116,7 +117,14 @@ function pickSeaTile(from) {
   return pool.length ? pick(pool) : from;
 }
 
+// 虫族：国力全部用来孵化小摩托
+function swarmBuild(n) {
+  const M = n.mods;
+  if (n.droneBuildT > 0 || n.drones >= M.droneCap || n.bank < DRONE.cost) return;
+  n.bank -= DRONE.cost; n.drones++; n.droneBuildT = DRONE.buildTime / M.droneRate;
+}
 function autoBuild(n) {
+  if (n.mods.swarm) return swarmBuild(n);
   // 常规导弹：先保底几枚（核武未解锁时也能用）
   const buildConv = () => { if (n.convBuildT > 0 || n.bank < CONV.cost) return false; n.bank -= CONV.cost; n.conv++; n.convBuildT = CONV.buildTime; return true; };
   const buildDrone = () => { if (n.droneBuildT > 0 || n.bank < DRONE.cost || n.drones >= DRONE.stockCap) return false; n.bank -= DRONE.cost; n.drones++; n.droneBuildT = DRONE.buildTime; return true; };
@@ -194,7 +202,7 @@ function checkIntel() {
   const alive = G.nations.filter((n) => n.alive);
   if (alive.length < 3) return;
   for (const x of alive) {
-    if (G.t < x.intelCd || x.race.boss) continue; // 三体人本来就是公开的威胁，不走情报点名
+    if (G.t < x.intelCd || x.race.boss || x.race.special) continue; // 三体人本来就是公开的威胁，不走情报点名
     const others = alive.filter((o) => o !== x);
     const techLead = x.techIdx - Math.max(...others.map((o) => o.techIdx));
     let why = null;

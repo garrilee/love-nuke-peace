@@ -55,7 +55,7 @@ const Fire = {
   // 点一下发射：all = 全部（Shift）；tgtId：地图浮窗里的按钮打浮窗上的国家（同时设为目标）
   tap(ammo, tgtId, all = false) {
     const tid = tgtId !== undefined ? tgtId : G.target, t = G.nations[tid];
-    if (!t || !t.alive || t === G.player) { UI.banner('🎯 先选择打击目标（Tab 或点击地图上的敌国）'); return; }
+    if (!t || !t.alive || allied(t, G.player)) { UI.banner('🎯 先选择打击目标（Tab 或点击地图上的敌国）'); return; }
     if (!this.canFire(ammo)) return;
     if (tid !== G.target) setTarget(tid);
     const v = this.level(ammo), max = fireMax(ammo), n = all || !v ? max : Math.min(v, max);
@@ -169,7 +169,7 @@ Object.assign(UI, {
     $('chooser').classList.add('hidden');
     G.selTarget = -1;
   },
-  chooserTargets() { return G.nations.filter((x) => x.alive && x !== G.player); },
+  chooserTargets() { return G.nations.filter((x) => x.alive && !allied(x, G.player)); },
   renderChooser() {
     const p = G.player;
     setText($('chooserInfo'), '选定后，地图上方会显示目标，点开火按钮即可打击。');
@@ -214,6 +214,7 @@ Object.assign(UI, {
   // ---------- 地图浮窗：点击其他国家，弹出情报 + 「开始打击」 ----------
   openMapPop(n, sx, sy) {
     if (!n || !n.alive || n === G.player || !G.player.alive) return this.closeMapPop();
+    if (allied(n, G.player)) { this.banner(`🤝 ${n.name} 是你的队友，不能攻击`); return this.closeMapPop(); }
     this.popId = n.id;
     const el = $('mapPop');
     el.style.setProperty('--c', n.color);

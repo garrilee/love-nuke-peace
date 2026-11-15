@@ -9,7 +9,7 @@ function setSpeed(s) { if (G && (!G.mp || (Net.role === 'host' && s > 0))) G.spe
 // ---------- 目标 ----------
 function setTarget(id) {
   const t = G.nations[id];
-  if (!t || !t.alive || t === G.player) return;
+  if (!t || !t.alive || allied(t, G.player)) return; // 不能把自己或队友设为目标
   G.target = id;
   SFX.click();
   UI.refreshStrike();
@@ -69,6 +69,8 @@ function startGame(raceId, aiCount, diff = 'normal', tutorial = true, mp = null,
   Render.fit(); // HUD 显示后再适配，小屏时要量出底部操作栏的高度
   for (const t of G.newsQueue) UI.addFeed(t);
   G.target = -1;
+  UI.initGuide();
+  if (G.level) setTimeout(() => UI.banner(`第 ${Campaign.index() + 1} 关 · ${G.level.name}`), 300);
   Fire.shown = {}; Fire.nk = {};
   SFX.music(true);
   running = true;

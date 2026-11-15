@@ -12,12 +12,26 @@ let G = null;
 // 每个国家占一个“席位”：raceIds[i] 国家类型（可以重复），owners[i] 玩家连接 id（AI 为 null），names[i] 自定义国家名
 // mp（联机）：房主传 { players: [{race, id, name}], me }，由这里排好席位；
 //             客户端传房主发来的 { seed, raceIds, owners, names, me }，生成一模一样的世界
-// opts：{ survival 生存模式（三体人降临）, quick 快速局 }；也兼容旧的布尔参数（只表示生存模式）
+// opts：{ survival 生存模式（三体人降临）, quick 快速局, level 闯关关卡（LEVELS 里的一项）}；也兼容旧的布尔参数（只表示生存模式）
 function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
-  const survival = typeof opts === 'object' ? !!opts.survival : !!opts;
+  const level = (typeof opts === 'object' && opts.level) || null;
+  if (level) diff = level.diff || diff;
+  const survival = !level && (typeof opts === 'object' ? !!opts.survival : !!opts);
+  let teams = null;
   const quick = !!((typeof opts === 'object' && opts.quick) || (mp && mp.quick));
   const ts = quick ? QUICK.time : 1;
   let raceIds = mp && mp.raceIds, owners = mp && mp.owners, names = mp && mp.names, seed = mp && mp.seed;
+  if (!raceIds && level) {
+    // 闯关：玩家 + 队友（0 队）对敌人。敌人结盟时同在 1 队，否则各自一队
+    const used = [playerRaceId];
+    const take = () => { const left = shuffle(RACES.map((r) => r.id).filter((id) => !used.includes(id))); const id = left.length ? left[0] : pick(RACES).id; used.push(id); return id; };
+    const seats = [{ race: playerRaceId, id: 'local', team: 0 }];
+    for (let k = 0; k < (level.allies || 0); k++) seats.push({ race: take(), id: null, team: 0 });
+    level.enemies.forEach((e, k) => seats.push({ race: e === 'any' ? take() : e, id: null, team: level.foeTeam ? 1 : 10 + k }));
+    shuffle(seats);
+    raceIds = seats.map((s) => s.race); owners = seats.map((s) => s.id); names = seats.map(() => ''); teams = seats.map((s) => s.team);
+    seed = (Math.random() * 1e9) | 0;
+  }
   if (!raceIds) {
     const humans = mp ? mp.players : [{ race: playerRaceId, id: 'local', name: '' }];
     aiCount = clamp(aiCount, 0, MAX_NATIONS - humans.length - (survival ? 1 : 0));
@@ -57,6 +71,9 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
     });
     n.anger[i] = -1e9;
     n.mods = n.race.mods;
+    n.team = teams ? teams[i] : 100 + i; // 队伍：同队不互相攻击。平时每个国家自己一队
+    if (n.mods.swarm) { n.parcels[1] = 0; n.conv = 0; n.drones = 20; n.ufoReady = 0; n.pers = 'hot'; }           // 虫族：只有小摩托
+    if (n.mods.fortress) { n.fortNext = FORT_CFG.first * ts; n.fortDown = 0; n.fortWarned = false; n.pers = 'steady'; } // 堡垒国：换班计时
     n.isPlayer = owners[i] !== null && owners[i] !== undefined; // 不依赖地图生成的标记，避免新旧脚本混用时没有真人
     n.netId = mp ? owners[i] : null;
     const custom = mp && cleanName(names[i]);
@@ -69,6 +86,7 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
+    level, rules: (level && level.rules) || {},
   };
   G.boss = bossOf(); G.dims = [];
   if (G.boss) setupBoss(G.boss);
@@ -78,8 +96,10 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
 }
 
 // ---------- 工具 ----------
-// 快速局：午夜时刻、时间类参数的缩放
-const midAt = () => (G && G.quick ? QUICK.midnight : CFG.MIDNIGHT);
+// 同队（包括自己）：不能互相攻击
+const allied = (a, b) => a.team === b.team;
+// 快速局：午夜时刻、时间类参数的缩放；「永夜」关卡开局就是午夜
+const midAt = () => (G && G.rules && G.rules.night ? 1 : G && G.rules && G.rules.midnight ? G.rules.midnight : G && G.quick ? QUICK.midnight : CFG.MIDNIGHT);
 const tScale = () => (G && G.quick ? QUICK.time : 1);
 const techIndex = (id) => TECHS.findIndex((t) => t.id === id);
 // 是否拥有某项科技：1 级包裹人人都有；2 级包裹已从科技树去掉；海底仓只有鱼叉天生拥有
@@ -96,7 +116,7 @@ function grantTech(n, id) {
 }
 // 现在能研发的科技（还没有、前置已满足）
 const availTechs = (n) => TECHS.filter((t) => !has(n, t.id) && (t.req || []).every((r) => has(n, r)) && (!t.reqAny || t.reqAny.some((r) => has(n, r))));
-const techDone = (n) => !n.research && !availTechs(n).length;
+const techDone = (n) => !!n.mods.swarm || (!n.research && !availTechs(n).length); // 虫族不研发科技
 const curTech = (n) => (n.research ? TECHS[techIndex(n.research)] : null);
 // 决定下一项研发：只有一个选项就直接研发；第 4 级二选一时，AI 按性格选，玩家自己选（超时按核武/三防分配自动选）
 function pickResearch(n) {
@@ -148,6 +168,7 @@ function production(n) {
   return (p * CFG.PROD_PER_POP + CFG.PROD_BASE) * underdog(n) * (n.mods.prod || 1)
     * (G.quick ? QUICK.prod : 1)               // 快速局：产出加倍
     * (weatherIs('boom') ? 1.5 : 1)            // 天气：军备竞赛
+    * (G.rules.prod || 1)                      // 关卡规则：断粮
     * (n.overtimeT > 0 ? n.race.ult.mult || 1.5 : 1) // 卷王大招：加班
     * (G.quick ? QUICK.prodMul[n.race.id] || 1 : 1) // 快速局的个别修正
     * (n.isPlayer ? 1 : G.diff.prod);        // AI 难度

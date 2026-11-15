@@ -66,7 +66,7 @@ function pickTargetTile(tgt) {
 
 // count：指定发射数量（玩家点击发射）；不传则按 scale（AI 使用）
 function launch(att, tgt, scale, legs, count) {
-  if (!att.alive || !tgt.alive || att === tgt || weatherIs('truce')) return 0; // 全球停火：谁都不能发射
+  if (!att.alive || !tgt.alive || allied(att, tgt) || weatherIs('truce')) return 0; // 全球停火：谁都不能发射；同队不能互相打
   const D = deliverable(att, legs);
   if (D <= 0) return 0;
   let N = count ? Math.min(count, D) : sendCount(D, scale);
@@ -141,7 +141,7 @@ function launch(att, tgt, scale, legs, count) {
 // ---------- 常规导弹 ----------
 const convSalvo = (n, scale) => Math.min(n.conv, CONV.salvo[scale], CONV.perLaunch);
 function launchConv(att, tgt, scale, count) {
-  if (!att.alive || !tgt.alive || att === tgt || weatherIs('truce') || (att.convCd > 0 && !att.isPlayer)) return 0; // 人类玩家没有装填间隔：有库存就能发
+  if (!att.alive || !tgt.alive || allied(att, tgt) || weatherIs('truce') || (att.convCd > 0 && !att.isPlayer)) return 0; // 人类玩家没有装填间隔：有库存就能发
   const N = count ? Math.min(count, att.conv, CONV.perLaunch) : convSalvo(att, scale);
   if (N <= 0) return 0;
   // 从投送站或城市发射
@@ -197,7 +197,7 @@ function pickDroneTile(tgt) {
   return pickTargetTile(tgt);
 }
 function launchDrones(att, tgt, count) {
-  if (!att.alive || !tgt || !tgt.alive || att === tgt || weatherIs('truce') || weatherIs('dust') || (att.droneCd > 0 && !att.isPlayer)) return 0; // 沙尘暴：小摩托停飞
+  if (!att.alive || !tgt || !tgt.alive || allied(att, tgt) || weatherIs('truce') || weatherIs('dust') || (att.droneCd > 0 && !att.isPlayer)) return 0; // 沙尘暴：小摩托停飞
   const N = Math.min(count | 0, att.drones);
   if (N <= 0) return 0;
   // 从机场、投送站和城市成群起飞
@@ -228,7 +228,7 @@ function droneExplode(tile, att) {
     if (chance(DRONE.facChance)) knockFacility(f, owner);
   }
   if (tile.city && tile.city.pop > 0) {
-    const c = tile.city, owner = G.nations[c.nation], loss = c.pop * DRONE.cityDmg * takenMul(owner);
+    const c = tile.city, owner = G.nations[c.nation], loss = c.pop * Math.min(0.9, DRONE.cityDmg * ((att && att.mods && att.mods.droneDmg) || 1)) * takenMul(owner); // 虫族的小摩托咬得更狠
     c.pop -= loss;
     losses.set(owner.id, loss);
     Bus.emit('cityHit', { city: c, loss });
@@ -296,6 +296,7 @@ function explode(tile, lv, att) {
       let frac = Math.min(0.97, P.dmg * (R === 0 ? 1 : 1 - (d / (R + 1)) * 0.6) * nukeMul());
       if (owner.shieldT > 0) frac *= 1 - shieldCut(owner);
       frac = Math.min(0.97, frac * (owner.mods.nukeArmor || 1) * takenMul(owner)); // 废土：皮糙肉厚；三体乱纪元：伤害加重
+      if (G.rules.foeDmg && owner.isPlayer) frac *= G.rules.foeDmg; // 教学关：敌人的核弹对你伤害打折
       const loss = c.pop * frac;
       c.pop -= loss;
       if (owner.shieldT <= 0 && ((d === 0 && lv >= 2) || c.pop < c.basePop * 0.35)) { c.ruined = true; c.rebuild = 0; }

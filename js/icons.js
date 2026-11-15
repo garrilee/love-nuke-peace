@@ -90,6 +90,29 @@ const RACE_ICON_SVG = {
     <circle cx="13.5" cy="40.5" r="4.4" fill="url(#s1-tri)"/>
     <circle cx="50" cy="20" r="3.6" fill="url(#s2-tri)"/>
     <circle cx="46" cy="47" r="3" fill="url(#s3-tri)"/>`,
+
+  // 虫族：一只张着大颚的甲虫——分节的身体、六条腿、一对触角
+  swarm: `${emblemFrame('swarm', '#3d5a14', '#101c04', '#b8ff5a')}
+    <defs><linearGradient id="bd-swarm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6ff9a"/><stop offset="1" stop-color="#6fae1e"/></linearGradient></defs>
+    <g stroke="#b8ff5a" stroke-width="2" stroke-linecap="round" fill="none">
+      <path d="M24 30 L14 24 M23 36 L12 37 M24 42 L15 49 M40 30 L50 24 M41 36 L52 37 M40 42 L49 49"/>
+      <path d="M28 20 Q24 12 19 12 M36 20 Q40 12 45 12"/>
+    </g>
+    <path d="M27 21 Q23 14 28 13 Q30 17 30 21 Z M37 21 Q41 14 36 13 Q34 17 34 21 Z" fill="#f4ffcf"/>
+    <ellipse cx="32" cy="24" rx="6.5" ry="5" fill="url(#bd-swarm)" stroke="#16260a" stroke-width="1.2"/>
+    <ellipse cx="32" cy="38" rx="9.5" ry="12" fill="url(#bd-swarm)" stroke="#16260a" stroke-width="1.2"/>
+    <path d="M32 27 V50 M23.5 34 H40.5 M23 41 H41" stroke="#16260a" stroke-width="1.2" fill="none"/>
+    <circle cx="29.3" cy="23" r="1.3" fill="#ff5a3a"/><circle cx="34.7" cy="23" r="1.3" fill="#ff5a3a"/>`,
+
+  // 堡垒国：一座带垛口的塔楼，城门紧闭，外面罩着一道护盾弧
+  fortress: `${emblemFrame('fortress', '#33415c', '#0b1220', '#9fb4d8')}
+    <defs><linearGradient id="tw-fortress" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef3ff"/><stop offset="1" stop-color="#8296bb"/></linearGradient></defs>
+    <path d="M12 40 A20 20 0 0 1 52 40" fill="none" stroke="#7fd6ff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+    <path d="M16 40 A16 16 0 0 1 48 40" fill="none" stroke="#7fd6ff" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M21 50 V26 H18 V19 H23 V22 H27 V19 H31 V22 H33 V19 H37 V22 H41 V19 H46 V26 H43 V50 Z" fill="url(#tw-fortress)" stroke="#0b1220" stroke-width="1.3" stroke-linejoin="round"/>
+    <path d="M28 50 V40 A4 4 0 0 1 36 40 V50 Z" fill="#0b1220"/>
+    <rect x="25" y="29" width="3" height="5" fill="#0b1220"/><rect x="36" y="29" width="3" height="5" fill="#0b1220"/>
+    <path d="M21 36 H43" stroke="#0b1220" stroke-width="0.9" opacity="0.6"/>`,
 };
 
 // 图标的 <svg> 字符串（size：显示尺寸 px）

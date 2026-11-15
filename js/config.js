@@ -206,7 +206,51 @@ const BOSS = {
   cities: ['红岸', '恒纪元', '三日凌空', '飞星', '智子城', '水滴港'],
   lines: { launch: '降临，从你开始。', hit: '这点抵抗，不值一提。', dead: '舰队……失去了信号……' },
 };
-const ALL_RACES = [...RACES, BOSS];
+// ---------- 闯关模式的特殊敌人：只由 AI 控制，玩家不能选 ----------
+// 虫族：不造核弹和导弹，国力全部用来孵化小摩托，数量是别人的几倍，成群撞上来能啃掉城市
+const SWARM = {
+  id: 'swarm', name: '虫族', emoji: '🐛', color: '#b8ff5a', special: true,
+  trait: '虫海：不造核弹和导弹，小摩托孵化速度 ×10、库存上限 100，撞到城市的伤害 ×12', weak: '没有护盾；单只很脆，怕拦截和升空空战；沙尘暴时飞不起来',
+  // droneDmg 小摩托对城市的伤害倍率；droneRate 孵化速度倍率；droneCap 库存上限；droneWave 攒够多少只就出击
+  mods: { swarm: true, noShield: true, droneDmg: 12, droneRate: 10, droneCap: 100, droneWave: 40 },
+  ult: { name: '虫潮', icon: '🐛', cd: 120, desc: '立刻孵化 40 只，全部扑向目标' },
+  cities: ['母巢', '孵化池', '虫道', '菌毯原', '刺蛇谷', '吞噬港'],
+  lines: { launch: '嘶——（它们来了，数不清）', hit: '嘶……（少了一批，还有一万批）', dead: '嘶…………（虫巢安静了）' },
+};
+// 堡垒国：护盾常驻，只有换班的窗口能打进去
+const FORT = {
+  id: 'fortress', name: '堡垒国', emoji: '🏰', color: '#9fb4d8', special: true,
+  trait: '铁幕：护盾常驻（减伤 85%）', weak: '换班：每隔一段时间护盾失效 20 秒，提前 8 秒预警；进攻偏慢，产出 -10%',
+  mods: { fortress: true, prod: 0.9 },
+  ult: { name: '炮火覆盖', icon: '💥', cd: 120, desc: '向最近打它的国家回敬 8 枚常规导弹' },
+  cities: ['铁幕城', '壁垒港', '棱堡', '碉楼镇', '瓮城', '箭垛口'],
+  lines: { launch: '城门开了一条缝，是为了把炮管伸出去。', hit: '敲门请轻一点。', dead: '城墙……塌了……' },
+};
+const FORT_CFG = {
+  first: 80,   // 开局 80 秒后第一次换班
+  up: 75,      // 之后护盾每次保持 75 秒
+  down: 20,    // 换班：护盾失效 20 秒
+  warn: 8,     // 提前 8 秒预警
+  hate: 80,    // 换班时其他国家对它的额外敌意（集中火力）
+};
+const ALL_RACES = [...RACES, BOSS, SWARM, FORT];
+
+// ---------- 闯关模式：关卡表 ----------
+// enemies：敌人列表，'any' 是随机的普通国家，其余是国家 id；allies：AI 队友数量；
+// foeTeam：敌人之间结盟（不互相打）。没有 foeTeam 时敌人各打各的；
+// rules：这一关的特殊规则 { prod 所有国家产出倍率, night 开局就是午夜狂欢, midnight 午夜提前到第几秒, foeDmg 敌人的核弹对玩家的伤害倍率 }；tutorial：分步教学
+const LEVELS = [
+  { name: '新兵训练', desc: '两个很弱的对手。跟着提示一步一步学会怎么核平。', diff: 'tutorial', enemies: ['any', 'any'], tutorial: true, rules: { foeDmg: 0.4 } },
+  { name: '初出茅庐', desc: '三个对手，各打各的。第一次真正的混战。', diff: 'easy', enemies: ['any', 'any', 'any'] },
+  { name: '虫群来袭', desc: '虫族没有核弹，但小摩托铺天盖地、专啃城市。拦截、护盾、升空空战都要用上。', diff: 'normal', enemies: ['swarm', 'any'] },
+  { name: '断粮', desc: '所有国家产出只有平时的六成，午夜也提前到来。每一发都要算着用。', diff: 'normal', enemies: ['any', 'any', 'any'], rules: { prod: 0.6, midnight: 400 } },
+  { name: '铁幕', desc: '堡垒国的护盾常驻，只有换班的 20 秒能打进去。把库存留到那一刻。', diff: 'normal', enemies: ['fortress', 'any'] },
+  { name: '永夜', desc: '开局就是午夜狂欢：核弹威力不断上升，没有弱势加成。速战速决。', diff: 'normal', enemies: ['any', 'any', 'any'], rules: { night: true } },
+  { name: '虫与墙', desc: '虫族、堡垒国和一个普通对手结盟。你有两个队友。', diff: 'normal', enemies: ['swarm', 'fortress', 'any'], allies: 2, foeTeam: true },
+  { name: '五国乱战', desc: '五个癫狂的对手各打各的，你有一个队友。', diff: 'hard', enemies: ['any', 'any', 'any', 'any', 'any'], allies: 1 },
+  { name: '降临', desc: '三体人带着虫族降临。你有两个队友。', diff: 'normal', enemies: ['trisolaris', 'swarm'], allies: 2, foeTeam: true },
+  { name: '最后的堡垒', desc: '三体人和堡垒国结盟，而且都是癫狂难度。你有两个队友。', diff: 'hard', enemies: ['trisolaris', 'fortress'], allies: 2, foeTeam: true },
+];
 const BOSS_CFG = {
   startTechs: ['pad', 'lv3', 'multi'], // 开局已研发：投送站、当日达、分装包裹
   firstUlt: 240,          // 开局 4 分钟后才能第一次降维打击
@@ -239,6 +283,7 @@ const BOSS_CFG = {
 
 // AI 难度：产出倍率、出手积极度、报复反应时间倍率、多久不出手就必须打一轮、大招使用意愿
 const DIFFS = {
+  tutorial: { name: '教学', prod: 0.35, aggro: 0.2, react: 3, idle: 200, ult: 0 }, // 第 1 关用：很弱、很慢、不放大招
   easy:   { name: '简单', prod: 0.8, aggro: 0.7,  react: 1.6, idle: 100, ult: 0.35 },
   normal: { name: '普通', prod: 1.0, aggro: 1.0,  react: 1.0, idle: 60,  ult: 1 },
   hard:   { name: '癫狂', prod: 1.2, aggro: 1.35, react: 0.7, idle: 45,  ult: 1, auto: true }, // auto：AI 也有玩家那样逐帧的自动拦截

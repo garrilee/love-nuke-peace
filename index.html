@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#01040a">
 <title>热爱核平</title>
-<link rel="stylesheet" href="style.css?v=20261211-fx7">
+<link rel="stylesheet" href="style.css?v=20261212-camp2">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -141,6 +141,7 @@
   </div>
   <button id="mapPopGo">只设为目标，不发射</button>
 </div>
+<div id="guide" class="hidden"><div id="guideBody"></div><button id="guideSkip" title="不再显示教学步骤">跳过教学</button></div>
 <div id="tip" class="hidden"><div class="tipbody" id="tipBody"></div><button id="tipX" title="关闭">×</button></div>
 <div id="countdown" class="hidden"></div>
 <div id="leader" class="hidden"></div>
@@ -151,8 +152,14 @@
   <div class="start-inner">
     <h1>热爱核平</h1>
     <div class="slogan">“我们热爱和平，所以要让世界变得——平。”</div>
-    <div class="pick-title">选择你的国家</div>
+    <div id="modeTabs"><button id="tabCamp" class="mtab">🗺 闯关</button><button id="tabSurv" class="mtab">☢ 生存模式</button></div>
+    <div id="campBox">
+      <div id="levels"></div>
+      <div id="levelInfo"></div>
+    </div>
+    <div class="pick-title" id="pickTitle">选择你的国家</div>
     <div id="races"></div>
+    <div id="survNote" class="dim">生存模式：随机分配一个国家，打到只剩你自己。联机时各自选国家。</div>
     <div class="start-opts">
       <label>AI 对手数量
         <select id="aiCount"><option>0</option><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
@@ -164,7 +171,7 @@
         <select id="mpSpeed"><option value="1">1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option></select>
       </label>
       <label class="chk"><input type="checkbox" id="tutorial" checked> 新手提示</label>
-      <label class="chk" title="勾选后，高阶文明「三体人」降临：科技远超所有国家，会发动降维打击。开局 5 分钟后，它每 125 秒进入一次乱纪元，那是反击的窗口。"><input type="checkbox" id="survival"> 👽 生存模式</label>
+      <label class="chk" title="勾选后，高阶文明「三体人」降临：科技远超所有国家，会发动降维打击。开局 5 分钟后，它每 125 秒进入一次乱纪元，那是反击的窗口。"><input type="checkbox" id="survival"> 👽 三体人降临</label>
       <label class="chk" title="快速局：午夜提前到第 4 分钟，产出加倍，各种冷却和计时减半，一局约 6 分钟"><input type="checkbox" id="quick"> ⚡ 快速局</label>
     </div>
     <div id="mpBox" class="mp">
@@ -215,32 +222,33 @@
   </div>
 </section>
 
-<script src="js/config.js?v=20261211-fx7"></script>
-<script src="js/util.js?v=20261211-fx7"></script>
-<script src="js/icons.js?v=20261211-fx7"></script>
-<script src="js/audio.js?v=20261211-fx7"></script>
-<script src="js/map.js?v=20261211-fx7"></script>
-<script src="js/sim/core.js?v=20261211-fx7"></script>
-<script src="js/sim/step.js?v=20261211-fx7"></script>
-<script src="js/sim/strike.js?v=20261211-fx7"></script>
-<script src="js/sim/defense.js?v=20261211-fx7"></script>
-<script src="js/sim/boss.js?v=20261211-fx7"></script>
-<script src="js/sim/events.js?v=20261211-fx7"></script>
-<script src="js/sim/end.js?v=20261211-fx7"></script>
-<script src="js/ai.js?v=20261211-fx7"></script>
-<script src="js/fx.js?v=20261211-fx7"></script>
-<script src="js/render/base.js?v=20261211-fx7"></script>
-<script src="js/render/units.js?v=20261211-fx7"></script>
-<script src="js/render/labels.js?v=20261211-fx7"></script>
-<script src="js/render/boss.js?v=20261211-fx7"></script>
-<script src="js/render/gl.js?v=20261211-fx7"></script>
-<script src="js/render/glscene.js?v=20261211-fx7"></script>
-<script src="js/ui/base.js?v=20261211-fx7"></script>
-<script src="js/ui/strike.js?v=20261211-fx7"></script>
-<script src="js/ui/rank.js?v=20261211-fx7"></script>
-<script src="js/ui/tips.js?v=20261211-fx7"></script>
-<script src="js/ui/end.js?v=20261211-fx7"></script>
-<script src="js/net.js?v=20261211-fx7"></script>
-<script src="js/main.js?v=20261211-fx7"></script>
+<script src="js/config.js?v=20261212-camp2"></script>
+<script src="js/util.js?v=20261212-camp2"></script>
+<script src="js/icons.js?v=20261212-camp2"></script>
+<script src="js/audio.js?v=20261212-camp2"></script>
+<script src="js/map.js?v=20261212-camp2"></script>
+<script src="js/sim/core.js?v=20261212-camp2"></script>
+<script src="js/sim/step.js?v=20261212-camp2"></script>
+<script src="js/sim/strike.js?v=20261212-camp2"></script>
+<script src="js/sim/defense.js?v=20261212-camp2"></script>
+<script src="js/sim/boss.js?v=20261212-camp2"></script>
+<script src="js/sim/events.js?v=20261212-camp2"></script>
+<script src="js/sim/end.js?v=20261212-camp2"></script>
+<script src="js/ai.js?v=20261212-camp2"></script>
+<script src="js/fx.js?v=20261212-camp2"></script>
+<script src="js/render/base.js?v=20261212-camp2"></script>
+<script src="js/render/units.js?v=20261212-camp2"></script>
+<script src="js/render/labels.js?v=20261212-camp2"></script>
+<script src="js/render/boss.js?v=20261212-camp2"></script>
+<script src="js/render/gl.js?v=20261212-camp2"></script>
+<script src="js/render/glscene.js?v=20261212-camp2"></script>
+<script src="js/ui/base.js?v=20261212-camp2"></script>
+<script src="js/ui/strike.js?v=20261212-camp2"></script>
+<script src="js/ui/rank.js?v=20261212-camp2"></script>
+<script src="js/ui/tips.js?v=20261212-camp2"></script>
+<script src="js/ui/end.js?v=20261212-camp2"></script>
+<script src="js/ui/campaign.js?v=20261212-camp2"></script>
+<script src="js/net.js?v=20261212-camp2"></script>
+<script src="js/main.js?v=20261212-camp2"></script>
 </body>
 </html>

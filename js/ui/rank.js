@@ -20,7 +20,7 @@ Object.assign(UI, {
     this.syncFold();
     $('rankList').onclick = (e) => { // 点某一行：设为打击目标
       const el = e.target.closest('.rk-row'), n = el && G.nations[+el.dataset.id];
-      if (n && n !== G.player && n.alive) setTarget(n.id);
+      if (n && !allied(n, G.player) && n.alive) setTarget(n.id);
     };
     $('rankToggle').onclick = () => { box.classList.toggle('collapsed'); this.refreshRank(); };
     this.refreshRank();
@@ -52,11 +52,15 @@ Object.assign(UI, {
         if (isChaos(n)) extra = `<div class="rk-x chaos">🌪 乱纪元中 · ${Math.ceil(n.chaosT)} 秒</div>`;
         else if (n.chaosNext <= 30) extra = `<div class="rk-x">🌪 ${Math.ceil(n.chaosNext)} 秒后乱纪元</div>`;
       }
+      if (n.mods.fortress && n.alive) { // 堡垒国：换班窗口
+        if (n.fortDown > 0) extra = `<div class="rk-x open">🏰 换班中，没有护盾 · ${Math.ceil(n.fortDown)} 秒</div>`;
+        else extra = `<div class="rk-x">🏰 ${Math.ceil(n.fortNext)} 秒后换班</div>`;
+      }
       const sub = n.alive && n !== me && box.classList.contains('docked')
         ? `<div class="rk-sub">🔬 ${n.techIdx}/${TECHS.length}${G.mp && n.isPlayer ? ' · 真人玩家' : `<span class="rk-ang" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></span>`}${recentAttacker(n) ? '<b class="rk-atk">⚔ 打过你</b>' : ''}</div>` : '';
       return `<div class="rk-row${n === me ? ' me' : ''}${G.target === n.id ? ' sel' : ''}${n.alive ? '' : ' dead'}${n.race.boss ? ' boss' : ''}" data-id="${n.id}" style="--c:${n.color}">
-        <span class="rk-i">${n.alive ? i + 1 : '💀'}</span><span class="rk-n">${raceIcon(n.race.id, 16)} ${n.name}${arrow}</span>
-        <span class="rk-p mono">${n.alive ? fmtPop(pop) : ''}</span><span class="rk-k mono">${n.alive ? '☢' + stock(n) : ''}</span>
+        <span class="rk-i">${n.alive ? i + 1 : '💀'}</span><span class="rk-n">${raceIcon(n.race.id, 16)} ${n.name}${n !== me && allied(n, me) ? ' <span class="tag ally">队友</span>' : ''}${arrow}</span>
+        <span class="rk-p mono">${n.alive ? fmtPop(pop) : ''}</span><span class="rk-k mono">${n.alive ? (n.mods.swarm ? '🐛' + n.drones : '☢' + stock(n)) : ''}</span>
         <div class="rk-bar"><i style="width:${n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0}%"></i></div>${sub}${extra}</div>`;
     };
     setHTML($('rankList'), alive.map(row).join('') + dead.map((n) => row(n, -1)).join(''));

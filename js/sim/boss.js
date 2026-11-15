@@ -30,7 +30,7 @@ function bossTarget(n, tgt) {
   if (!bossLimited(n, tgt)) return tgt;
   let best = null, bs = -Infinity;
   for (const x of G.nations) {
-    if (!x.alive || x === n || bossLimited(n, x)) continue;
+    if (!x.alive || allied(x, n) || bossLimited(n, x)) continue;
     const s = n.anger[x.id] + Math.max(0, BOSS_CFG.neighborHate - capDist(n, x) * 2) + rnd(0, 15);
     if (s > bs) { bs = s; best = x; }
   }
@@ -44,6 +44,26 @@ function bossLaunch(n, tgt, scale) {
     n.anger[tgt.id] = Math.max(0, n.anger[tgt.id] - BOSS_CFG.waveCalm);
   }
   return sent;
+}
+
+// ---------- 堡垒国：护盾常驻，周期性“换班”时失效一小段时间 ----------
+const fortOpen = (n) => !!(n && n.mods.fortress && n.fortDown > 0);
+function stepFort(n, dt) {
+  const F = FORT_CFG;
+  if (n.fortDown > 0) { // 换班中：没有护盾
+    n.fortDown -= dt; n.shieldT = 0;
+    if (n.fortDown <= 0) { n.fortDown = 0; n.fortNext = F.up * tScale(); n.fortWarned = false; news(`🏰 ${n.race.emoji}${n.name} 换班结束，护盾重新升起`); }
+    return;
+  }
+  n.fortNext -= dt;
+  n.shieldT = n.hackT > 0 ? 0 : Math.max(n.shieldT, 3); // 护盾一直开着（被断网时照样瘫痪）
+  const warn = Math.round(F.warn * tScale()), down = Math.round(F.down * tScale());
+  if (!n.fortWarned && n.fortNext <= warn) { n.fortWarned = true; Bus.emit('banner', `🏰 ${warn} 秒后堡垒国换班：护盾将失效 ${down} 秒，准备集中火力！`); }
+  if (n.fortNext <= 0) {
+    n.fortDown = down; n.shieldT = 0;
+    news(`🏰 ${n.race.emoji}${n.name} 正在换班：${down} 秒内没有护盾`);
+    Bus.emit('banner', `🏰 堡垒国换班！${down} 秒内没有护盾`);
+  }
 }
 
 // ---------- 乱纪元：周期性进入，生产停止、护盾和拦截失效 ----------
@@ -88,8 +108,8 @@ function dimCenter(tgt) {
 // 降维打击打谁：和普通攻击一样看仇恨、威胁和距离（优先打掉正在围攻它的邻国），但对真人玩家留两条保护：
 // 不连续两次打同一个国家；真人玩家的分数打七折（积极反击的玩家不会被反复点名）
 function pickDimTarget(n) {
-  let c = G.nations.filter((x) => x.alive && x !== n && totalPop(x) > 25);
-  if (!c.length) c = G.nations.filter((x) => x.alive && x !== n);
+  let c = G.nations.filter((x) => x.alive && !allied(x, n) && totalPop(x) > 25);
+  if (!c.length) c = G.nations.filter((x) => x.alive && !allied(x, n));
   const narrow = (f) => { const r = c.filter(f); if (r.length) c = r; };
   narrow((x) => x.id !== n.lastDimTgt);
   const maxPop = Math.max(1, ...G.nations.map((x) => (x.alive ? totalPop(x) : 0)));

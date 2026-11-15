@@ -17,9 +17,17 @@ Object.assign(UI, {
     else if (survivor && survivor.race.boss && alive.length === 1) { title = '👽 地球被降临'; sub = `${survivor.name}的舰队接管了这颗星球。下一次，记得在乱纪元集中火力。`; }
     else if (survivor && survivor.race.id === 'roach' && p.race.id !== 'roach') { title = '🥉 青铜笑到最后'; sub = '青铜也能越级，打倒所有人。'; }
     else { title = '💀 你已被核平'; sub = survivor && alive.length === 1 ? `${raceIcon(survivor.race.id, 20)}${survivor.name} 笑到了最后。` : '剩下的国家还在互相投送包裹……'; }
+    // 闯关：过关评星、保存进度
+    const li = Campaign.index(), camp = li >= 0;
+    let stars = 0;
+    if (camp && kind === 'win') {
+      stars = Campaign.rate(p); Campaign.save(li, stars);
+      title = `🏅 第 ${li + 1} 关通过`;
+      sub = `「${G.level.name}」` + (li + 1 < LEVELS.length ? ` · 下一关：${LEVELS[li + 1].name}` : ' · 十关全部通过。世界终于——平了。');
+    } else if (camp && kind !== 'earth') { title = `💀 第 ${li + 1} 关失败`; sub = `「${G.level.name}」 · 你倒下了。换个国家或者换个打法再试一次。`; }
     const s = p.stats;
     const box = document.querySelector('#end .end-inner');
-    box.innerHTML = `<h1>${title}</h1><div class="slogan">${sub}</div>
+    box.innerHTML = `<h1>${title}</h1>${stars ? `<div class="endstars">${starText(stars)}</div>` : ''}<div class="slogan">${sub}</div>
       <div class="endstats">
         <div>用时 <b>${fmtTime(G.t)}</b></div>
         <div>投送包裹 <b>${s.sent}</b></div>
@@ -37,11 +45,16 @@ Object.assign(UI, {
       <div class="popchart"><div class="pc-title">📈 人口走势</div><canvas id="popChart"></canvas><div id="popLegend" class="pc-legend"></div></div>
       ${G.mp ? `<div class="mprank">${ranked.map((n, i) => `<div class="${n === p ? 'me' : ''}" style="--c:${n.color}"><span>${i + 1}</span>${raceIcon(n.race.id, 18)} <b>${n.name}</b> ${n.isPlayer || n.netId ? '<span class="tag">玩家</span>' : '<span class="dim small">AI</span>'}<i>${n.alive ? '🏆 存活' : '💀 ' + fmtTime(n.diedAt || 0)}</i></div>`).join('')}</div>` : ''}
       <div class="pers">AI 真实性格：${G.nations.filter((n) => !n.isPlayer && n.pers).map((n) => `${raceIcon(n.race.id, 14)}${n.name}=${PERSONALITIES[n.pers].name}`).join('　')}</div>
-      ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>' : '<button id="againBtn">再核平一次</button>'}`;
+      ${G.mp && kind !== 'disconnected' ? '<div class="endbtns"><button id="roomBtn">回到房间，再来一局</button><button id="againBtn" class="ghost">离开房间</button></div>'
+        : camp ? `<div class="endbtns">${stars && li + 1 < LEVELS.length ? '<button id="nextBtn">下一关</button>' : ''}<button id="retryBtn" class="${stars ? 'ghost' : ''}">重打这一关</button><button id="againBtn" class="ghost">返回选关</button></div>`
+        : '<button id="againBtn">再核平一次</button>'}`;
     $('end').classList.remove('hidden');
     this.drawPopChart();
     if (G.tutorial) Store.set('tutorialDone', true);
     $('againBtn').onclick = () => { Net.leave(true); location.href = location.pathname; };
+    // 下一关 / 重打：回到开始页并选中那一关（每关开始前可以重新选国家）
+    if ($('nextBtn')) $('nextBtn').onclick = () => { Store.set('campSel', li + 1); location.href = location.pathname; };
+    if ($('retryBtn')) $('retryBtn').onclick = () => { Store.set('campSel', li); location.href = location.pathname; };
     if ($('roomBtn')) $('roomBtn').onclick = () => Net.backToRoom();
   },
   // 结算：全程人口曲线（每个国家一条线，你的最粗；午夜、乱纪元、倒下的时刻都标出来）

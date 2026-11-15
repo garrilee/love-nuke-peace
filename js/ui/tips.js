@@ -40,6 +40,14 @@ Object.assign(UI, {
       const dim = (G.dims || []).find((d) => d.tgt === p.id && dimRadius(d) < 0);
       if (dim) this.tip('dimWarn', '🌀 <b>降维打击</b>锁定了你：红圈里的城市会被直接抹掉，外圈按距离受损。开<b>护盾</b>能让外圈损失减半；60 秒后才能重建核心区。', { cd: 60, life: 8 });
     }
+    // 闯关的特殊敌人：每局提示一次规则
+    const sw = G.nations.find((x) => x.alive && x.mods.swarm && !allied(x, p)), ft = G.nations.find((x) => x.alive && x.mods.fortress && !allied(x, p));
+    if (sw && t > 8) this.tip('swarm', `🐛 <b>虫族</b>没有核弹，靠成群的小摩托啃城市（每只咬掉的人口是普通小摩托的 ${sw.mods.droneDmg} 倍）。<b>护盾</b>能把飞进来的整群烧掉；它没有护盾，核弹对它很有效。`, { life: 10 });
+    if (ft && t > (sw ? 30 : 8)) this.tip('fort', `🏰 <b>堡垒国</b>的护盾一直开着，平时打它只有 ${Math.round((1 - SKILLS.shield.reduce) * 100)}% 的伤害。每隔一段时间它要<b>换班</b>，护盾失效 ${FORT_CFG.down} 秒，会提前预警：把库存留到那一刻再打。`, { life: 10 });
+    if (ft && !fortOpen(ft) && ft.fortNext <= FORT_CFG.warn + 2) this.tip('fortSoon', '🏰 堡垒国马上<b>换班</b>：把目标切到它，准备把库存一次打光！', { cd: 60, life: 6 });
+    if (G.level && G.level.allies && t > 3) this.tip('ally', '🤝 这一关你有<b>队友</b>（地图上名字前有 🤝）：它们不会打你，你也打不了它们。敌人全灭就过关；但<b>你倒下就算失败</b>，哪怕队友还活着。', { life: 10 });
+    if (G.rules.night && t > 3) this.tip('night', '🕛 <b>永夜</b>：这一关开局就是午夜狂欢，核弹威力和产出不断升级，没有弱势加成。拖得越久越危险。', { life: 9 });
+    if (G.rules.prod && t > 3) this.tip('famine', `🍚 <b>断粮</b>：这一关所有国家的产出只有平时的 ${Math.round(G.rules.prod * 100)}%，午夜也提前到来。别乱打，把包裹留给关键时刻。`, { life: 9 });
     // 局势提醒（始终开启，有冷却）
     const alive = G.nations.filter((x) => x.alive);
     const idle = t - Math.max(p.lastAttack, 60);

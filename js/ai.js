@@ -32,7 +32,9 @@ function aiUlt(n, tgt, when) {
     || (id === 'roach' && when === 'think' && (totalPop(n) < n.stats.peakPop * 0.55 || n.cities.filter((c) => c.ruined).length >= 2))
     || (id === 'mole' && when === 'danger')
     || ((id === 'octopus' || id === 'ai') && when === 'fire')
-    || (id === 'trisolaris' && when === 'think' && !weatherIs('truce')); // 全球停火期间不放降维打击
+    || (id === 'trisolaris' && when === 'think' && !weatherIs('truce')) // 全球停火期间不放降维打击
+    || (id === 'swarm' && when === 'think' && G.t > 100 * tScale() && !weatherIs('truce') && !weatherIs('dust'))
+    || (id === 'fortress' && when === 'think' && G.t - n.lastHit < 20);
   return ok ? useUlt(n, id === 'trisolaris' ? pickDimTarget(n) : tgt) : false;
 }
 
@@ -61,6 +63,7 @@ function aiStep(n, dt) {
   else if (recentlyHit) n.alloc = { tech: 0.3, nuke: 0.45, def: 0.25 };
   else n.alloc = { tech: 0.45, nuke: 0.35, def: 0.2 };
   if (techDone(n)) n.alloc = { tech: 0.1, nuke: 0.6, def: 0.3 };
+  if (n.mods.swarm) n.alloc = { tech: 0, nuke: 0.8, def: 0.2 }; // 虫族：不研发，全力孵化
 
   // 大量来袭：刀盾先放大招（免费护盾 + 回敬）
   const inc = incomingFor(n);
@@ -85,14 +88,19 @@ function aiStep(n, dt) {
   // 选目标：怒气 + 威胁度（出头鸟：人口最多、库存最多的国家最招针对）+ 情报点名
   let tgt = null, best = -1e9;
   for (const x of G.nations) {
-    if (!x.alive || x === n) continue;
+    if (!x.alive || allied(x, n)) continue; // 不打队友
     let s = n.anger[x.id] + threatOf(x, maxPop) + rnd(0, 15);
+    if (x.mods.fortress) s += fortOpen(x) ? FORT_CFG.hate : -40; // 堡垒国：护盾开着时打它是浪费，换班时集中火力
     if (x.race.boss) s += BOSS_CFG.hate + (isChaos(x) ? BOSS_CFG.chaosHate : 0); // 三体人：大家的共同威胁，乱纪元时围攻
     if (n.race.boss) s += Math.max(0, BOSS_CFG.neighborHate - capDist(n, x) * 2); // 三体人：压迫周边，离得越近越先打
     if (s > best) { best = s; tgt = x; }
   }
   if (!tgt) return;
   aiUlt(n, tgt, 'think');
+  if (n.mods.swarm) { // 虫族：攒够一群就全部扑上去，别的什么都不做
+    if (n.drones >= n.mods.droneWave && n.droneCd <= 0 && G.t > 45 * tScale() && launchDrones(n, tgt, n.drones)) hitPlayer(n, tgt, 'drone', false);
+    return;
+  }
   const aggro = P.aggro * G.diff.aggro * (n.race.boss ? BOSS_CFG.aggro : 1);
   const D = deliverable(n, { pad: true, sea: true, ufo: true });
   // 常规导弹骚扰：便宜、频繁；佛系不主动，记仇只打仇人
@@ -121,13 +129,13 @@ function aiStep(n, dt) {
   if (D <= 0 || G.t - n.lastStrike < 8) return;
 
   let fire = false, scale = 1, kind = 'think';
-  if (tgt.race.boss && isChaos(tgt)) { fire = true; scale = 2; } // 三体乱纪元：倾巢而出
+  if ((tgt.race.boss && isChaos(tgt)) || fortOpen(tgt)) { fire = true; scale = 2; } // 三体乱纪元 / 堡垒国换班：倾巢而出
   else if (G.midnight) { // 午夜：一半时间围攻最强的国家（不再补刀最弱的，避免躺赢），其余时间各打各的
     fire = true; scale = 2; kind = 'midnight';
-    if (chance(0.5)) tgt = G.nations.filter((x) => x.alive && x !== n).sort((a, b) => threatOf(b, maxPop) - threatOf(a, maxPop))[0] || tgt;
+    if (chance(0.5)) tgt = G.nations.filter((x) => x.alive && !allied(x, n)).sort((a, b) => threatOf(b, maxPop) - threatOf(a, maxPop))[0] || tgt;
   }
   else if (tgt.intelUntil > G.t && D >= 2) { fire = true; scale = D >= 6 ? 2 : 1; } // 情报点名：先下手为强
-  else if (n.pers === 'crazy' && G.t > P.start && chance(0.08 * G.diff.aggro)) { fire = true; scale = rndi(0, 2); tgt = pick(G.nations.filter((x) => x.alive && x !== n)); }
+  else if (n.pers === 'crazy' && G.t > P.start && chance(0.08 * G.diff.aggro)) { fire = true; scale = rndi(0, 2); tgt = pick(G.nations.filter((x) => x.alive && !allied(x, n))); }
   else if (n.pers === 'grudge' && n.lastAttacker >= 0 && G.nations[n.lastAttacker].alive && D >= 2) { fire = chance(0.35); scale = 2; tgt = G.nations[n.lastAttacker]; }
   else if (G.t > P.start && D >= 2 && chance(0.35 * aggro)) { fire = true; scale = D >= 8 || n.race.boss ? 2 : 1; }
 

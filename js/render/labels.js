@@ -184,9 +184,11 @@ Object.assign(Render, {
         color = '#ffd0c4'; blur = 8; shadow = '#ff3020';
       } else if (G.mp && n.isPlayer && n.alive) {
         text = '👤 ' + n.name;
+      } else if (n.alive && allied(n, G.player)) {
+        text = '🤝 ' + n.name; // 队友
       }
       const label = this.labelImage('nation:' + n.id, text, font, color, blur, shadow);
-      const statsText = n.alive ? `👥${fmtPop(totalPop(n))}  ☢${stock(n)}` : '';
+      const statsText = n.alive ? `👥${fmtPop(totalPop(n))}  ${n.mods.swarm ? '🐛' + n.drones : '☢' + stock(n)}` : '';
       const stats = n.alive ? this.labelImage('stats:' + n.id, statsText, sf, tg ? '#ffd0c4' : '#eef3ff', 2, 'rgba(0,0,0,0.9)') : null;
       // 底板：盖住名字、数据和人口条（以下坐标都以国家中心为原点）
       const ny = -26, sy = -9;

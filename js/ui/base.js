@@ -64,12 +64,21 @@ const UI = {
     $('quick').checked = !!Store.get('quick', false);
     $('quick').addEventListener('change', () => Store.set('quick', $('quick').checked));
     this.startSolo = () => {
+      if (this.mode === 'camp') { // 闯关：这一关自己选的国家；第 1 关用分步教学，不再弹零散的新手提示
+        const L = LEVELS[this.levelSel];
+        Store.set('race', this.pickedRace);
+        onStart(this.pickedRace, 0, L.diff, !L.tutorial && $('tutorial').checked, null, { level: L });
+        return;
+      }
+      // 生存模式：随机分配一个国家
       const cnt = Math.max(1, +$('aiCount').value), diff = $('aiDiff').value;
-      Store.set('race', this.pickedRace); Store.set('aiCount', cnt); Store.set('diff', diff);
-      onStart(this.pickedRace, cnt, diff, $('tutorial').checked, null, { survival: $('survival').checked, quick: $('quick').checked });
+      Store.set('aiCount', cnt); Store.set('diff', diff);
+      onStart(RACES[(Math.random() * RACES.length) | 0].id, cnt, diff, $('tutorial').checked, null, { survival: $('survival').checked, quick: $('quick').checked });
     };
     $('startBtn').onclick = () => Lobby.start();
+    $('guideSkip').onclick = () => this.skipGuide();
     Lobby.init();
+    this.initModes();
   },
 
   initDevPanel() {
@@ -382,7 +391,7 @@ const UI = {
   },
 
   tick(dt) {
-    if (G) { this.recordPop(); this.refreshWeather(); }
+    if (G) { this.recordPop(); this.refreshWeather(); this.tickGuide(); }
     if (G && G.crate && G.crate.t0 !== this.crateSeen && !G.over) { // 新的空投：横幅 + 提示音；镜头不动，靠地图上的光柱和波纹找
       this.crateSeen = G.crate.t0;
       this.banner(`📦 空投！点地图上的 ${CRATES[G.crate.kind].icon} 箱子领取`);

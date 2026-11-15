@@ -477,7 +477,7 @@ const Lobby = {
   },
   start() {
     if (Net.role === 'host') { if (Net.canStart()) Net.hostStart(this.tutorial()); }
-    else if (Net.role === 'solo' && UI.pickedRace) UI.startSolo();
+    else if (Net.role === 'solo' && UI.startReady()) UI.startSolo();
   },
   render() {
     if (!$('mpBox')) return;
@@ -493,8 +493,8 @@ const Lobby = {
       if (inRoom) d.classList.toggle('sel', !!mine && mine.race === d.dataset.id);
     });
     if (!inRoom) {
-      btn.textContent = '按下按钮，开始核平';
-      btn.disabled = !UI.pickedRace;
+      btn.textContent = UI.startLabel();
+      btn.disabled = !UI.startReady();
       $('aiCount').disabled = $('aiDiff').disabled = $('survival').disabled = $('quick').disabled = false;
       return;
     }
