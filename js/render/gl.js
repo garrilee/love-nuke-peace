@@ -47,12 +47,15 @@ const Gl = {
       this.initTrails();                                                // 飞弹尾迹
       layer('head', ADD); layer('unit', NORMAL);                        // 弹头光；小摩托、飞机
       gfx('lines', ADD);                                                // 冲击波、锁定圈、曳光弹
-      layer('air', ADD); layer('smoke', NORMAL); layer('glow', ADD);    // 火球和光芒；烟；火星
+      layer('air', ADD);                                                // 火球和光芒
+      this.fb = new P.Container(); this.world.addChild(this.fb);        // 着色器火球（4、5 级核弹）
+      layer('smoke', NORMAL); layer('glow', ADD);                       // 烟；火星
       layer('pillar', ADD);                                             // 东风光柱
       gfx('mark', NORMAL);                                              // 来袭准星、标记波纹、空投光圈、悬停框
       layer('labelAdd', ADD); layer('label', NORMAL); layer('text', NORMAL); // 标牌和文字
       layer('scr', NORMAL, this.screen); layer('scrAdd', ADD, this.screen);  // 屏幕层：暗角、闪光
       this.lines = this.g.lines;
+      this.initPost();
       Render.canvas.after(this.view);
       this.resize();
       this.on = true;
@@ -71,6 +74,7 @@ const Gl = {
     const w = Math.max(1, Render.w), h = Math.max(1, Render.h);
     this.renderer.resolution = Render.dpr;
     this.renderer.resize(w, h);
+    if (this.bloomRT) { this.bloomRT.resize(w, h); this.bloomSpr.width = w; this.bloomSpr.height = h; }
     this.view.style.width = w + 'px'; this.view.style.height = h + 'px';
   },
 
@@ -223,12 +227,101 @@ const Gl = {
     this.trailN++;
   },
 
+  // ---------- 后期效果：泛光、冲击波扭曲、着色器火球 ----------
+  initPost() {
+    const P = window.PIXI, ADD = P.BLEND_MODES.ADD;
+    // 泛光：把高亮的几层（尾迹、弹头、火球、火星、光柱）单独画到一张低分辨率的图上，模糊后加亮叠回画面
+    this.bright = new Set([this.L.head.c, this.L.air.c, this.fb, this.L.glow.c, this.L.pillar.c, this.g.lines]);
+    this.bloomRT = P.RenderTexture.create({ width: Math.max(1, Render.w), height: Math.max(1, Render.h), resolution: 0.3 });
+    this.bloomSpr = new P.Sprite(this.bloomRT);
+    const blur = new P.BlurFilter(9, 3, 0.3); blur.blendMode = ADD;
+    this.bloomSpr.filters = [blur]; this.bloomSpr.alpha = 0.7;
+    this.screen.addChildAt(this.bloomSpr, 0);
+    // 冲击波扭曲：整幅画面过一遍着色器，冲击环扫过的地方像隔着热浪一样被向外推开。最多同时 6 道
+    this.waves = new Float32Array(24); this.waveN = 0;
+    this.shockFilter = new P.Filter(undefined, `
+      precision mediump float;
+      varying vec2 vTextureCoord;
+      uniform sampler2D uSampler; uniform highp vec4 inputSize; uniform highp vec4 outputFrame; // 精度要和顶点着色器里的声明一致
+      uniform vec4 uWaves[6]; // 屏幕坐标 x, y；半径；强度（像素）
+      void main() {
+        vec2 px = vTextureCoord * inputSize.xy + outputFrame.xy, off = vec2(0.0);
+        for (int i = 0; i < 6; i++) {
+          vec4 w = uWaves[i];
+          if (w.z <= 0.0) continue;
+          vec2 d = px - w.xy; d.y /= 0.62;          // 冲击环是压扁的椭圆
+          float dist = length(d), band = w.z * 0.16 + 10.0, t = (dist - w.z) / band;
+          if (abs(t) < 1.0) { float k = 1.0 - t * t; off += normalize(d + 0.0001) * k * k * w.w * (t < 0.0 ? 1.0 : 0.6); }
+        }
+        gl_FragColor = texture2D(uSampler, vTextureCoord - off * inputSize.zw);
+      }`, { uWaves: this.waves });
+    // 着色器火球：一张方片，火焰纹理由噪声实时算出，白热的核心向外变橙红再冷却成暗红
+    this.fbVert = `
+      precision mediump float;
+      attribute vec2 aPos;
+      uniform mat3 projectionMatrix; uniform mat3 translationMatrix;
+      varying vec2 vP;
+      void main() { vP = aPos; gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aPos, 1.0)).xy, 0.0, 1.0); }`;
+    this.fbFrag = `
+      precision mediump float;
+      varying vec2 vP;
+      uniform float uAge; uniform float uTime; uniform float uSeed; uniform float uRainbow;
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+      }
+      float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * noise(p); p = p * 2.03 + 7.1; a *= 0.5; } return v; }
+      void main() {
+        float r = length(vP);
+        if (r > 1.0) discard;
+        // 火焰向外翻滚：噪声沿半径方向流动
+        vec2 q = vP * 2.6 + uSeed;
+        float n = fbm(q - normalize(vP + 0.0001) * uTime * 0.9 + vec2(0.0, -uTime * 0.5));
+        float grow = min(1.0, uAge * 5.0);                       // 开头迅速膨胀
+        float cool = pow(1.0 - uAge, 1.3);                       // 之后慢慢冷却
+        float body = smoothstep(1.0, 0.15, r / (0.35 + 0.65 * grow) + (0.5 - n) * 0.9);
+        float I = body * (0.55 + 1.1 * n) * (0.25 + 1.6 * cool);
+        vec3 c = mix(vec3(0.45, 0.04, 0.0), vec3(1.0, 0.42, 0.08), smoothstep(0.05, 0.45, I));
+        c = mix(c, vec3(1.0, 0.86, 0.45), smoothstep(0.45, 0.85, I));
+        c = mix(c, vec3(1.0), smoothstep(0.85, 1.35, I));
+        if (uRainbow > 0.5) { // 4 级：边缘带一圈流动的彩虹色
+          float h = atan(vP.y, vP.x) / 6.2832 + uTime * 0.25 + n * 0.4;
+          vec3 rb = 0.55 + 0.45 * cos(6.2832 * (h + vec3(0.0, 0.33, 0.67)));
+          c = mix(c, rb, smoothstep(0.35, 0.9, r) * 0.6 * (1.0 - smoothstep(0.85, 1.3, I)));
+        }
+        float a = smoothstep(0.02, 0.3, I) * smoothstep(1.0, 0.8, r) * min(1.0, cool * 3.0);
+        gl_FragColor = vec4(c * a, a);
+      }`;
+    this.fbGeom = new P.Geometry().addAttribute('aPos', [-1, -1, 1, -1, 1, 1, -1, 1], 2).addIndex([0, 1, 2, 0, 2, 3]);
+    this.fbPool = []; this.fbN = 0;
+  },
+  // 一个火球：中心 (x, y)，半径 R，age 0～1，seed 让每个火球纹理不同
+  fireball(x, y, R, age, seed, rainbow) {
+    const P = window.PIXI;
+    let m = this.fbPool[this.fbN];
+    if (!m) {
+      m = new P.Mesh(this.fbGeom, P.Shader.from(this.fbVert, this.fbFrag, { uAge: 0, uTime: 0, uSeed: 0, uRainbow: 0 }));
+      m.blendMode = P.BLEND_MODES.ADD; this.fbPool.push(m); this.fb.addChild(m);
+    }
+    this.fbN++;
+    m.visible = true; m.position.set(x, y); m.scale.set(R, R * 0.86);
+    const u = m.shader.uniforms; u.uAge = age; u.uTime = Render.time; u.uSeed = seed; u.uRainbow = rainbow ? 1 : 0;
+  },
+  // 一道冲击波扭曲：世界坐标 (x, y)，世界半径 rad，强度（屏幕像素）
+  shock(x, y, rad, strength) {
+    if (this.waveN >= 6 || strength < 0.3) return;
+    const i = this.waveN++ * 4, pz = this.world.scale.x;
+    this.waves[i] = this.world.position.x + x * pz; this.waves[i + 1] = this.world.position.y + y * pz;
+    this.waves[i + 2] = Math.max(1, rad * pz); this.waves[i + 3] = strength;
+  },
+
   // ---------- 每帧 ----------
   // 开始一帧：镜头（屏幕坐标 = (世界坐标 − 镜头) × 缩放 + 屏幕中心 + 震动）
   begin(camX, camY, pz, sx, sy) {
     this.world.scale.set(pz);
     this.world.position.set(Render.w / 2 + sx - camX * pz, Render.h / 2 + sy - camY * pz);
-    this.trailN = 0;
+    this.trailN = 0; this.fbN = 0; this.waveN = 0;
     for (const k in this.g) this.g[k].clear();
   },
   end() {
@@ -237,6 +330,23 @@ const Gl = {
     g.getBuffer('aPos').update(); g.getBuffer('aCol').update();
     this.trailMesh.size = this.trailN * (this.NP - 1) * 6;
     this.trailMesh.visible = this.trailN > 0;
+    for (let i = this.fbN; i < this.fbPool.length; i++) this.fbPool[i].visible = false;
+    const fancy = FX.quality > 0.6; // 掉帧降画质时先关掉后期效果
+    // 泛光：只画高亮的几层到低分辨率图上
+    this.bloomSpr.visible = fancy;
+    if (fancy) {
+      const kids = this.world.children;
+      for (const k of kids) { k._keep = k.renderable; k.renderable = k._keep && (k === this.trailMesh || this.bright.has(k)); }
+      this.world.filters = null;
+      this.renderer.render(this.world, { renderTexture: this.bloomRT, clear: true });
+      for (const k of kids) k.renderable = k._keep;
+    }
+    // 冲击波扭曲：有冲击波时整幅画面过一遍着色器
+    if (fancy && this.waveN > 0) {
+      for (let i = this.waveN * 4; i < 24; i++) this.waves[i] = 0;
+      this.world.filterArea = this.renderer.screen;
+      this.world.filters = [this.shockFilter];
+    } else this.world.filters = null;
     this.renderer.render(this.stage);
   },
 };

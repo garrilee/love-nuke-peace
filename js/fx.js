@@ -90,6 +90,7 @@ const FX = {
   reset() { this.drawMs = 0; this.gapMs = this.gapBase; this.cineNext = 0; this.pendHits = []; this.combo = new Map(); this.tracers = []; this.fires = []; this.cine = null; this.midFlash = 0; this.parts = []; this.rings = []; this.balls = []; this.texts = []; this.glows = []; this.columns = []; this.capGlows = []; this.rays = []; this.groundFlash = []; this.flash = this.whiteout = this.shake = this.shakeHold = this.slowmo = this.punch = this.tint = 0; },
 
   MAX_PARTS: 1600, // 粒子上限：超出时先丢掉不重要的小火星（蘑菇云本体不丢）
+  maxParts() { return Gl.on ? 4500 : this.MAX_PARTS; }, // 显卡合批时粒子便宜得多，上限放宽
   // 自动画质：画面掉帧就降一档（粒子、余火变少），有余量再慢慢升回来。
   // 掉帧看两个数：绘制代码本身的耗时 ms，和相邻两帧的真实间隔 gap（显卡出图慢时只有间隔会变长）。
   // gapBase 是这台设备流畅时的帧间隔（60Hz 屏约 16.7 毫秒），间隔比它长三成以上算掉帧
@@ -104,13 +105,13 @@ const FX = {
     if (slow) this.quality = Math.max(0.3, this.quality - 0.02);
     else if (this.drawMs < 7) this.quality = Math.min(1, this.quality + 0.004);
     // 超出当前上限的旧粒子直接丢掉一批（先丢普通粒子，蘑菇云本体留着）
-    const cap = Math.round(this.MAX_PARTS * this.quality);
+    const cap = Math.round(this.maxParts() * this.quality);
     if (this.parts.length > cap * 1.15) { let drop = this.parts.length - cap; this.parts = this.parts.filter((p) => p.fire || p.orbit || drop-- <= 0); }
     const fcap = Math.round(this.MAX_FIRES * this.quality);
     if (this.fires.length > fcap) this.fires.splice(0, this.fires.length - fcap);
   },
   part(o) {
-    if (this.parts.length >= this.MAX_PARTS * this.quality && !o.fire && !o.orbit) return;
+    if (this.parts.length >= this.maxParts() * this.quality && !o.fire && !o.orbit) return;
     this.parts.push(Object.assign({ vx: 0, vy: 0, life: 1, age: 0, size: 4, grow: 0, alpha: 1, add: true, drag: 0, grav: 0, delay: 0, fire: 0 }, o));
   },
   text(x, y, str, color, scale = 1) { this.texts.push({ x, y, str, color, age: 0, life: 1.8, scale }); },
@@ -311,10 +312,10 @@ const FX = {
     if (P.ultimate && this.cine) this.cine.boom = this.cine.age;
 
     // 火球
-    this.balls.push({ x, y, R: R * 0.75, age: 0, life: 2.2 + s * 0.5 });
+    this.balls.push({ x, y, R: R * 0.75, age: 0, life: 2.2 + s * 0.5, lv, seed: Math.random() * 50, rainbow: P.rainbow });
     // 冲击波
     const nRing = lv >= 3 ? 2 : 1;
-    for (let i = 0; i < nRing; i++) this.rings.push({ x, y, R: R * (2.2 + i * 0.9), age: -i * 0.25, life: 1.3 + s * 0.2, w: 2 + s * 1.5, rainbow: P.rainbow });
+    for (let i = 0; i < nRing; i++) this.rings.push({ x, y, R: R * (2.2 + i * 0.9), age: -i * 0.25, life: 1.3 + s * 0.2, w: 2 + s * 1.5, rainbow: P.rainbow, shock: i === 0 ? lv : 0 });
     // 贴地的快速冲击环（更薄更亮）
     this.rings.push({ x, y, R: R * (3.2 + s * 0.3), age: 0, life: 0.9 + s * 0.1, w: 1 + s * 0.6, fast: true });
     // 地面余光
@@ -330,8 +331,28 @@ const FX = {
       const a = (i / 18) * Math.PI * 2;
       this.part({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.2, vx: Math.cos(a) * R * 0.9, vy: Math.sin(a) * R * 0.5, life: 1.6 + s * 0.25, size: R * 0.25, grow: R * 0.25, sprite: this.S.smoke, add: false, alpha: 0.45, drag: 1.4, delay: 0.15 });
     }
+    if (Gl.on && lv >= 4) this.bigBlastExtras(x, y, R, lv, P);
     this.mushroom(x, y, R, s, lv, P);
     if (P.ultimate) this.text(x, y - R * 2.8 - 20, '东风到', '#ffffff', 1.8);
+  },
+
+  // 4、5 级核弹的加料（只在显卡画法下）：大量高速火星、拖着尾巴下落的碎片、贴地向外滚的尘浪
+  bigBlastExtras(x, y, R, lv, P) {
+    const vr = (lo, hi) => lo + Math.random() * (hi - lo), big = lv >= 5;
+    const nSpark = big ? 220 : 120, nDebris = big ? 60 : 34, nDust = big ? 56 : 36;
+    for (let i = 0; i < nSpark; i++) { // 火星：向四面八方高速飞溅，很快减速熄灭
+      const a = vr(0, Math.PI * 2), v = vr(60, 260) * (big ? 1.25 : 1);
+      const spr = P.rainbow ? this.hue[(Math.random() * 12) | 0] : Math.random() < 0.35 ? this.S.warm : this.S.orange;
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.62 - vr(0, 50), life: vr(0.5, 1.5), size: vr(0.8, 2.2), sprite: spr, grav: 30, drag: 2.2 });
+    }
+    for (let i = 0; i < nDebris; i++) { // 碎片：抛得更高，带着火光划弧线落下
+      const a = vr(0, Math.PI * 2), v = vr(50, 150);
+      this.part({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - vr(70, 190), life: vr(1.4, 2.8), size: vr(1.6, 3.2), sprite: Math.random() < 0.5 ? this.S.warm : this.S.orange, grav: 150, drag: 0.5 });
+    }
+    for (let i = 0; i < nDust; i++) { // 尘浪：贴着地面一圈向外滚，越滚越大越淡
+      const a = (i / nDust) * Math.PI * 2 + vr(-0.06, 0.06), v = R * vr(1.5, 2.3);
+      this.part({ x: x + Math.cos(a) * R * 0.5, y: y + Math.sin(a) * R * 0.31, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.62, life: vr(1.6, 2.6), size: R * 0.22, grow: R * 0.42, sprite: this.S.dust, add: false, alpha: 0.34, drag: 1.3, delay: vr(0, 0.12) });
+    }
   },
 
   // 增强版蘑菇云：火柱 → 翻滚的云帽（内部火光）→ 冷凝裙边 → 逐渐冷却成烟
@@ -773,6 +794,7 @@ const FX = {
       else if (r.fast) { col = 0xfff0d2; a = (1 - k) * 0.9; }
       g.lineStyle(r.w * (1 - k) + 0.5, col, a);
       g.drawEllipse(r.x, r.y, rad, rad * 0.62);
+      if (r.shock >= 3) Gl.shock(r.x, r.y, rad, (1 - k) * (r.shock >= 5 ? 26 : r.shock >= 4 ? 16 : 8)); // 3 级以上：冲击波扫过时扭曲画面
       if (!r.fast) { // 冲击波内侧的光晕带
         g.lineStyle(r.w * 4 * (1 - k), 0xffc88c, (1 - k) * 0.12);
         g.drawEllipse(r.x, r.y, rad * 0.97, rad * 0.6);
@@ -798,6 +820,12 @@ const FX = {
       const k = b.age / b.life, grow = Math.min(1, b.age / 0.5);
       const R = b.R * (0.3 + 0.7 * grow);
       if (!Render.visibleRect(b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2)) continue;
+      if (b.lv >= 4) { // 4、5 级：着色器火球，外面垫一层柔光
+        A.img(orange, b.x - R * 2.2, b.y - R * 1.9, R * 4.4, R * 3.8, Math.pow(1 - k, 1.5) * 0.55);
+        Gl.fireball(b.x, b.y - R * 0.15, b.R * (b.lv >= 5 ? 2.3 : 1.9), k, b.seed, b.rainbow);
+        if (k < 0.12) A.img(white, b.x - R * 1.2, b.y - R * 1.2, R * 2.4, R * 2.4, 1 - k / 0.12);
+        continue;
+      }
       A.img(orange, b.x - R * 1.8, b.y - R * 1.6, R * 3.6, R * 3.2, Math.pow(1 - k, 1.5));
       A.img(warm, b.x - R, b.y - R, R * 2, R * 2, Math.pow(1 - k, 3));
       if (k < 0.25) A.img(white, b.x - R * 0.7, b.y - R * 0.7, R * 1.4, R * 1.4, 1 - k * 4);
