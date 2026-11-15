@@ -526,6 +526,7 @@ body.compact #popChart { height: 150px; }
 
 /* 本国信息：大徽章 + 名字，人口右对齐 */
 .me-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px !important; }
+#meIcon { display: contents; }
 .me-head .ricon { width: 34px; height: 34px; vertical-align: 0; }
 .me-name { font-size: 17px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .me-pop { margin-left: auto; font-size: 17px; font-weight: 700; color: var(--gold); white-space: nowrap; }

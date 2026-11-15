@@ -149,6 +149,11 @@ const UI = {
     $('hud').classList.remove('hidden');
     this.tickerItems = [];
     this.initRank();
+    this.techNodes = [...$('research').querySelectorAll('[data-tech]')];
+    $('research').onclick = (e) => {
+      const b = e.target.closest('.rt-btn');
+      if (b) { Act.do({ a: 'research', id: b.dataset.id }); SFX.click && SFX.click(); }
+    };
     // 速度
     document.querySelectorAll('#speed button').forEach((b) => {
       b.onclick = () => { setSpeed(+b.dataset.speed); SFX.click(); };
@@ -246,26 +251,22 @@ const UI = {
     const p = G.player, box = $('research');
     if (!box) return;
     const opts = availTechs(p), choosing = !p.research && opts.length > 1;
-    const node = (id, label) => `<span class="rt-n${has(p, id) ? ' done' : ''}${p.research === id ? ' cur' : ''}">${label}</span>`;
-    const fork = `<span class="rt-fork">${node('lv4', '闪送')}<i>/</i>${node('net', '拦截网')}</span>`;
-    const fork2 = `<span class="rt-fork">${node('mirv', '分导东风')}<i>/</i>${node('aegis', '全域护盾')}</span>`;
-    const path = [node('pad', '投送站'), node('lv3', '当日达'), node('multi', '分装'), fork, node('lv5', '东风'), fork2].join('<b class="rt-ar">›</b>');
+    for (const el of this.techNodes) {
+      el.classList.toggle('done', has(p, el.dataset.tech));
+      el.classList.toggle('cur', p.research === el.dataset.tech);
+    }
     const cur = curTech(p);
-    let body;
+    $('researchPick').classList.toggle('hidden', !choosing);
+    $('researchCurrent').classList.toggle('hidden', choosing || !cur);
+    $('researchDone').classList.toggle('hidden', choosing || !!cur);
     if (choosing) {
       const left = Math.max(0, Math.ceil(TECH_PICK_WAIT - (G.t - p.choiceSince)));
-      body = `<div class="rt-pick"><div class="rt-q">选择第 4 级路线（${left} 秒后按核武/三防分配自动选）</div>
-        <button class="rt-btn atk" data-id="lv4">☢ 闪送<small>主攻 · 4 级包裹</small></button>
-        <button class="rt-btn def" data-id="net">🛡 拦截网<small>主防 · 6 发 75%</small></button></div>`;
+      setText($('researchQuestion'), `选择第 4 级路线（${left} 秒后按核武/三防分配自动选）`);
     } else if (cur) {
-      const k = clamp(p.techPts / cur.cost, 0, 1);
-      body = `<div class="rt-cur">🔬 ${cur.name}<span class="mono">${Math.floor(Math.min(p.techPts, cur.cost))}/${cur.cost}</span></div><div class="bar rt-bar"><i style="width:${Math.round(k * 100)}%"></i></div>`;
-    } else body = '<div class="rt-cur dim">✅ 研发全部完成 · 科技分配转为能量</div>';
-    const key = path + body;
-    if (box._k === key) return;
-    box._k = key;
-    setHTML(box, `<div class="rt-path">${path}</div>${body}`);
-    for (const b of box.querySelectorAll('.rt-btn')) b.onclick = () => { Act.do({ a: 'research', id: b.dataset.id }); SFX.click && SFX.click(); };
+      setText($('researchName'), `🔬 ${cur.name}`);
+      setText($('researchPoints'), `${Math.floor(Math.min(p.techPts, cur.cost))}/${cur.cost}`);
+      setStyle($('researchBar'), 'width', Math.round(clamp(p.techPts / cur.cost, 0, 1) * 100) + '%');
+    }
   },
   // 当前生效的倍率：让隐藏机制看得见
   modChips(p) {
@@ -300,10 +301,11 @@ const UI = {
     document.querySelectorAll('#speed button').forEach((b) => b.classList.toggle('on', +b.dataset.speed === G.speed));
 
     // 我方数据
-    setHTML($('stats'), `
-      <div class="me-head">${raceIcon(p.race.id, 34)}<b class="me-name">${p.name}</b><span class="me-pop mono">👥 ${fmtPop(totalPop(p))}</span></div>
-      <div class="mods">${this.modChips(p)}</div>
-      <div class="me-res"><span>💰 预算 <b class="mono">${Math.floor(p.bank)}</b></span><span>⚡ 能量 <b class="mono">${Math.floor(p.energy)}</b><small>/${CFG.ENERGY_CAP}</small></span></div>`);
+    setHTML($('meIcon'), raceIcon(p.race.id, 34));
+    setText($('meName'), p.name); setText($('mePop'), `👥 ${fmtPop(totalPop(p))}`);
+    setHTML($('meMods'), this.modChips(p));
+    setText($('meBank'), Math.floor(p.bank)); setText($('meEnergy'), Math.floor(p.energy));
+    setText($('meEnergyCap'), `/${CFG.ENERGY_CAP}`);
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
     setText($('energyTxt'), this.mobile() ? `⚡${Math.floor(p.energy)}　🎯${Math.floor(p.netE)}` : `护盾 ⚡${Math.floor(p.energy)}/${CFG.ENERGY_CAP}　拦截 🎯${Math.floor(p.netE)}/${CFG.NET_E_CAP}`);

@@ -106,7 +106,8 @@ function frameBody(ts) {
     UI.tick(real);
   }
   // 高刷新率屏幕（120/144Hz）上把绘制限制在约 60 帧；结算画面盖住地图时不画
-  if (ts - lastDraw >= 13 && !(G && G.over && !$('end').classList.contains('hidden'))) {
+  // Presentation can stop independently of the multiplayer host worker.
+  if (running && G && !document.hidden && ts - lastDraw >= 13 && !(G.over && !$('end').classList.contains('hidden'))) {
     const t0 = performance.now();
     Render.draw((ts - lastDraw) / 1000 > 0.1 ? real : Math.min(0.1, (ts - lastDraw) / 1000));
     FX.tuneQuality(performance.now() - t0, ts - lastDraw);

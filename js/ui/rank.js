@@ -6,6 +6,8 @@ Object.assign(UI, {
   initRank() {
     const box = $('rank');
     this.rankPrev = {}; this.rankMove = {};
+    this.rankRows = new Map();
+    $('rankList').replaceChildren();
     // 电脑：放进左栏（替代原来的「世界各国」）；手机：浮在地图右上角，默认收起
     const docked = !this.mobile();
     if (docked) $('leftcol').appendChild(box); else $('hud').appendChild(box);
@@ -45,20 +47,47 @@ Object.assign(UI, {
       if (prev !== undefined && prev !== i) this.rankMove[n.id] = { up: i < prev, until: now + 4 };
       this.rankPrev[n.id] = i;
     });
-    const row = (n, i) => {
-      const pop = totalPop(n), mv = this.rankMove[n.id], arrow = mv && mv.until > now ? (mv.up ? '<i class="up">▲</i>' : '<i class="down">▼</i>') : '';
-      let extra = '';
-      if (n.race.boss && n.alive) {
-        if (isChaos(n)) extra = `<div class="rk-x chaos">🌪 乱纪元中 · ${Math.ceil(n.chaosT)} 秒</div>`;
-        else if (n.chaosNext <= 30) extra = `<div class="rk-x">🌪 ${Math.ceil(n.chaosNext)} 秒后乱纪元</div>`;
+    const list = $('rankList'), ordered = [...alive, ...dead], keep = new Set();
+    for (let i = 0; i < ordered.length; i++) {
+      const n = ordered[i]; keep.add(n.id);
+      let row = this.rankRows.get(n.id);
+      if (!row) {
+        const el = $('rankRowTemplate').content.firstElementChild.cloneNode(true);
+        const get = (selector) => el.querySelector(selector);
+        row = { el, index: get('.rk-i'), icon: get('[data-rank="icon"]'), name: get('[data-rank="name"]'),
+          move: get('[data-rank="move"]'), pop: get('.rk-p'), stock: get('.rk-k'), bar: get('.rk-bar i'),
+          sub: get('.rk-sub'), tech: get('[data-rank="tech"]'), anger: get('.rk-ang'), angerBar: get('.rk-ang i'),
+          attacked: get('.rk-atk'), extra: get('.rk-x') };
+        el.dataset.id = n.id; this.rankRows.set(n.id, row);
       }
-      const sub = n.alive && n !== me && box.classList.contains('docked')
-        ? `<div class="rk-sub">🔬 ${n.techIdx}/${TECHS.length}${G.mp && n.isPlayer ? ' · 真人玩家' : `<span class="rk-ang" title="对你的怒气"><i style="width:${Math.round(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 100)}%"></i></span>`}${recentAttacker(n) ? '<b class="rk-atk">⚔ 打过你</b>' : ''}</div>` : '';
-      return `<div class="rk-row${n === me ? ' me' : ''}${G.target === n.id ? ' sel' : ''}${n.alive ? '' : ' dead'}${n.race.boss ? ' boss' : ''}" data-id="${n.id}" style="--c:${n.color}">
-        <span class="rk-i">${n.alive ? i + 1 : '💀'}</span><span class="rk-n">${raceIcon(n.race.id, 16)} ${n.name}${arrow}</span>
-        <span class="rk-p mono">${n.alive ? fmtPop(pop) : ''}</span><span class="rk-k mono">${n.alive ? '☢' + stock(n) : ''}</span>
-        <div class="rk-bar"><i style="width:${n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0}%"></i></div>${sub}${extra}</div>`;
-    };
-    setHTML($('rankList'), alive.map(row).join('') + dead.map((n) => row(n, -1)).join(''));
+      const pop = totalPop(n), mv = this.rankMove[n.id], moving = mv && mv.until > now;
+      const cls = `rk-row${n === me ? ' me' : ''}${G.target === n.id ? ' sel' : ''}${n.alive ? '' : ' dead'}${n.race.boss ? ' boss' : ''}`;
+      if (row.el.className !== cls) row.el.className = cls;
+      if (row.color !== n.color) { row.el.style.setProperty('--c', n.color); row.color = n.color; }
+      setText(row.index, n.alive ? i + 1 : '💀');
+      setHTML(row.icon, raceIcon(n.race.id, 16)); setText(row.name, n.name);
+      setText(row.move, moving ? (mv.up ? '▲' : '▼') : '');
+      row.move.classList.toggle('up', !!moving && mv.up); row.move.classList.toggle('down', !!moving && !mv.up);
+      row.move.classList.toggle('hidden', !moving);
+      setText(row.pop, n.alive ? fmtPop(pop) : ''); setText(row.stock, n.alive ? '☢' + stock(n) : '');
+      setStyle(row.bar, 'width', (n.alive ? Math.max(2, Math.round(pop / maxPop * 100)) : 0) + '%');
+      const sub = n.alive && n !== me && box.classList.contains('docked'), human = G.mp && n.isPlayer;
+      row.sub.classList.toggle('hidden', !sub);
+      if (sub) {
+        setText(row.tech, `🔬 ${n.techIdx}/${TECHS.length}${human ? ' · 真人玩家' : ''}`);
+        row.anger.classList.toggle('hidden', !!human);
+        if (!human) setStyle(row.angerBar, 'width', Math.round(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 100) + '%');
+        row.attacked.classList.toggle('hidden', !recentAttacker(n));
+      }
+      const chaos = n.race.boss && n.alive && isChaos(n);
+      const extra = n.race.boss && n.alive ? (chaos ? `🌪 乱纪元中 · ${Math.ceil(n.chaosT)} 秒` :
+        n.chaosNext <= 30 ? `🌪 ${Math.ceil(n.chaosNext)} 秒后乱纪元` : '') : '';
+      row.extra.classList.toggle('hidden', !extra); row.extra.classList.toggle('chaos', !!chaos); setText(row.extra, extra);
+      // Keep identities (and CSS transitions) stable, moving only rows whose rank changed.
+      if (list.children[i] !== row.el) list.insertBefore(row.el, list.children[i] || null);
+    }
+    for (const [id, row] of this.rankRows) {
+      if (!keep.has(id)) { row.el.remove(); this.rankRows.delete(id); }
+    }
   },
 });
