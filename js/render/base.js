@@ -357,6 +357,7 @@ const Render = {
     FX.drawCinePillar(ctx, z);
     this.drawLabels(ctx, z);
     this.drawMarkers(ctx, z, T);
+    this.drawChaosBadge(ctx, z);
     this.drawCrate(ctx, z, T);
     FX.drawTexts(ctx, z);
     FX.drawCombos(ctx, z);

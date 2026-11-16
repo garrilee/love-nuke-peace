@@ -45,6 +45,7 @@ Object.assign(Render, {
     FX.glCinePillar(z);
     this.drawLabels(null, z);
     this.drawMarkers(null, z, T);
+    this.drawChaosBadge(null, z);
     this.glCrate(z, T);
     FX.glTexts(z);
     FX.glCombos(z);

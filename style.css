@@ -165,8 +165,6 @@ button { touch-action: manipulation; }
 .skill.cd .cdbar { background: #7f93aa; box-shadow: none; }
 .skill.poor .st { color: #ff9a8a; }
 .skill.poor .cdbar { background: #ffb35a; box-shadow: none; }
-#sk-net.active { background: rgba(255, 210, 100, 0.25); border-color: #ffd27a; box-shadow: 0 0 18px rgba(255, 210, 100, 0.5); }
-#sk-net.active .cdbar { background: #ffd27a; }
 
 /* 开关 */
 .toggles { display: flex; gap: 14px; margin: 10px 0 6px; }
@@ -229,8 +227,8 @@ button { touch-action: manipulation; }
 .heatrow .small { color: var(--gold); white-space: nowrap; }
 
 /* ===== 国家大招 ===== */
-#sk-ult { grid-column: 1 / -1; order: 3; height: 50px; flex-direction: row; justify-content: flex-start; gap: 10px; padding-left: 14px; }
-#sk-ult .ulttxt { display: flex; flex-direction: column; align-items: flex-start; }
+#sk-ult .ulttxt { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+#sk-ult .ic { font-size: 20px; }
 #sk-ult.ready { border-color: #ffd27a; background: rgba(255, 190, 80, 0.16); animation: ultGlow 1.6s ease-in-out infinite alternate; }
 #sk-ult.ready .st { color: var(--gold); }
 #sk-ult.active { background: rgba(255, 190, 80, 0.32); border-color: #ffe2a0; box-shadow: 0 0 18px rgba(255, 200, 100, 0.6); }
@@ -304,7 +302,6 @@ body.compact .skill { height: 48px; padding: 2px; }
 body.compact .skill .ic { font-size: 16px; }
 body.compact .skill .nm { font-size: 11px; }
 body.compact .skill .st { font-size: 9px; }
-body.compact #sk-ult { height: 40px; gap: 6px; padding-left: 8px; }
 body.compact .toggles { gap: 8px; margin: 5px 0 0; flex-wrap: wrap; }
 body.compact .switch { font-size: 10px; gap: 4px; }
 body.compact .switch .knob { width: 24px; height: 13px; }
@@ -580,7 +577,7 @@ body.portrait .fire .fic svg.msl { width: 28px; height: 28px; }
 body.portrait #skills { flex: 1; padding: 5px 6px 7px; display: flex; flex-direction: column; }
 body.portrait #skills .phead .sect-title { display: none; }
 body.portrait #skills .phead { justify-content: flex-end; min-height: 26px; align-items: center; }
-body.portrait .skillgrid { flex: 1; grid-template-rows: 1fr 1fr; margin-top: 3px; }
+body.portrait .skillgrid { flex: 1; grid-template-rows: 1fr; margin-top: 3px; }
 body.portrait .skill { height: auto; min-height: 40px; }
 body.portrait #skills .toggles, body.portrait #rebuildStatus { display: none; }
 /* 自动拦截 / 自动重建开关：手机上放进 📊 抽屉 */
@@ -645,3 +642,29 @@ body.portrait #guide { top: 52px; font-size: 13px; padding: 8px 10px; }
 .endbtns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 #nextBtn, #retryBtn { font-size: 18px; padding: 10px 28px; margin-top: 8px; letter-spacing: 3px; font-weight: 900; border-radius: 8px; cursor: pointer; background: linear-gradient(180deg, #ff7a3a, #c8321a); color: #fff; border: 1px solid #ffb38a; }
 #retryBtn.ghost { font-size: 15px; padding: 10px 20px; letter-spacing: 1px; font-weight: 600; background: transparent; border: 1px solid #5a6a80; color: #b8c6d8; }
+
+/* ---------- 电脑上屏幕不够高时：右侧操作栏（打击、防御、国力分配）收紧，不用滚动就能全部显示 ---------- */
+@media (max-height: 900px) {
+  body:not(.compact) .sidecol { gap: 6px; }
+  body:not(.compact) .sidecol > .panel { padding: 7px 10px; }
+  body:not(.compact) .targetbtn { flex-direction: row; align-items: center; gap: 8px; padding: 6px 10px; margin-top: 4px; }
+  body:not(.compact) .targetbtn .tname { font-size: 14px; }
+  body:not(.compact) .firerow { grid-template-columns: 1fr 64px 48px; margin-top: 6px; }
+  body:not(.compact) .fire { height: 48px; }
+  body:not(.compact) .fire .fic { font-size: 22px; }
+  body:not(.compact) .fire .fic svg.paper { width: 24px; height: 24px; }
+  body:not(.compact) .fire .fic svg.msl { width: 26px; height: 26px; }
+  body:not(.compact) .ammoinfo .stock { font-size: 22px; }
+  body:not(.compact) .lvl { height: 32px; }
+  body:not(.compact) #strikeTarget.status { display: none; }
+  body:not(.compact) .skill { height: 56px; }
+  body:not(.compact) .skill .ic, body:not(.compact) #sk-ult .ic { font-size: 17px; }
+  body:not(.compact) #alloc label { margin-top: 2px; }
+  body:not(.compact) #alloc .raterow { margin: -5px 0 0; }
+  body:not(.compact) #alloc .rate { font-size: 11px; }
+}
+@media (max-height: 760px) {
+  body:not(.compact) .ammoinfo .sub, body:not(.compact) #rebuildStatus { display: none; }
+  body:not(.compact) .fire { height: 44px; } body:not(.compact) .firerow { grid-template-columns: 1fr 60px 44px; }
+  body:not(.compact) .skill { height: 50px; }
+}

@@ -269,7 +269,6 @@ function setupInput() {
     }
     else if (k === 'b') Act.do({ a: 'shield' });
     else if (k === 'q') playerUlt();
-    else if (k === 'n') Act.do({ a: 'net' });
     else if (k === '=' || k === '+') setSpeed(Math.min(3, Math.floor(G.speed) + 1));
     else if (k === '-') setSpeed(Math.max(G.mp ? 1 : 0, Math.ceil(G.speed) - 1));
   });

@@ -159,6 +159,34 @@ Object.assign(Render, {
     const t = G.world.tiles[c.tile], r = 28 / Math.max(0.7, this.cam.zoom);
     return Math.hypot(wx - t.x, wy - (t.y - 6)) < r;
   },
+  // 乱纪元标识：三体人国土上方的大字倒计时 + 剩余时间条；进入前的预警期先显示「N 秒后乱纪元」
+  chaosBadge(z) {
+    const b = G.boss;
+    if (!b || !b.alive) return null;
+    const c = this.nationCenters[b.id];
+    if (!c) return null;
+    const on = isChaos(b);
+    if (!on && !(b.chaosNext > 0 && b.chaosNext <= BOSS_CFG.chaosWarn * tScale())) return null;
+    const k = 1 / Math.max(0.7, z);
+    const text = on ? `🌪 乱纪元 · 剩 ${Math.ceil(b.chaosT)} 秒` : `🌪 ${Math.ceil(b.chaosNext)} 秒后乱纪元`;
+    const font = `900 ${Math.round((on ? 28 : 18) * k)}px "Microsoft YaHei", sans-serif`;
+    const label = this.labelImage('chaosBadge', text, font, on ? '#fff1d6' : '#ffd9a8', on ? 8 : 5, on ? 'rgba(255,80,10,0.95)' : 'rgba(0,0,0,0.9)');
+    return { label, x: c.x, y: c.y - 70 * k, on, k, frac: on ? clamp(b.chaosT / BOSS_CFG.chaosDur, 0, 1) : 0, a: on ? 0.8 + 0.2 * Math.sin(this.time * 10) : 0.9 };
+  },
+  drawChaosBadge(ctx, z) {
+    const B = this.chaosBadge(z);
+    if (!B) return;
+    this.blit(ctx, B.label, B.x, B.y, B.a);
+    if (!B.on) return;
+    const w = 170 * B.k, h = 8 * B.k, x = B.x - w / 2, y = B.y + 10 * B.k;
+    if (ctx) {
+      ctx.fillStyle = 'rgba(0,0,0,0.65)'; ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+      ctx.fillStyle = '#ff7a2a'; ctx.fillRect(x, y, w * B.frac, h);
+    } else {
+      Gl.L.label.rect(x - 1, y - 1, w + 2, h + 2, 0x000000, 0.65);
+      Gl.L.label.rect(x, y, w * B.frac, h, 0xff7a2a, 1);
+    }
+  },
   // 乱纪元：三体人国土忽明忽暗的橙红色闪烁
   drawChaos(ctx, z, T) {
     const b = G.boss;

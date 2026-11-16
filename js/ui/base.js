@@ -179,7 +179,6 @@ const UI = {
     this.syncSliders();
     // 技能
     $('sk-shield').onclick = () => Act.do({ a: 'shield' });
-    $('sk-net').onclick = () => Act.do({ a: 'net' });
     const U = G.player.race.ult;
     $('ic-ult').textContent = U.icon; $('nm-ult').textContent = U.name;
     $('sk-ult').title = `国家大招 (Q)：${U.name}。${U.desc}。冷却 ${U.cd} 秒，开局 ${ULT_FIRST} 秒后可用。`;
@@ -188,8 +187,6 @@ const UI = {
     this.tipQueue = []; this.tipSeen = new Set(); this.tipCd = {}; this.tipCur = null; this.tipCheckT = 0;
     $('tip').classList.add('hidden'); $('countdown').classList.add('hidden');
     document.body.classList.remove('midnight');
-    $('sk-autonet').checked = true;
-    $('sk-autonet').onchange = (e) => Act.do({ a: 'toggle', k: 'autoNet', v: e.target.checked });
     // 打击：选目标 + 三行武器（档位键 + 单击发射）
     $('pickTarget').onclick = () => this.openChooser();
     this.popId = -1; $('mapPop').classList.add('hidden');
@@ -318,7 +315,7 @@ const UI = {
 
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
     setText($('energyTxt'), this.mobile() ? `⚡${Math.floor(p.energy)}　🎯${Math.floor(p.netE)}` : `护盾 ⚡${Math.floor(p.energy)}/${CFG.ENERGY_CAP}　拦截 🎯${Math.floor(p.netE)}/${CFG.NET_E_CAP}`);
-    if (p.hackT > 0) { this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); this.skillCard('net', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0); }
+    if (p.hackT > 0) this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0);
     else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / shieldDur(p));
     else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
     else if (p.energy < COSTS.shield) {
@@ -326,16 +323,6 @@ const UI = {
       this.skillCard('shield', eRate > 0 ? `⚡ ${Math.ceil((COSTS.shield - p.energy) / eRate)} 秒后可用` : `需 ⚡${COSTS.shield}`, 'poor', p.energy / COSTS.shield);
     }
     else this.skillCard('shield', `就绪 · ⚡${COSTS.shield}`, 'ready', 1);
-    const netOn = p.netT > 0 && p.netCharges > 0;
-    if (p.hackT > 0) { /* 断网：上面已经处理 */ }
-    else if (netOn) this.skillCard('net', `锁定中 · 剩 ${p.netCharges} 发`, 'active', p.netCharges / netMax(p));
-    else if (p.netCd > 0) this.skillCard('net', `冷却 ${p.netCd.toFixed(0)}s`, 'cd', 1 - p.netCd / SKILLS.net.cd);
-    else if (weatherIs('storm')) this.skillCard('net', '🌞 风暴中', 'poor', 0);
-    else if (p.netE < COSTS.net) {
-      const nRate = production(p) * p.alloc.def * CFG.NET_E_SHARE * (G.quick ? QUICK.energy : 1) + CFG.NET_E_BASE * (G.midnight ? 2 : 1);
-      this.skillCard('net', nRate > 0 ? `🎯 ${Math.ceil((COSTS.net - p.netE) / nRate)} 秒后可用` : `需 🎯${COSTS.net}`, 'poor', p.netE / COSTS.net);
-    }
-    else this.skillCard('net', `就绪 · ${netMax(p)} 发 · ${Math.round(netChance(p) * 100)}%`, 'ready', 1);
     // 国家大招
     const U = p.race.ult, buffT = p.overtimeT || p.harpoonT;
     if (buffT > 0) this.skillCard('ult', `生效中 ${buffT.toFixed(0)}s`, 'active', buffT / U.dur);
