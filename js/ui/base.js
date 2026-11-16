@@ -33,17 +33,16 @@ const UI = {
 
   initStart(onStart) {
     this.initDevPanel();
+    // 选国家：左边一列国家（图标 + 名字），右边是选中国家的说明，换一个国家说明跟着变
     const box = $('races');
-    box.innerHTML = '';
+    box.innerHTML = '<div id="raceList"></div><div id="raceInfo"></div>';
+    const list = $('raceList');
     for (const r of RACES) {
-      const d = document.createElement('div');
+      const d = document.createElement('button');
       d.className = 'race';
       d.dataset.id = r.id;
       d.style.setProperty('--c', r.color);
-      const cd = RACE_CARD[r.id];
-      d.innerHTML = `<div class="emo">${raceIcon(r.id, 48)}</div><div class="rn">${r.name}</div>
-        ${cd.plus.map((t) => `<div class="rp">＋ ${t}</div>`).join('')}${cd.minus.map((t) => `<div class="rm">－ ${t}</div>`).join('')}
-        <div class="ru">${r.ult.icon} ${r.ult.name}：${cd.ult}</div>`;
+      d.innerHTML = `<span class="emo">${raceIcon(r.id, 34)}</span><span class="rn">${r.name}</span>`;
       if (Store.get('race') === r.id) { this.pickedRace = r.id; d.classList.add('sel'); $('startBtn').disabled = false; }
       d.onclick = () => {
         if (d.classList.contains('taken')) return;
@@ -51,11 +50,13 @@ const UI = {
         box.querySelectorAll('.race').forEach((x) => x.classList.remove('sel'));
         d.classList.add('sel');
         $('startBtn').disabled = false;
+        this.showRace(r.id);
         Lobby.pick(r.id);
         Lobby.render();
       };
-      box.appendChild(d);
+      list.appendChild(d);
     }
+    this.shownRace = -1; this.showRace(this.pickedRace || null);
     $('aiCount').value = String(Store.get('aiCount', 3));
     $('aiDiff').value = Store.get('diff', 'normal');
     $('tutorial').checked = !Store.get('tutorialDone', false);
@@ -81,6 +82,18 @@ const UI = {
     this.initModes();
   },
 
+  // 开始页右侧：选中国家的特性和大招说明
+  showRace(id) {
+    const el = $('raceInfo'), r = RACES.find((x) => x.id === id);
+    if (!el || this.shownRace === id) return;
+    this.shownRace = id;
+    if (!r) { el.innerHTML = '<div class="ri-empty">← 从左边选一个国家，这里会显示它的特性和大招</div>'; el.style.removeProperty('--c'); return; }
+    const cd = RACE_CARD[r.id];
+    el.style.setProperty('--c', r.color);
+    el.innerHTML = `<div class="ri-head"><span class="ri-icon">${raceIcon(r.id, 64)}</span><div><div class="ri-name">${r.name}</div><div class="ri-trait">${r.trait.split('：')[0]}</div></div></div>
+      <div class="ri-list">${cd.plus.map((t) => `<div class="rp">＋ ${t}</div>`).join('')}${cd.minus.map((t) => `<div class="rm">－ ${t}</div>`).join('') || `<div class="ri-dim">－ ${r.weak}</div>`}</div>
+      <div class="ri-ult"><b>${r.ult.icon} 大招 · ${r.ult.name}</b><span>${r.ult.desc}</span><i>冷却 ${r.ult.cd} 秒，开局 ${ULT_FIRST} 秒后可用</i></div>`;
+  },
   initDevPanel() {
     const panel = $('devPanel'), handle = $('devHandle'), toggle = $('devToggle'), lights = $('devHideLights');
     let drag = null;

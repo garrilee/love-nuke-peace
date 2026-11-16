@@ -492,6 +492,7 @@ const Lobby = {
       d.classList.remove('taken');
       if (inRoom) d.classList.toggle('sel', !!mine && mine.race === d.dataset.id);
     });
+    if (inRoom) UI.showRace(mine && mine.race ? mine.race : null); // 联机：右侧说明跟着房主分配的国家走
     if (!inRoom) {
       btn.textContent = UI.startLabel();
       btn.disabled = !UI.startReady();
