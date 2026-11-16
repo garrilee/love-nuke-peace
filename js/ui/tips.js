@@ -35,7 +35,7 @@ Object.assign(UI, {
     // 生存模式：三体人的规则（不受新手提示开关影响，每局提示一次）
     const b = G.boss;
     if (b && b.alive && b !== p) {
-      if (t > 5) this.tip('boss', `👽 <b>三体人</b>降临：它平时很硬（伤害打 ${Math.round(b.mods.armor * 10)} 折），还会放<b>降维打击</b>。它的弱点是<b>乱纪元</b>：那 ${Math.round(BOSS_CFG.chaosDur * tScale())} 秒里它停产、没有护盾和拦截、受伤 ×${BOSS_CFG.chaosDmg}。平时攒核弹，乱纪元一起发射。`, { life: 11 });
+      if (t > 5) this.tip('boss', `👽 <b>三体人</b>降临：它平时很硬（伤害打 ${Math.round(b.mods.armor * 10)} 折），还会放<b>降维打击</b>。它的弱点是<b>乱纪元</b>：那 ${BOSS_CFG.chaosDur} 秒里它停产、没有护盾和拦截、受伤 ×${BOSS_CFG.chaosDmg}。平时攒核弹，乱纪元一起发射。`, { life: 11 });
       if (!isChaos(b) && b.chaosNext <= BOSS_CFG.chaosWarn * tScale() + 2) this.tip('chaosSoon', '🌪 三体即将进入<b>乱纪元</b>：把目标切到三体人，准备把库存一次打光！', { cd: 60, life: 6 });
       const dim = (G.dims || []).find((d) => d.tgt === p.id && dimRadius(d) < 0);
       if (dim) this.tip('dimWarn', '🌀 <b>降维打击</b>锁定了你：红圈里的城市会被直接抹掉，外圈按距离受损。开<b>护盾</b>能让外圈损失减半；60 秒后才能重建核心区。', { cd: 60, life: 8 });

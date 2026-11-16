@@ -78,7 +78,7 @@ function stepBoss(n, dt) {
     return;
   }
   n.chaosNext -= dt;
-  const warn = Math.round(BOSS_CFG.chaosWarn * tScale()), dur = Math.round(BOSS_CFG.chaosDur * tScale()); // 快速局：预警和持续时间也减半
+  const warn = Math.round(BOSS_CFG.chaosWarn * tScale()), dur = BOSS_CFG.chaosDur; // 快速局：预警减半；持续时间不减（本来就只有 12 秒，再减就打不到了）
   if (!n.chaosWarned && n.chaosNext <= warn) {
     n.chaosWarned = true;
     Bus.emit('banner', `🌪 ${warn} 秒后三体进入乱纪元：准备集中火力！`);
@@ -92,18 +92,33 @@ function stepBoss(n, dt) {
 }
 
 // ---------- 降维打击：预警后从中心向外展开，核心区全灭，外延区按距离衰减 ----------
-// 选落点：目标国人口最密集的位置（以每座城市为候选中心，统计核心区内的人口）
-function dimCenter(tgt) {
-  let best = null, bs = -1;
+// 这个落点会让目标国损失多少人口（按核心区全灭、外延区按距离衰减估算，不算护盾）
+function dimLoss(tgt, center) {
+  const B = BOSS_CFG;
+  let loss = 0;
   for (const c of tgt.cities) {
-    let s = 0;
-    for (const c2 of tgt.cities) {
-      const d = hexDist(c.tile, c2.tile);
-      if (d <= BOSS_CFG.dimOuter) s += c2.pop * (d <= BOSS_CFG.dimCore ? 1 : 0.4);
-    }
-    if (s > bs) { bs = s; best = c.tile; }
+    const d = hexDist(center, c.tile);
+    if (d <= B.dimCore) loss += c.pop;
+    else if (d <= B.dimOuter) loss += c.pop * lerp(B.outerLoss[0], B.outerLoss[1], (d - B.dimCore) / (B.dimOuter - B.dimCore));
   }
-  return best;
+  return loss;
+}
+// 选落点：打偏一些，重创但不灭国。在目标国周围找一个预计损失落在 dimLoss 范围内（约四到六成人口）的位置，
+// 而且打完之后剩下的人口要明显高于灭国线；有多个就随机挑一个（每次打的方位不同）。
+// 实在找不到（国家已经很小）：挑预计损失最接近范围下限的位置
+function dimCenter(tgt) {
+  const B = BOSS_CFG, pop = totalPop(tgt);
+  if (pop <= 0 || !tgt.cities.length) return null;
+  const [lo, hi] = B.dimLoss, ok = [];
+  let best = null, bd = Infinity;
+  for (const t of G.world.tiles) {
+    if (!tgt.cities.some((c) => hexDist(t, c.tile) <= B.dimOuter)) continue; // 至少要波及一座城市
+    const loss = dimLoss(tgt, t), f = loss / pop;
+    if (f >= lo && f <= hi && pop - loss >= CFG.DEATH_POP * 2) ok.push(t);
+    const d = Math.abs(f - lo) + (pop - loss < CFG.DEATH_POP * 2 ? 1 : 0); // 会打到灭国线附近的位置排到最后
+    if (f > 0.05 && d < bd) { bd = d; best = t; }
+  }
+  return ok.length ? pick(ok) : best;
 }
 // 降维打击打谁：和普通攻击一样看仇恨、威胁和距离（优先打掉正在围攻它的邻国），但对真人玩家留两条保护：
 // 不连续两次打同一个国家；真人玩家的分数打七折（积极反击的玩家不会被反复点名）
