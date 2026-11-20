@@ -11,7 +11,8 @@ function sophonMul(n) {
   return b && b.alive && n !== b ? BOSS_CFG.sophon : 1;
 }
 // 受到的伤害倍率：三体人恒纪元时有高阶防御（伤害打折），乱纪元期间防御瘫痪、伤害加重
-const takenMul = (owner) => (isChaos(owner) ? BOSS_CFG.chaosDmg : owner.mods.armor || 1);
+// 扩张模式里各国城市更多、火力更足，三体人乱纪元时不再额外增伤
+const takenMul = (owner) => (isChaos(owner) ? (G.expand ? CFG.EXPAND.chaosDmg : BOSS_CFG.chaosDmg) : owner.mods.armor || 1);
 
 // 开局：科技、人口已在种族数值里；这里设科技进度、大招冷却、乱纪元计时、对真人玩家的敌意
 function setupBoss(n) {

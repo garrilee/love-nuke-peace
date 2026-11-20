@@ -13,6 +13,7 @@ function simStep(dt) {
   stepAir(dt);
   for (const n of G.nations) if (n.alive) scramble(n, dt);
   stepTiles(dt);
+  stepExpand(dt);
   stepEvents();
   stepGlobalEvents();
   for (const n of G.nations) if (n.alive && !n.isPlayer) aiStep(n, dt);

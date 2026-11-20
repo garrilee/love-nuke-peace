@@ -40,6 +40,7 @@ Object.assign(UI, {
       const dim = (G.dims || []).find((d) => d.tgt === p.id && dimRadius(d) < 0);
       if (dim) this.tip('dimWarn', '🌀 <b>降维打击</b>锁定了你：红圈里的城市会被直接抹掉，外圈按距离受损。开<b>护盾</b>能让外圈损失减半；60 秒后才能重建核心区。', { cd: 60, life: 8 });
     }
+    if (G.expand && t > 20) this.tip('expand', '🗺 <b>扩张</b>：每个国家都会自动占领相邻的<b>空地</b>（地图上没有颜色的陆地），每占满一批就多一座新城市或新投送站。被核平的国家留下的土地和城市废墟，也会被邻国接管。', { tutorial: true, life: 10 });
     // 闯关的特殊敌人：每局提示一次规则
     const sw = G.nations.find((x) => x.alive && x.mods.swarm && !allied(x, p)), ft = G.nations.find((x) => x.alive && x.mods.fortress && !allied(x, p));
     if (sw && t > 8) this.tip('swarm', `🐛 <b>虫族</b>没有核弹，靠成群的小摩托啃城市（每只咬掉的人口是普通小摩托的 ${sw.mods.droneDmg} 倍）。<b>护盾</b>能把飞进来的整群烧掉；它没有护盾，核弹对它很有效。`, { life: 10 });

@@ -45,7 +45,10 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
     raceIds = seats.map((s) => s.race); owners = seats.map((s) => s.id); names = seats.map((s) => s.name);
     seed = (Math.random() * 1e9) | 0;
   }
-  const world = generateWorld(seed, raceIds, owners.map((o) => o !== null && o !== undefined));
+  // 国家扩张：目前只在单人生存模式里开（联机要同步每块地的归属，闯关的难度是按不扩张调的）
+  const expand = CFG.EXPAND.on && !mp && !level;
+  if (expand) setMapSize(CFG.EXPAND.cols, CFG.EXPAND.rows); else setMapSize(CFG.BASE_COLS, CFG.BASE_ROWS);
+  const world = generateWorld(seed, raceIds, owners.map((o) => o !== null && o !== undefined), expand ? CFG.EXPAND.share : 0);
   setSeed(seed ^ 0x5bd1e995);
   const persKeys = shuffle(Object.keys(PERSONALITIES));
   const nations = world.nations;
@@ -86,8 +89,9 @@ function newGame(playerRaceId, aiCount, diff = 'normal', mp = null, opts = {}) {
     over: null, midnight: false, nextEvent: rnd(60, 90), pid: 0,
     selTarget: -1, scale: 1, legs: { pad: true, sea: true, ufo: true },
     newsQueue: [], diff: DIFFS[diff] || DIFFS.normal,
-    level, rules: (level && level.rules) || {},
+    level, rules: (level && level.rules) || {}, expand,
   };
+  for (const n of nations) n.startPop = totalPop(n);
   G.boss = bossOf(); G.dims = [];
   if (G.boss) setupBoss(G.boss);
   news(`${fmtDate(0)}：世界和平，一切安好。暂时。`);

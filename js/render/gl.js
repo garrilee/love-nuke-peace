@@ -34,7 +34,7 @@ const Gl = {
       const layer = (name, blend, parent = this.world) => { const l = name === 'smoke' || name === 'glow' ? this.particleLayer(blend) : this.spriteLayer(blend); this.L[name] = l; parent.addChild(l.c); };
       const gfx = (name, blend) => { const g = new P.Graphics(); g.blendMode = blend; this.g[name] = g; this.world.addChild(g); };
       // 图层顺序（从下到上）
-      this.baseSpr = sprite(NORMAL); this.scorchSpr = sprite(NORMAL);   // 底图、焦痕
+      this.baseSpr = sprite(NORMAL); this.terrSpr = sprite(NORMAL); this.scorchSpr = sprite(NORMAL);   // 地形、领土、焦痕
       layer('fill', NORMAL); layer('fillAdd', ADD);                     // 国土底色；国境发光、护盾
       this.dustSpr = sprite(ADD);                                       // 辐射尘
       layer('flat', NORMAL);                                            // 二维化地块
@@ -233,6 +233,9 @@ const Gl = {
   scorch(x, y, R, lv) { (this.scorchQ || (this.scorchQ = [])).push([x, y, R, lv]); },
   syncScorch(canvas) {
     const P = window.PIXI;
+    if (this.scorchRT && (this.scorchRT.width !== Math.ceil(WORLD_W) || this.scorchRT.height !== Math.ceil(WORLD_H))) { // 地图大小变了：换一张
+      this.scorchRT.destroy(true); this.scorchRT = null; this.scorchSrc = null;
+    }
     if (!this.scorchRT) {
       this.scorchRT = P.RenderTexture.create({ width: Math.ceil(WORLD_W), height: Math.ceil(WORLD_H), resolution: 2 });
       this.scorchSpr.texture = this.scorchRT; this.scorchSpr.width = WORLD_W; this.scorchSpr.height = WORLD_H; this.scorchSpr.visible = true;

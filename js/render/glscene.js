@@ -26,6 +26,7 @@ Object.assign(Render, {
     const L = Gl.L, g = Gl.g;
     // 底图和焦痕
     Gl.mapSprite(Gl.baseSpr, this.base);
+    Gl.mapSprite(Gl.terrSpr, this.terr);
     Gl.syncScorch(this.scorch);
 
     this.glNations(z, T);

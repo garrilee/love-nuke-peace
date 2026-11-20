@@ -57,8 +57,14 @@ const SQRT3 = Math.sqrt(3);
 const HEX_W = SQRT3 * CFG.HEX;
 const HEX_H = 2 * CFG.HEX;
 const MAP_MARGIN = 40;
-const WORLD_W = Math.ceil(HEX_W * (CFG.MAP_COLS + 0.5) + MAP_MARGIN * 2);
-const WORLD_H = Math.ceil(CFG.HEX * 1.5 * (CFG.MAP_ROWS - 1) + HEX_H + MAP_MARGIN * 2);
+let WORLD_W = Math.ceil(HEX_W * (CFG.MAP_COLS + 0.5) + MAP_MARGIN * 2);
+let WORLD_H = Math.ceil(CFG.HEX * 1.5 * (CFG.MAP_ROWS - 1) + HEX_H + MAP_MARGIN * 2);
+// 开局前设置地图大小（扩张模式用更大的地图）；世界的像素尺寸跟着变
+function setMapSize(cols, rows) {
+  CFG.MAP_COLS = cols; CFG.MAP_ROWS = rows;
+  WORLD_W = Math.ceil(HEX_W * (cols + 0.5) + MAP_MARGIN * 2);
+  WORLD_H = Math.ceil(CFG.HEX * 1.5 * (rows - 1) + HEX_H + MAP_MARGIN * 2);
+}
 
 function hexToPixel(c, r) {
   return {

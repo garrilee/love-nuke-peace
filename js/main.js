@@ -143,7 +143,7 @@ Bus.on('ult', ({ n, tgt }) => {
   else if (n.race.id === 'mushroom') UI.tip('ultdust' + n.id, `🌪 ${n.race.emoji}${n.name} 发动【扬沙】：你的人口暂时停止增长`, { cd: 60, life: 5 });
 });
 Bus.on('eliminated', (n) => {
-  Render.buildBase();
+  Render.buildTerritory(); // 国家灭亡：领土层变灰（不动别的缓存）
   if (G.selTarget === n.id) G.selTarget = -1;
   if (UI.popId === n.id) UI.closeMapPop();
   if (G.target === n.id) {
@@ -158,6 +158,9 @@ Bus.on('gameover', (kind) => {
   setTimeout(() => UI.showEnd(kind), 2500);
 });
 Bus.on('dimStrike', () => SFX.dimWarn());
+// 国家扩张：领土变了，稍后重画领土层；多了城市，城市之间的灯带重连
+Bus.on('territory', () => { Render.terrDirty = true; });
+Bus.on('cityAdded', () => { if (running) Render.buildLinks(); });
 Bus.on('crateTaken', ({ n, kind, tile }) => {
   const d = CRATES[kind], me = n === G.player;
   FX.bigText(tile.x, tile.y - 20, `${d.icon} ${me ? d.label : n.name + ' 抢到了'}`, me ? d.color : '#c9d6e6', me ? 30 : 18, me ? 10 : 0);

@@ -5,6 +5,7 @@ const CFG = {
   SIM_DT: 0.1,
   MAP_COLS: 40,
   MAP_ROWS: 24,
+  BASE_COLS: 40, BASE_ROWS: 24, // 平时的地图大小（MAP_COLS / MAP_ROWS 开局时可能被扩张模式改大）
   HEX: 14,
   MIDNIGHT: 540,          // 第 9 分钟：午夜狂欢
   // 没有时间限制：打到只剩一个国家。午夜后核弹威力继续上升，防止对局拖太久
@@ -61,6 +62,21 @@ const CFG = {
   SMOKE_MIN_ALPHA: 0.4,   // 烟最淡降到原来的 40%
   SHAKE_CLUSTER: 3,      // 2.5 秒内至少 3 枚核包裹爆炸才震屏
   SHAKE_COOLDOWN: 6,      // 两次震屏至少间隔 6 秒
+  // 国家扩张（单人生存模式）：地图更大，开局各国合计只占 share 的陆地，其余是空地，可以慢慢占
+  EXPAND: {
+    on: true,
+    cols: 46, rows: 27,   // 扩张模式的地图大小（平时 40×24）
+    share: 0.6,           // 开局各国合计占陆地的比例
+    every: 6,             // 每 6 秒占一块地（按人口占开局人口的比例加快或放慢）
+    rateMin: 0.3, rateMax: 1.3,
+    radMax: 0.3,          // 辐射高于这个值的地块暂时不能占
+    gainEvery: 9,         // 每新占 9 块地，轮流获得一座新城市 / 一个新投送站
+    maxCities: 9, maxPads: 8,
+    cityStart: 2,         // 新城市的初始人口
+    cityBase: 0.85,       // 新城市的规模（相对普通城市）
+    absorbBase: 0.6,      // 接收灭亡国家的城市：规模打六折
+    chaosDmg: 1,          // 扩张模式里三体人乱纪元时受到的伤害倍率（平时是 BOSS_CFG.chaosDmg）
+  },
   PADS_PER_NATION: 5,     // 陆基投送站数量（多点发射，天女散花）
   PAD_CAP: 3,             // 每个投送站的火箭数
   SEA_CAP: 3,             // 每艘潜航器的火箭数

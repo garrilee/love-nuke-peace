@@ -2,7 +2,8 @@
 'use strict';
 
 // raceIds：每个国家的类型（可以重复）；humanFlags：对应位置是不是真人玩家
-function generateWorld(seed, raceIds, humanFlags) {
+// share：各国合计占陆地的比例（扩张模式开局留白）；不传则按老规则几乎分完
+function generateWorld(seed, raceIds, humanFlags, share) {
   // 重复的国家：真人玩家优先拿原名和原色，其余依次加序号（卷王二）、换颜色
   const dupOf = [], colorOf = [], dupCount = {}, usedColors = new Set();
   const order = raceIds.map((_, i) => i).sort((a, b) => (!!(humanFlags && humanFlags[b]) - !!(humanFlags && humanFlags[a])) || a - b);
@@ -78,7 +79,7 @@ function generateWorld(seed, raceIds, humanFlags) {
 
   // 均衡 BFS 扩张领土
   const landCount = tiles.filter(isLand).length;
-  const cap = Math.floor(landCount / (N + 0.6));
+  const cap = share ? Math.floor(landCount * share / N) : Math.floor(landCount / (N + 0.6));
   const fronts = seeds.map((s) => [s]);
   const sizes = new Array(N).fill(1);
   seeds.forEach((s, i) => { s.owner = i; });

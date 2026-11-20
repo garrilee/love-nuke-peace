@@ -33,7 +33,7 @@
 <div id="out" class="dim">选好参数后点「开始」。每个国家轮流当玩家席位；胜率后面的 ± 是 1 个标准误差。</div>
 
 <script>
-const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/events', 'sim/end', 'ai'];
+const FILES = ['config', 'util', 'map', 'sim/core', 'sim/step', 'sim/strike', 'sim/defense', 'sim/boss', 'sim/events', 'sim/expand', 'sim/end', 'ai'];
 const base = new URL('../js/', location.href).href;
 // 后台线程：加载模拟代码，逐局运行，把每局的结果发回来
 const workerSrc = () => `

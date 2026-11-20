@@ -91,35 +91,12 @@ const Render = {
     x.strokeStyle = 'rgba(110,200,255,0.35)'; x.lineWidth = 1.1;
     this.strokeEdges(x, (a, b) => W.isLand(a) && !W.isLand(b));
     x.restore();
-    // 国家领土
-    this.nationPaths = []; this.nationCenters = []; this.borderPaths = [];
-    for (const n of G.nations) {
-      const path = new Path2D();
-      let sx = 0, sy = 0, k = 0;
-      for (const t of W.tiles) if (t.owner === n.id) {
-        const pts = hexCorners(t.x, t.y, CFG.HEX + 0.5);
-        path.moveTo(pts[0][0], pts[0][1]);
-        for (let i = 1; i < 6; i++) path.lineTo(pts[i][0], pts[i][1]);
-        path.closePath(); sx += t.x; sy += t.y; k++;
-      }
-      this.nationPaths[n.id] = path;
-      this.borderPaths[n.id] = this.edgePath((a, b) => a.owner === n.id && b.owner !== n.id);
-      this.nationCenters[n.id] = { x: sx / Math.max(1, k), y: sy / Math.max(1, k) };
-      x.fillStyle = n.alive ? rgba(n.color, 0.09) : 'rgba(60,60,60,0.25)';
-      x.fill(path);
-    }
-    x.save();
-    for (const n of G.nations) {
-      const col = n.alive ? n.color : '#555555';
-      x.shadowColor = col; x.shadowBlur = n.alive ? 5 : 0;
-      x.strokeStyle = rgba(col, n.alive ? 0.8 : 0.45); x.lineWidth = 1;
-      this.strokeEdges(x, (a, b) => a.owner === n.id && b.owner !== n.id);
-    }
-    x.restore();
+    // 国家领土画在单独的一层上（扩张时领土会变，只重画这一层）
+    if (this.terr) Gl.drop(this.terr);
+    this.terr = document.createElement('canvas');
+    this.terr.width = c.width; this.terr.height = c.height;
+    this.buildTerritory();
     this.buildLinks();
-    for (const m of [this.glowCache, this.fillCache]) if (m) for (const e of m.values()) if (e) Gl.drop(e.c);
-    this.glowCache = new Map();   // 国界变了，发光层重画
-    this.fillCache = new Map();
     for (const e of this.plateCache.values()) this.freeBmp(e.c);
     this.plateCache.clear();
     this.dustAt = -9;
@@ -132,6 +109,43 @@ const Render = {
       this.scorch = document.createElement('canvas');
       this.scorch.width = c.width; this.scorch.height = c.height;
     }
+  },
+  // 领土层：各国的底色和国境线，连同国土路径、中心点、发光和填色缓存。开局画一次，之后领土变了才重画
+  buildTerritory() {
+    const W = G.world, BS = this.BS, x = this.terr.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, this.terr.width, this.terr.height);
+    x.setTransform(BS, 0, 0, BS, 0, 0);
+    this.nationPaths = []; this.nationCenters = []; this.borderPaths = [];
+    for (const n of G.nations) {
+      const path = new Path2D();
+      let sx = 0, sy = 0, k = 0;
+      for (const t of W.tiles) if (t.owner === n.id) {
+        const pts = hexCorners(t.x, t.y, CFG.HEX + 0.5);
+        path.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < 6; i++) path.lineTo(pts[i][0], pts[i][1]);
+        path.closePath(); sx += t.x; sy += t.y; k++;
+      }
+      this.nationPaths[n.id] = path;
+      this.borderPaths[n.id] = this.edgePath((a, b) => a.owner === n.id && b.owner !== n.id);
+      // 标签的位置：有地时取国土中心；地被占光了（灭亡后被瓜分）就留在原处
+      if (k || !this.nationCenters[n.id]) this.nationCenters[n.id] = k ? { x: sx / k, y: sy / k } : (this.lastCenters && this.lastCenters[n.id]) || { x: 0, y: 0 };
+      x.fillStyle = n.alive ? rgba(n.color, 0.09) : 'rgba(60,60,60,0.25)';
+      x.fill(path);
+    }
+    this.lastCenters = this.nationCenters.slice();
+    x.save();
+    for (const n of G.nations) {
+      const col = n.alive ? n.color : '#555555';
+      x.shadowColor = col; x.shadowBlur = n.alive ? 5 : 0;
+      x.strokeStyle = rgba(col, n.alive ? 0.8 : 0.45); x.lineWidth = 1;
+      x.stroke(this.borderPaths[n.id]);
+    }
+    x.restore();
+    for (const m of [this.glowCache, this.fillCache]) if (m) for (const e of m.values()) if (e) Gl.drop(e.c);
+    this.glowCache = new Map();   // 国界变了，发光层重画
+    this.fillCache = new Map();
+    this.terrDirty = false; this.terrAt = this.time;
+    Gl.touch(this.terr);
   },
   resetScorch() { this.scorch = null; },
   // 释放一张缓存位图（连同它在显卡上的贴图）
@@ -291,6 +305,7 @@ const Render = {
     v.right = camX + (this.w / 2 - sx) / pz + pad;
     v.top = camY + (-this.h / 2 - sy) / pz - pad;
     v.bottom = camY + (this.h / 2 - sy) / pz + pad;
+    if (ready && this.terrDirty && T - (this.terrAt || 0) > 1.2) this.buildTerritory(); // 领土变了：最多每 1.2 秒重画一次领土层
     // WebGL 层可用：整帧交给它画（glscene.js）；出错就关掉它，这一帧起退回下面的 Canvas 2D 画法
     if (ready && Gl.on) {
       try { this.glDraw(camX, camY, pz, sx, sy, z, T); return; }
@@ -305,6 +320,7 @@ const Render = {
     ctx.translate(-camX, -camY);
 
     ctx.drawImage(this.base, 0, 0, WORLD_W, WORLD_H);
+    ctx.drawImage(this.terr, 0, 0, WORLD_W, WORLD_H);
     ctx.drawImage(this.scorch, 0, 0, WORLD_W, WORLD_H);
 
     // 我方国土：更亮的底色 + 呼吸发光的金色国境线（发光层预先画好，每帧只调透明度）
@@ -391,7 +407,8 @@ const Render = {
   dustAlpha(T) { return 0.82 + 0.12 * Math.sin(T * 2); }, // 整层缓慢明暗起伏
   // 到时间就重画辐射尘小图；返回这次有没有重画
   updateDust(T) {
-    if (!this.dust) {
+    if (!this.dust || this.dust.width !== Math.ceil(WORLD_W) || this.dust.height !== Math.ceil(WORLD_H)) { // 地图大小变了：换一张
+      if (this.dust) Gl.drop(this.dust);
       this.dust = document.createElement('canvas');
       this.dust.width = Math.ceil(WORLD_W); this.dust.height = Math.ceil(WORLD_H);
     }
