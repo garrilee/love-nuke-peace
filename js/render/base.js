@@ -608,7 +608,7 @@ const Render = {
           const r = 9.5, lw = 1.8 / Math.max(0.8, z);
           ctx.lineWidth = lw; ctx.strokeStyle = 'rgba(0,0,0,0.55)';
           ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-          ctx.strokeStyle = f > 0.6 ? '#7dff8a' : f > 0.3 ? '#ffc23d' : '#ff4a3a';
+          ctx.strokeStyle = c.settling ? '#7fd6ff' : f > 0.6 ? '#7dff8a' : f > 0.3 ? '#ffc23d' : '#ff4a3a'; // 建设中的新城市：青色进度环
           if (f > 0.01) { ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); ctx.stroke(); }
         }
       }

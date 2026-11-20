@@ -160,7 +160,21 @@ Bus.on('gameover', (kind) => {
 Bus.on('dimStrike', () => SFX.dimWarn());
 // 国家扩张：领土变了，稍后重画领土层；多了城市，城市之间的灯带重连
 Bus.on('territory', () => { Render.terrDirty = true; });
-Bus.on('cityAdded', () => { if (running) Render.buildLinks(); });
+Bus.on('cityAdded', ({ n, city, built }) => {
+  if (!running) return;
+  Render.buildLinks();
+  const t = city.tile, mine = n === G.player;
+  FX.rings.push({ x: t.x, y: t.y, R: HEX_W * 2.2, age: 0, life: 1.1, w: 2, shield: true });
+  FX.text(t.x, t.y - 14, built ? '🏗 新城市' : '🏳 接管城市', mine ? '#ffd27a' : '#bfe9ff', mine ? 1.3 : 1);
+  if (mine) UI.banner(built ? `🏗 新城市「${city.name}」开始建设` : `🏳 接管了「${city.name}」`);
+});
+Bus.on('facAdded', ({ n, fac }) => {
+  if (!running) return;
+  const t = fac.tile, mine = n === G.player;
+  FX.rings.push({ x: t.x, y: t.y, R: HEX_W * 1.6, age: 0, life: 0.9, w: 1.6, shield: true });
+  FX.text(t.x, t.y - 12, '🚀 新投送站', mine ? '#ffd27a' : '#bfe9ff', mine ? 1.2 : 0.9);
+  if (mine) UI.banner('🚀 新投送站建成');
+});
 Bus.on('crateTaken', ({ n, kind, tile }) => {
   const d = CRATES[kind], me = n === G.player;
   FX.bigText(tile.x, tile.y - 20, `${d.icon} ${me ? d.label : n.name + ' 抢到了'}`, me ? d.color : '#c9d6e6', me ? 30 : 18, me ? 10 : 0);

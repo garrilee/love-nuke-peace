@@ -74,6 +74,7 @@ const CFG = {
     gainEvery: 9,         // 每新占 9 块地，轮流获得一座新城市 / 一个新投送站
     maxCities: 9, maxPads: 8,
     cityStart: 2,         // 新城市的初始人口
+    settleTime: 50,       // 新城市的建设期：约 50 秒内从初始人口长到满员（期间被打成废墟就中断）
     cityBase: 0.85,       // 新城市的规模（相对普通城市）
     absorbBase: 0.6,      // 接收灭亡国家的城市：规模打六折
     chaosDmg: 1,          // 扩张模式里三体人乱纪元时受到的伤害倍率（平时是 BOSS_CFG.chaosDmg）

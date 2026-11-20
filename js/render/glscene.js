@@ -221,7 +221,7 @@ Object.assign(Render, {
         if (f < 0.97) {
           const r = 9.5, lw = 1.8 / Math.max(0.8, z);
           g.lineStyle(lw, 0x000000, 0.55); g.drawCircle(x, y, r);
-          if (f > 0.01) { g.lineStyle(lw, f > 0.6 ? 0x7dff8a : f > 0.3 ? 0xffc23d : 0xff4a3a, 1); Gl.arc(g, x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); }
+          if (f > 0.01) { g.lineStyle(lw, c.settling ? 0x7fd6ff : f > 0.6 ? 0x7dff8a : f > 0.3 ? 0xffc23d : 0xff4a3a, 1); Gl.arc(g, x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * f); }
         }
       }
       if (c.isCapital && n.alive) {

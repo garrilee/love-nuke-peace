@@ -14,7 +14,7 @@ Object.assign(UI, {
     box.classList.toggle('docked', docked);
     // 手机：自动拦截 / 自动重建开关收进 📊 抽屉（国力分配下面），底部操作区只留发射和防御按钮
     // 国力分配：电脑上放在右侧操作栏（左边只留信息：本国数据和排行榜）；手机上留在左上角 📊 的抽屉里
-    if (docked) $('rightcol').appendChild($('alloc')); else $('leftcol').appendChild($('alloc'));
+    if (docked) $('rightcol').prepend($('alloc')); else $('leftcol').appendChild($('alloc')); // 电脑上排在最上面：国力分配、打击、防御
     box.classList.toggle('collapsed', !docked);
     // 两侧栏折叠（只在电脑上）
     const fold = (side) => { document.body.classList.toggle('fold' + side); this.syncFold(); Render.fit(); };

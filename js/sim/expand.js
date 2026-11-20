@@ -13,6 +13,12 @@ function stepExpand(dt) {
   const E = CFG.EXPAND;
   for (const n of G.nations) {
     if (!n.alive) continue;
+    // 建设期的新城市：人口快速长到满员
+    for (const c of n.cities) {
+      if (!c.settling) continue;
+      if (c.ruined || c.pop >= c.basePop) { c.settling = false; continue; }
+      c.pop = Math.min(c.basePop, c.pop + c.basePop / E.settleTime * dt);
+    }
     // 人口越多扩得越快，被打残了就慢下来
     n.expandT = (n.expandT || 0) + dt * clamp(totalPop(n) / Math.max(1, n.startPop), E.rateMin, E.rateMax) * (n.mods.expand || 1); // mods.expand：个别国家扩得更快
     if (n.expandT < E.every) continue;
@@ -46,7 +52,7 @@ function expandOnce(n) {
 
 function claimTile(n, t) {
   const old = t.owner >= 0 ? G.nations[t.owner] : null, E = CFG.EXPAND;
-  t.owner = n.id;
+  t.owner = n.id; t.claimedAt = G.t; // claimedAt：这块地是开局之后才占的
   n.land = (n.land || 0) + 1; if (old) old.land = Math.max(0, (old.land || 0) - 1);
   if (t.city && old) { // 接收灭亡国家的城市：按废墟接手，自动重建；规模打折，不再是首都
     const c = t.city;
@@ -70,20 +76,24 @@ function addCity(n) {
   const W = G.world, E = CFG.EXPAND;
   if (n.cities.length >= E.maxCities) return false;
   const ok = (t) => t.owner === n.id && !t.city && !t.fac && (t.terrain === 'plain' || t.terrain === 'forest' || t.terrain === 'desert');
+  // 优先建在新占的土地上；新地上放不下才用原有的领土
   let pool = [];
-  for (let md = 3; md >= 2 && !pool.length; md--) pool = W.tiles.filter((t) => ok(t) && W.cities.every((c) => hexDist(c.tile, t) >= md));
+  for (const fresh of [true, false]) {
+    for (let md = 3; md >= 2 && !pool.length; md--) pool = W.tiles.filter((t) => ok(t) && (!fresh || t.claimedAt !== undefined) && W.cities.every((c) => hexDist(c.tile, t) >= md));
+    if (pool.length) break;
+  }
   if (!pool.length) return false;
   const t = pick(pool), k = n.cities.length;
   const basePop = rnd(13, 20) * (n.mods.pop || 1) * E.cityBase;
   const city = { id: W.cities.length, nation: n.id, tile: t, name: `${n.name}${['新城', '新港', '新镇', '新市', '新堡', '新岭'][k % 6]}`, pop: E.cityStart, basePop,
-    injured: 0, injuredTimer: 0, ruined: false, rebuild: 0, isCapital: false, lights: [] };
+    injured: 0, injuredTimer: 0, ruined: false, rebuild: 0, isCapital: false, lights: [], settling: true, isNew: true };
   for (let i = 0, m = Math.round(10 + basePop * 0.9); i < m; i++) { // 城市灯光点
     const a = rand() * Math.PI * 2, d = Math.pow(rand(), 0.7) * CFG.HEX * 1.15;
     city.lights.push({ x: Math.cos(a) * d, y: Math.sin(a) * d * 0.85, s: rnd(0.6, 1.5), ph: rand() * 6.28, rank: rand() });
   }
   t.city = city; W.cities.push(city); n.cities.push(city);
   news(`🏗 ${n.race.emoji}${n.name} 在新占的土地上建起了「${city.name}」`);
-  Bus.emit('cityAdded', { n, city });
+  Bus.emit('cityAdded', { n, city, built: true });
   return true;
 }
 
@@ -91,7 +101,9 @@ function addCity(n) {
 function addPad(n) {
   const W = G.world, E = CFG.EXPAND;
   if (facOf(n, 'pad').length >= E.maxPads) return false;
-  const pool = W.tiles.filter((t) => t.owner === n.id && !t.city && !t.fac && t.terrain !== 'ice' && n.cities.every((c) => hexDist(c.tile, t) >= 2));
+  const okPad = (t) => t.owner === n.id && !t.city && !t.fac && t.terrain !== 'ice' && n.cities.every((c) => hexDist(c.tile, t) >= 2);
+  let pool = W.tiles.filter((t) => okPad(t) && t.claimedAt !== undefined); // 优先建在新占的土地上
+  if (!pool.length) pool = W.tiles.filter(okPad);
   if (!pool.length) return false;
   const t = pick(pool);
   const f = { id: W.facilities.length, nation: n.id, tile: t, type: 'pad', alive: true, missiles: 0, rebuild: 0 };
