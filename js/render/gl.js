@@ -114,7 +114,16 @@ const Gl = {
   // 画布或位图（预先画好的光斑、标牌等）→ 显卡贴图，每个只上传一次
   tex(src) {
     let t = this.texCache.get(src);
-    if (!t) { t = window.PIXI.Texture.from(src); this.texCache.set(src, t); }
+    if (!t) {
+      let from = src;
+      // 位图对象（ImageBitmap）先画到普通画布上再上传：不同浏览器对它的半透明像素处理不一致，
+      // 有的手机浏览器会把柔和的发光边缘当成不透明的亮色，设施、城市灯光、潜艇周围就多出一大圈光
+      if (typeof ImageBitmap !== 'undefined' && src instanceof ImageBitmap) {
+        from = document.createElement('canvas'); from.width = src.width; from.height = src.height;
+        from.getContext('2d').drawImage(src, 0, 0);
+      }
+      t = window.PIXI.Texture.from(from); this.texCache.set(src, t);
+    }
     return t;
   },
   // 画布内容变了：重新上传
