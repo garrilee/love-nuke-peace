@@ -70,6 +70,7 @@ const CFG = {
     every: 6,             // 每 6 秒占一块地（按人口占开局人口的比例加快或放慢）
     rateMin: 0.3, rateMax: 1.3,
     radMax: 0.3,          // 辐射高于这个值的地块暂时不能占
+    tileProd: 0.004,      // 每块领土的基础产出（一座普通城市约 0.5，一块地不到它的百分之一）
     gainEvery: 9,         // 每新占 9 块地，轮流获得一座新城市 / 一个新投送站
     maxCities: 9, maxPads: 8,
     cityStart: 2,         // 新城市的初始人口

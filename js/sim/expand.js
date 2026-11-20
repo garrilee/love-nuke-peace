@@ -47,6 +47,7 @@ function expandOnce(n) {
 function claimTile(n, t) {
   const old = t.owner >= 0 ? G.nations[t.owner] : null, E = CFG.EXPAND;
   t.owner = n.id;
+  n.land = (n.land || 0) + 1; if (old) old.land = Math.max(0, (old.land || 0) - 1);
   if (t.city && old) { // 接收灭亡国家的城市：按废墟接手，自动重建；规模打折，不再是首都
     const c = t.city;
     old.cities = old.cities.filter((x) => x !== c);

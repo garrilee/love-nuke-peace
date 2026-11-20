@@ -292,6 +292,7 @@ const UI = {
     const ud = underdog(p), chips = [];
     if (ud > 1.01) chips.push(`<span class="chip good" title="人口低于存活国家平均值，产出提高（最多 ×${CFG.UNDERDOG_MAX}）；午夜后取消">📈 弱势加成 ×${ud.toFixed(2)}</span>`);
     else if (!G.midnight) chips.push(`<span class="chip" title="人口低于存活国家平均值时，产出会提高（最多 ×${CFG.UNDERDOG_MAX}）">📈 弱势加成 无</span>`);
+    if (G.expand) chips.push(`<span class="chip good" title="扩张模式：每块领土有一点基础产出（一块地不到一座城市的百分之一）。占的地越多，产出越高">🗺 领土 ${p.land} 块 · 产出 +${(p.land * CFG.EXPAND.tileProd).toFixed(2)}</span>`);
     const he = heatEff(p);
     chips.push(`<span class="chip ${he >= 1 ? 'good' : 'bad'}" title="军工热度：持续投入核武越来越高效（×${CFG.HEAT_MIN}～×${CFG.HEAT_MAX}）">🏭 军工 ×${he.toFixed(2)}</span>`);
     if (G.midnight) chips.push(`<span class="chip bad" title="午夜后核弹威力和核武产出都在升级">🕛 核弹威力 ×${nukeMul().toFixed(2)} · 产出 ×${midnightProd().toFixed(1)}</span>`);
