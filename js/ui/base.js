@@ -22,7 +22,7 @@ const Store = {
 // 开始界面的国家卡片：只写加成和代价，一句话说清大招
 const RACE_CARD = {
   human:    { plus: ['科技 +5%'], minus: [], ult: '15 秒内产出 ×1.5' },
-  mole:     { plus: ['护盾减伤 97%', '护盾冷却 -28%'], minus: ['科技 -4%'], ult: '免费护盾 + 回敬 6 枚导弹' },
+  mole:     { plus: ['护盾减伤 97%', '护盾消耗 -28%，过载恢复更快'], minus: ['科技 -4%'], ult: '免费护盾 + 回敬 6 枚导弹' },
   octopus:  { plus: ['自带潜航器，造价 -40%', '被拦截 -28%，不会被拒收'], minus: ['火箭造价 +5%'], ult: '30 秒内核弹无法拦截' },
   mushroom: { plus: ['辐射地块人口反而增长', '核弹伤害 -5%'], minus: [], ult: '敌国人口停止增长并流失' },
   ai:       { plus: ['不怕辐射'], minus: ['人口增长 -30%'], ult: '目标护盾、拦截瘫痪 15 秒，偷 30% 预算' },
@@ -280,7 +280,7 @@ const UI = {
     $('researchDone').classList.toggle('hidden', choosing || !!cur);
     if (choosing) {
       const left = Math.max(0, Math.ceil(TECH_PICK_WAIT - (G.t - p.choiceSince)));
-      setText($('researchQuestion'), `选择第 4 级路线（${left} 秒后按核武/三防分配自动选）`);
+      setText($('researchQuestion'), `选择第 4 级路线（${left} 秒后按核武/护盾分配自动选）`);
     } else if (cur) {
       setText($('researchName'), `🔬 ${cur.name}`);
       setText($('researchPoints'), `${Math.floor(Math.min(p.techPts, cur.cost))}/${cur.cost}`);
@@ -330,13 +330,17 @@ const UI = {
     // 技能卡：状态文字 + 底部进度条（生效时显示剩余时间，冷却时显示冷却进度）
     setText($('energyTxt'), this.mobile() ? `⚡${Math.floor(p.energy)}　🎯${Math.floor(p.netE)}` : `护盾 ⚡${Math.floor(p.energy)}/${CFG.ENERGY_CAP}　拦截 🎯${Math.floor(p.netE)}/${CFG.NET_E_CAP}`);
     if (p.hackT > 0) this.skillCard('shield', `断网 ${p.hackT.toFixed(0)}s`, 'poor', 0);
-    else if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s`, 'active', p.shieldT / shieldDur(p));
-    else if (p.shieldCd > 0) this.skillCard('shield', `冷却 ${p.shieldCd.toFixed(0)}s`, 'cd', 1 - p.shieldCd / SKILLS.shield.cd);
-    else if (p.energy < COSTS.shield) {
-      const eRate = production(p) * p.alloc.def + CFG.ENERGY_BASE * (G.midnight ? 2 : 1);
-      this.skillCard('shield', eRate > 0 ? `⚡ ${Math.ceil((COSTS.shield - p.energy) / eRate)} 秒后可用` : `需 ⚡${COSTS.shield}`, 'poor', p.energy / COSTS.shield);
+    else {
+      // 护盾只看能量：生效中也可以再点一次续上
+      const cost = shieldCost(p), can = p.energy >= cost && p.shieldT <= shieldDur(p) * 2;
+      const eRate = production(p) * p.alloc.def * (G.quick ? QUICK.energy : 1) + CFG.ENERGY_BASE * (G.midnight ? 2 : 1);
+      const wait = eRate > 0 ? `⚡ ${Math.ceil((cost - p.energy) / eRate)} 秒后可用` : `需 ⚡${Math.round(cost)}`;
+      // 过载：连续开盾越来越贵，显示下一次的价钱和还有多久恢复原价
+      const hot = p.shieldStack > 0 ? ` · 过载 ${Math.ceil(p.shieldStackT)}s` : '';
+      if (p.shieldT > 0) this.skillCard('shield', `生效中 ${p.shieldT.toFixed(1)}s · 续 ⚡${Math.round(cost)}`, 'active', Math.min(1, p.shieldT / shieldDur(p)));
+      else if (p.energy < cost) this.skillCard('shield', `${wait}${hot}`, 'poor', p.energy / cost);
+      else this.skillCard('shield', `就绪 · ⚡${Math.round(cost)}${hot}`, 'ready', 1);
     }
-    else this.skillCard('shield', `就绪 · ⚡${COSTS.shield}`, 'ready', 1);
     // 国家大招
     const U = p.race.ult, buffT = p.overtimeT || p.harpoonT;
     if (buffT > 0) this.skillCard('ult', `生效中 ${buffT.toFixed(0)}s`, 'active', buffT / U.dur);

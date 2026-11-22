@@ -122,7 +122,7 @@ function grantTech(n, id) {
 const availTechs = (n) => TECHS.filter((t) => !has(n, t.id) && (t.req || []).every((r) => has(n, r)) && (!t.reqAny || t.reqAny.some((r) => has(n, r))));
 const techDone = (n) => !!n.mods.swarm || (!n.research && !availTechs(n).length); // 虫族不研发科技
 const curTech = (n) => (n.research ? TECHS[techIndex(n.research)] : null);
-// 决定下一项研发：只有一个选项就直接研发；第 4 级二选一时，AI 按性格选，玩家自己选（超时按核武/三防分配自动选）
+// 决定下一项研发：只有一个选项就直接研发；第 4 级二选一时，AI 按性格选，玩家自己选（超时按核武/护盾分配自动选）
 function pickResearch(n) {
   if (n.research) return;
   const opts = availTechs(n);

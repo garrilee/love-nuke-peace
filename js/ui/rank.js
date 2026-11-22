@@ -56,7 +56,7 @@ Object.assign(UI, {
         const get = (selector) => el.querySelector(selector);
         row = { el, index: get('.rk-i'), icon: get('[data-rank="icon"]'), name: get('[data-rank="name"]'),
           move: get('[data-rank="move"]'), ally: get('[data-rank="ally"]'), pop: get('.rk-p'), stock: get('.rk-k'), bar: get('.rk-bar i'),
-          sub: get('.rk-sub'), tech: get('[data-rank="tech"]'), anger: get('.rk-ang'), angerBar: get('.rk-ang i'),
+          sub: get('.rk-sub'), tech: get('[data-rank="tech"]'), anger: get('.rk-ang'), mood: get('[data-rank="mood"]'), pips: [...el.querySelectorAll('.rk-ang i')],
           attacked: get('.rk-atk'), extra: get('.rk-x') };
         el.dataset.id = n.id; this.rankRows.set(n.id, row);
       }
@@ -76,8 +76,14 @@ Object.assign(UI, {
       row.sub.classList.toggle('hidden', !sub);
       if (sub) {
         setText(row.tech, `🔬 ${n.techIdx}/${TECHS.length}${human ? ' · 真人玩家' : ''}`);
-        row.anger.classList.toggle('hidden', !!human);
-        if (!human) setStyle(row.angerBar, 'width', Math.round(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 100) + '%');
+        // 怒气：表情 + 五个红点（和上面的人口条区分开）；真人玩家和队友不显示
+        const calm = !!human || allied(n, me);
+        row.anger.classList.toggle('hidden', calm);
+        if (!calm) {
+          const lv = Math.ceil(clamp(n.anger[me.id] / CFG.ANGER_MAX, 0, 1) * 5);
+          setText(row.mood, lv >= 4 ? '🤬' : lv >= 2 ? '😠' : '🙂');
+          row.pips.forEach((p, k) => p.classList.toggle('on', k < lv));
+        }
         row.attacked.classList.toggle('hidden', !recentAttacker(n));
       }
       const chaos = n.race.boss && n.alive && isChaos(n);

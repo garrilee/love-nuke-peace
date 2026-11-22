@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#01040a">
 <title>热爱核平</title>
-<link rel="stylesheet" href="style.css?v=20261218-halo">
+<link rel="stylesheet" href="style.css?v=20261220-shield4">
 </head>
 <body>
 <canvas id="game"></canvas>
@@ -42,7 +42,7 @@
       <div class="raterow"><span id="r-tech" class="mono rate"></span></div>
       <label>☢ 核武 <input type="range" min="0" max="100" id="sl-nuke"><span id="v-nuke" class="mono pct"></span></label>
       <div class="raterow"><span id="r-nuke" class="mono rate"></span></div>
-      <label>🛡 三防 <input type="range" min="0" max="100" id="sl-def"><span id="v-def" class="mono pct"></span></label>
+      <label>🛡 护盾 <input type="range" min="0" max="100" id="sl-def"><span id="v-def" class="mono pct"></span></label>
       <div class="raterow"><span id="r-def" class="mono rate"></span></div>
       <div id="research">
         <div class="rt-path"><span class="rt-n" data-tech="pad">投送站</span><b class="rt-ar">›</b><span class="rt-n" data-tech="lv3">当日达</span><b class="rt-ar">›</b><span class="rt-n" data-tech="multi">分装</span><b class="rt-ar">›</b><span class="rt-fork"><span class="rt-n" data-tech="lv4">闪送</span><i>/</i><span class="rt-n" data-tech="net">拦截网</span></span><b class="rt-ar">›</b><span class="rt-n" data-tech="lv5">东风</span><b class="rt-ar">›</b><span class="rt-fork"><span class="rt-n" data-tech="mirv">分导东风</span><i>/</i><span class="rt-n" data-tech="aegis">全域护盾</span></span></div>
@@ -116,7 +116,7 @@
     <div id="skills" class="panel">
       <div class="phead"><span class="sect-title">防 御</span><span class="mono small" id="energyTxt"></span></div>
       <div class="skillgrid">
-        <button id="sk-shield" class="skill" title="护盾 (B)：全国领土防御 8 秒。常规导弹全部挡下，核包裹伤害 -85%，城市不会变废墟、设施不会宕机。⚡40，冷却 30 秒。适合应对大量来袭。">
+        <button id="sk-shield" class="skill" title="护盾 (B)：全国领土防御 8 秒。常规导弹和小摩托全部挡下，核包裹伤害 -85%，城市不会变废墟、设施不会宕机。没有冷却：能量够就能开，生效中再点一次可以续上。第一次 ⚡40；连续开会过载，每次比上一次贵 20（40 → 60 → 80…），最后一次开盾 30 秒后恢复原价。">
           <kbd>B</kbd><span class="nm">护盾</span><span class="st" id="st-shield"></span><i class="cdbar" id="cd-shield"></i></button>
         <button id="sk-ult" class="skill ult"><kbd>Q</kbd><span class="ic" id="ic-ult">✨</span><span class="ulttxt"><span class="nm" id="nm-ult">大招</span><span class="st" id="st-ult"></span></span><i class="cdbar" id="cd-ult"></i></button>
       </div>
@@ -234,40 +234,40 @@
     <span class="rk-i"></span><span class="rk-n"><span data-rank="icon"></span> <span data-rank="name"></span> <span class="tag ally hidden" data-rank="ally">队友</span><i data-rank="move"></i></span>
     <span class="rk-p mono"></span><span class="rk-k mono"></span>
     <div class="rk-bar"><i></i></div>
-    <div class="rk-sub"><span data-rank="tech"></span><span class="rk-ang" title="对你的怒气"><i></i></span><b class="rk-atk">⚔ 打过你</b></div>
+    <div class="rk-sub"><span data-rank="tech"></span><span class="rk-ang" title="它对你的怒气：红点越多越可能打你"><span data-rank="mood"></span><i></i><i></i><i></i><i></i><i></i></span><b class="rk-atk">⚔ 打过你</b></div>
     <div class="rk-x"></div>
   </div>
 </template>
 
-<script src="js/config.js?v=20261218-halo"></script>
-<script src="js/util.js?v=20261218-halo"></script>
-<script src="js/icons.js?v=20261218-halo"></script>
-<script src="js/audio.js?v=20261218-halo"></script>
-<script src="js/map.js?v=20261218-halo"></script>
-<script src="js/sim/core.js?v=20261218-halo"></script>
-<script src="js/sim/step.js?v=20261218-halo"></script>
-<script src="js/sim/strike.js?v=20261218-halo"></script>
-<script src="js/sim/defense.js?v=20261218-halo"></script>
-<script src="js/sim/boss.js?v=20261218-halo"></script>
-<script src="js/sim/events.js?v=20261218-halo"></script>
-<script src="js/sim/expand.js?v=20261218-halo"></script>
-<script src="js/sim/end.js?v=20261218-halo"></script>
-<script src="js/ai.js?v=20261218-halo"></script>
-<script src="js/fx.js?v=20261218-halo"></script>
-<script src="js/render/base.js?v=20261218-halo"></script>
-<script src="js/render/units.js?v=20261218-halo"></script>
-<script src="js/render/labels.js?v=20261218-halo"></script>
-<script src="js/render/boss.js?v=20261218-halo"></script>
-<script src="js/render/gl.js?v=20261218-halo"></script>
-<script src="js/render/glparticles.js?v=20261218-halo"></script>
-<script src="js/render/glscene.js?v=20261218-halo"></script>
-<script src="js/ui/base.js?v=20261218-halo"></script>
-<script src="js/ui/strike.js?v=20261218-halo"></script>
-<script src="js/ui/rank.js?v=20261218-halo"></script>
-<script src="js/ui/tips.js?v=20261218-halo"></script>
-<script src="js/ui/end.js?v=20261218-halo"></script>
-<script src="js/ui/campaign.js?v=20261218-halo"></script>
-<script src="js/net.js?v=20261218-halo"></script>
-<script src="js/main.js?v=20261218-halo"></script>
+<script src="js/config.js?v=20261220-shield4"></script>
+<script src="js/util.js?v=20261220-shield4"></script>
+<script src="js/icons.js?v=20261220-shield4"></script>
+<script src="js/audio.js?v=20261220-shield4"></script>
+<script src="js/map.js?v=20261220-shield4"></script>
+<script src="js/sim/core.js?v=20261220-shield4"></script>
+<script src="js/sim/step.js?v=20261220-shield4"></script>
+<script src="js/sim/strike.js?v=20261220-shield4"></script>
+<script src="js/sim/defense.js?v=20261220-shield4"></script>
+<script src="js/sim/boss.js?v=20261220-shield4"></script>
+<script src="js/sim/events.js?v=20261220-shield4"></script>
+<script src="js/sim/expand.js?v=20261220-shield4"></script>
+<script src="js/sim/end.js?v=20261220-shield4"></script>
+<script src="js/ai.js?v=20261220-shield4"></script>
+<script src="js/fx.js?v=20261220-shield4"></script>
+<script src="js/render/base.js?v=20261220-shield4"></script>
+<script src="js/render/units.js?v=20261220-shield4"></script>
+<script src="js/render/labels.js?v=20261220-shield4"></script>
+<script src="js/render/boss.js?v=20261220-shield4"></script>
+<script src="js/render/gl.js?v=20261220-shield4"></script>
+<script src="js/render/glparticles.js?v=20261220-shield4"></script>
+<script src="js/render/glscene.js?v=20261220-shield4"></script>
+<script src="js/ui/base.js?v=20261220-shield4"></script>
+<script src="js/ui/strike.js?v=20261220-shield4"></script>
+<script src="js/ui/rank.js?v=20261220-shield4"></script>
+<script src="js/ui/tips.js?v=20261220-shield4"></script>
+<script src="js/ui/end.js?v=20261220-shield4"></script>
+<script src="js/ui/campaign.js?v=20261220-shield4"></script>
+<script src="js/net.js?v=20261220-shield4"></script>
+<script src="js/main.js?v=20261220-shield4"></script>
 </body>
 </html>

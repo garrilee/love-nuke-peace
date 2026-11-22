@@ -97,7 +97,8 @@ function stepNation(n, dt) {
     }
   }
   // 技能计时
-  n.shieldT = Math.max(0, n.shieldT - dt); n.shieldCd = Math.max(0, n.shieldCd - dt);
+  n.shieldT = Math.max(0, n.shieldT - dt);
+  if (n.shieldStackT > 0) { n.shieldStackT -= dt; if (n.shieldStackT <= 0) { n.shieldStackT = 0; n.shieldStack = 0; } } // 护盾过载到时清零
   n.netT = Math.max(0, n.netT - dt); n.netCd = Math.max(0, n.netCd - dt);
   n.convCd = Math.max(0, n.convCd - dt);
   n.convBuildT = Math.max(0, (n.convBuildT || 0) - dt);

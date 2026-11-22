@@ -123,7 +123,7 @@ Bus.on('leader', ({ n, text, to }) => { if (to === undefined || to === G.player.
 Bus.on('banner', (t) => UI.banner(t));
 Bus.on('techChoice', (n) => {
   if (n !== G.player) return;
-  UI.tip('techChoice', `🔬 第 4 级科技二选一：<button class="rt-btn atk" onclick="Act.do({a:'research',id:'lv4'});UI.hideTip()">☢ 闪送 · 主攻</button> <button class="rt-btn def" onclick="Act.do({a:'research',id:'net'});UI.hideTip()">🛡 拦截网 · 主防</button><br><span class="small dim">两条路线都能研发东风；${TECH_PICK_WAIT} 秒不选按你的核武/三防分配自动选</span>`, { life: TECH_PICK_WAIT });
+  UI.tip('techChoice', `🔬 第 4 级科技二选一：<button class="rt-btn atk" onclick="Act.do({a:'research',id:'lv4'});UI.hideTip()">☢ 闪送 · 主攻</button> <button class="rt-btn def" onclick="Act.do({a:'research',id:'net'});UI.hideTip()">🛡 拦截网 · 主防</button><br><span class="small dim">两条路线都能研发东风；${TECH_PICK_WAIT} 秒不选按你的核武/护盾分配自动选</span>`, { life: TECH_PICK_WAIT });
 });
 Bus.on('midnight', () => SFX.bell());
 Bus.on('dogfight', ({ a, b }) => {

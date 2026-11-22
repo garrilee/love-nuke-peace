@@ -154,10 +154,17 @@ function autoNet(n) {
 
 // ---------- 技能 ----------
 // 护盾持续时间：全域护盾 +50%；快速局 ×0.4
+// 开一次护盾要多少能量（刀盾、三体人更省）
+// 连续开盾越来越贵：每开一次“过载”加一层，每层让下一次的消耗 +step；最后一次开盾 clear 秒后过载清零，回到原价
+const shieldCost = (n) => COSTS.shield * (n.mods.shieldCost || 1) * (1 + SKILLS.shield.step * (n.shieldStack || 0));
 const shieldDur = (n) => SKILLS.shield.dur * (has(n, 'aegis') ? 1.5 : 1) * (G.quick ? QUICK.shieldDur : 1);
 function useShield(n) {
-  if (!n.alive || n.hackT > 0 || isChaos(n) || n.shieldCd > 0 || n.energy < COSTS.shield || n.mods.noShield || n.mods.fortress) return false; // 虫族没有护盾；堡垒国的护盾由换班机制管
-  n.energy -= COSTS.shield; n.shieldT = shieldDur(n); n.shieldCd = SKILLS.shield.cd * (n.mods.shieldCd || 1);
+  // 护盾没有冷却：只要能量够就能开，护盾还在时再开一次就是续上。但连续开会越来越贵（见 shieldCost）
+  const cost = shieldCost(n);
+  if (!n.alive || n.hackT > 0 || isChaos(n) || n.energy < cost || n.mods.noShield || n.mods.fortress || n.shieldT > shieldDur(n) * 2) return false;
+  if (SKILLS.shield.aiGap && !n.isPlayer && G.t - (n.shieldAt ?? -999) < SKILLS.shield.aiGap * (n.mods.shieldCost || 1)) return false; // 虫族没有护盾；堡垒国的护盾由换班机制管
+  n.energy -= cost; n.shieldT += shieldDur(n); n.shieldAt = G.t;
+  n.shieldStack = (n.shieldStack || 0) + 1; n.shieldStackT = SKILLS.shield.clear * (n.mods.shieldCost || 1);
   Bus.emit('skill', { n, kind: 'shield' }); return true;
 }
 const netChance = (n) => (has(n, 'net') ? SKILLS.net.chanceUp : SKILLS.net.chance);
